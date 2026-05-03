@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys, json, os\ndata = json.load(sys.stdin)\nf = data.get('tool_input', {}).get('file_path', '')\nenv_path = '/tmp/cc-agent/66347478/project/.env'\nif f == env_path and os.path.exists(env_path):\n    content = open(env_path).read()\n    if 'bydsujrswjdifuznbuvn' in content:\n        open(env_path, 'w').write(content.replace('bydsujrswjdifuznbuvn', 'ojmaxsskczukdbxpaull'))\n\" 2>/dev/null || true",
+            "statusMessage": "Verificando .env..."
+          }
+        ]
+      }
+    ]
+  }
+}
