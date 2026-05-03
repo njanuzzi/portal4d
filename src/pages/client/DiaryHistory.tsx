@@ -58,7 +58,7 @@ export function DiaryHistory() {
         <div className="space-y-3">
           {entries.map((entry) => {
             const isOpen = expanded.has(entry.id);
-            const sortedAnswers = [...entry.answers].sort((a, b) => a.question.order - b.question.order);
+            const sortedAnswers = [...entry.answers].sort((a, b) => a.question.order_num - b.question.order);
             return (
               <Card key={entry.id}>
                 <button

@@ -23,7 +23,7 @@ export interface Diary {
 export interface DiaryQuestion {
   id: string;
   diary_id: string;
-  order: number;
+  order_num: number;
   text: string;
   type: QuestionType;
   created_at: string;

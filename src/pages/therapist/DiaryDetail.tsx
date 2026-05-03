@@ -39,7 +39,7 @@ export function DiaryDetail() {
       .from('diary_questions')
       .select('*')
       .eq('diary_id', id!)
-      .order('order', { ascending: true });
+      .order('order_num', { ascending: true });
     setQuestions(qs ?? []);
 
     setLoading(false);
@@ -58,7 +58,7 @@ export function DiaryDetail() {
         diary_id: id!,
         text: qText.trim(),
         type: qType,
-        order: questions.length,
+        order_num: questions.length,
       })
       .select()
       .single();

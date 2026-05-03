@@ -70,7 +70,7 @@ export function NewDiary() {
         diary_id: diary.id,
         text: q.text.trim(),
         type: q.type,
-        order: idx,
+        order_num: idx,
       }))
     );
 

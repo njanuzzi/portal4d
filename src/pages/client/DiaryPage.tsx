@@ -44,7 +44,7 @@ export function DiaryPage() {
           .from('diary_questions')
           .select('*')
           .eq('diary_id', activeDiary.id)
-          .order('order');
+          .order('order_num');
 
         const loadedQuestions = qs || [];
         setQuestions(loadedQuestions);
