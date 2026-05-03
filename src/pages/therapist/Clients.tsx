@@ -12,13 +12,17 @@ import { formatDate } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
 import type { Profile, Diary } from '../../lib/database.types';
 
+type ClientProfile = Profile & { diary_id?: string | null };
+
+const ACTIVE_DIARY_MESSAGE = 'Nenhum diário ativo. Ative um diário antes de cadastrar clientes.';
+
 export function Clients() {
-  const [clients, setClients] = useState<Profile[]>([]);
+  const [clients, setClients] = useState<ClientProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   // Edit modal state
-  const [editClient, setEditClient] = useState<Profile | null>(null);
+  const [editClient, setEditClient] = useState<ClientProfile | null>(null);
   const [editName, setEditName] = useState('');
   const [editWhatsapp, setEditWhatsapp] = useState('');
   const [editAddress, setEditAddress] = useState('');
@@ -28,11 +32,11 @@ export function Clients() {
   const [diaries, setDiaries] = useState<Diary[]>([]);
 
   // Delete modal state
-  const [deleteClient, setDeleteClient] = useState<Profile | null>(null);
+  const [deleteClient, setDeleteClient] = useState<ClientProfile | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  const hasActiveDiary = diaries.some((d) => d.is_active);
+  const hasActiveDiary = diaries.length > 0;
 
   useEffect(() => {
     supabase
@@ -41,31 +45,43 @@ export function Clients() {
       .eq('role', 'client')
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        setClients(data ?? []);
+        setClients((data ?? []) as ClientProfile[]);
         setLoading(false);
       });
 
     supabase
       .from('diaries')
       .select('id, name, is_active, created_at, updated_at')
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .then(({ data }) => setDiaries(data ?? []));
   }, []);
 
-  const openEdit = (client: Profile) => {
+  const openEdit = (client: ClientProfile) => {
+    const selectedDiaryId =
+      client.diary_id && diaries.some((d) => d.id === client.diary_id)
+        ? client.diary_id
+        : diaries[0]?.id ?? '';
+
     setEditClient(client);
     setEditName(client.name);
     setEditWhatsapp(client.whatsapp ?? '');
     setEditAddress(client.address ?? '');
-    setEditDiaryId('');
+    setEditDiaryId(selectedDiaryId);
     setEditError('');
   };
 
   const handleEditSave = async (e: FormEvent) => {
     e.preventDefault();
     if (!editClient) return;
-    setEditLoading(true);
     setEditError('');
+
+    if (!editDiaryId) {
+      setEditError(ACTIVE_DIARY_MESSAGE);
+      return;
+    }
+
+    setEditLoading(true);
 
     const { data: updatedClient, error } = await supabase
       .from('profiles')
@@ -73,7 +89,8 @@ export function Clients() {
         name: editName.trim(),
         whatsapp: editWhatsapp || null,
         address: editAddress || null,
-      })
+        diary_id: editDiaryId,
+      } as any)
       .eq('id', editClient.id)
       .select()
       .single();
@@ -85,13 +102,13 @@ export function Clients() {
     }
 
     setClients((prev) =>
-      prev.map((c) => c.id === editClient.id ? updatedClient : c)
+      prev.map((c) => c.id === editClient.id ? (updatedClient as ClientProfile) : c)
     );
     setEditClient(null);
     setEditLoading(false);
   };
 
-  const openDelete = (client: Profile) => {
+  const openDelete = (client: ClientProfile) => {
     setDeleteClient(client);
     setDeleteError('');
   };
@@ -101,9 +118,20 @@ export function Clients() {
     setDeleteLoading(true);
     setDeleteError('');
 
-    const { error } = await supabase.from('profiles').delete().eq('id', deleteClient.id);
+    const { data: deletedRows, error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', deleteClient.id)
+      .select('id');
+
     if (error) {
       setDeleteError(error.message);
+      setDeleteLoading(false);
+      return;
+    }
+
+    if (!deletedRows || deletedRows.length === 0) {
+      setDeleteError('Não foi possível confirmar a exclusão no banco.');
       setDeleteLoading(false);
       return;
     }
@@ -205,7 +233,7 @@ export function Clients() {
         <form onSubmit={handleEditSave} className="space-y-4">
           {!hasActiveDiary && (
             <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              Nenhum diário ativo. Cadastre e ative um diário antes de adicionar clientes.
+              {ACTIVE_DIARY_MESSAGE}
             </div>
           )}
           <Input
@@ -232,9 +260,9 @@ export function Clients() {
 
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-dark/80">Diário vinculado</label>
-            {diaries.length === 0 ? (
+            {!hasActiveDiary ? (
               <div className="w-full px-3 py-2.5 rounded-lg border border-beige-300 bg-beige-50 text-sm text-dark/40">
-                Nenhum diário criado
+                Nenhum diário ativo
               </div>
             ) : (
               <select
@@ -242,10 +270,9 @@ export function Clients() {
                 onChange={(e) => setEditDiaryId(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-lg border border-beige-300 text-dark text-sm bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent transition-colors"
               >
-                <option value="">Selecionar diário...</option>
                 {diaries.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.name}{d.is_active ? ' (ativo)' : ''}
+                    {d.name}
                   </option>
                 ))}
               </select>
@@ -259,7 +286,7 @@ export function Clients() {
           )}
 
           <div className="flex gap-3 pt-2">
-            <Button type="submit" loading={editLoading} disabled={!hasActiveDiary} className="flex-1">
+            <Button type="submit" loading={editLoading} disabled={!hasActiveDiary || !editDiaryId} className="flex-1">
               Salvar
             </Button>
             <Button type="button" variant="ghost" onClick={() => setEditClient(null)}>Cancelar</Button>
