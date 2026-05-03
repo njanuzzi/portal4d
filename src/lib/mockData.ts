@@ -42,14 +42,12 @@ export const MOCK_DIARIES: Diary[] = [
     name: 'Diário Emocional — 4D',
     is_active: true,
     created_at: '2026-02-01T00:00:00Z',
-    updated_at: '2026-03-01T00:00:00Z',
   },
   {
     id: 'dev-diary-2',
     name: 'Diário de Pensamentos Automáticos',
     is_active: false,
     created_at: '2026-01-15T00:00:00Z',
-    updated_at: '2026-01-15T00:00:00Z',
   },
 ];
 
