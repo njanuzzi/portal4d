@@ -67,32 +67,25 @@ export function Clients() {
     setEditLoading(true);
     setEditError('');
 
-    const { error } = await supabase
+    const { data: updatedClient, error } = await supabase
       .from('profiles')
       .update({
         name: editName.trim(),
         whatsapp: editWhatsapp || null,
         address: editAddress || null,
       })
-      .eq('id', editClient.id);
+      .eq('id', editClient.id)
+      .select()
+      .single();
 
-    if (error) {
-      setEditError(error.message);
+    if (error || !updatedClient) {
+      setEditError(error?.message ?? 'Não foi possível atualizar o cliente.');
       setEditLoading(false);
       return;
     }
 
-    const updatedId = editClient.id;
-    const updatedName = editName.trim();
-    const updatedWhatsapp = editWhatsapp || null;
-    const updatedAddress = editAddress || null;
-
     setClients((prev) =>
-      prev.map((c) =>
-        c.id === updatedId
-          ? { ...c, name: updatedName, whatsapp: updatedWhatsapp, address: updatedAddress }
-          : c
-      )
+      prev.map((c) => c.id === editClient.id ? updatedClient : c)
     );
     setEditClient(null);
     setEditLoading(false);
