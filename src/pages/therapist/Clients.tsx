@@ -1,6 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { UserPlus, Search, ChevronRight, User, Pencil, Trash2 } from 'lucide-react';
+import { UserPlus, Search, ChevronRight, User, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -20,6 +20,8 @@ export function Clients() {
   const [clients, setClients] = useState<ClientProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [togglingClientId, setTogglingClientId] = useState<string | null>(null);
 
   // Edit modal state
   const [editClient, setEditClient] = useState<ClientProfile | null>(null);
@@ -108,6 +110,29 @@ export function Clients() {
     setEditLoading(false);
   };
 
+  const toggleClientActive = async (client: ClientProfile) => {
+    setActionError('');
+    setTogglingClientId(client.id);
+
+    const { data: updatedClient, error } = await supabase
+      .from('profiles')
+      .update({ active: !client.active })
+      .eq('id', client.id)
+      .select()
+      .single();
+
+    if (error || !updatedClient) {
+      setActionError(error?.message ?? 'Não foi possível atualizar o status do cliente.');
+      setTogglingClientId(null);
+      return;
+    }
+
+    setClients((prev) =>
+      prev.map((c) => c.id === client.id ? (updatedClient as ClientProfile) : c)
+    );
+    setTogglingClientId(null);
+  };
+
   const openDelete = (client: ClientProfile) => {
     setDeleteClient(client);
     setDeleteError('');
@@ -178,6 +203,12 @@ export function Clients() {
         </div>
       )}
 
+      {actionError && (
+        <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {actionError}
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <EmptyState
           icon={<User size={40} />}
@@ -194,36 +225,52 @@ export function Clients() {
       ) : (
         <Card>
           <div className="divide-y divide-beige-200">
-            {filtered.map((client) => (
-              <div key={client.id} className="flex items-center gap-4 px-6 py-4 hover:bg-beige-50 transition-colors group">
-                <Link to={`/clients/${client.id}`} className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-petrol-100 flex items-center justify-center shrink-0">
-                    <span className="text-petrol-700 font-medium text-sm">
-                      {client.name?.charAt(0)?.toUpperCase() || '?'}
-                    </span>
+            {filtered.map((client) => {
+              const isInactive = !client.active;
+
+              return (
+                <div
+                  key={client.id}
+                  className={`flex items-center gap-4 px-6 py-4 hover:bg-beige-50 transition-colors group ${isInactive ? 'bg-beige-50 opacity-70' : ''}`}
+                >
+                  <Link to={`/clients/${client.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isInactive ? 'bg-beige-200' : 'bg-petrol-100'}`}>
+                      <span className={`font-medium text-sm ${isInactive ? 'text-dark/40' : 'text-petrol-700'}`}>
+                        {client.name?.charAt(0)?.toUpperCase() || '?'}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`font-medium text-sm ${isInactive ? 'text-dark/50' : 'text-dark'}`}>{client.name}</div>
+                      <div className="text-dark/40 text-xs truncate">{client.email}</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="hidden sm:block text-xs text-dark/30">{formatDate(client.created_at)}</div>
+                      <Badge variant={client.active ? 'success' : 'neutral'}>
+                        {client.active ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                      <ChevronRight size={16} className="text-dark/20 group-hover:text-dark/50 transition-colors" />
+                    </div>
+                  </Link>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      loading={togglingClientId === client.id}
+                      onClick={() => toggleClientActive(client)}
+                    >
+                      {client.active ? <ToggleRight size={14} className="text-emerald-500" /> : <ToggleLeft size={14} />}
+                      <span className="hidden sm:inline">{client.active ? 'Desativar' : 'Ativar'}</span>
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(client)}>
+                      <Pencil size={14} />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => openDelete(client)}>
+                      <Trash2 size={14} className="text-red-400" />
+                    </Button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-dark text-sm">{client.name}</div>
-                    <div className="text-dark/40 text-xs truncate">{client.email}</div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="hidden sm:block text-xs text-dark/30">{formatDate(client.created_at)}</div>
-                    <Badge variant={client.active ? 'success' : 'neutral'}>
-                      {client.active ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                    <ChevronRight size={16} className="text-dark/20 group-hover:text-dark/50 transition-colors" />
-                  </div>
-                </Link>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="sm" onClick={() => openEdit(client)}>
-                    <Pencil size={14} />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => openDelete(client)}>
-                    <Trash2 size={14} className="text-red-400" />
-                  </Button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       )}
