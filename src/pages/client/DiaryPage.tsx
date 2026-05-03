@@ -32,7 +32,7 @@ export function DiaryPage() {
   useEffect(() => {
     const load = async () => {
       const [{ data: activeDiary }, { data: entry }] = await Promise.all([
-        supabase.from('diaries').select('*').eq('is_active', true).maybeSingle(),
+        supabase.from('diaries').select('id, name, is_active, created_at').eq('is_active', true).maybeSingle(),
         supabase.from('diary_entries').select('*').eq('user_id', user!.id).eq('date', today).maybeSingle(),
       ]);
 
