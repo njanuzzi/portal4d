@@ -23,16 +23,50 @@ export function NewClient() {
   const hasActiveDiary = diaries.length > 0;
 
   useEffect(() => {
-    supabase
-      .from('diaries')
-      .select('id, name, is_active, created_at, updated_at')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        const activeDiaries = data ?? [];
-        setDiaries(activeDiaries);
-        setDiaryId(activeDiaries[0]?.id ?? '');
-      });
+    let isMounted = true;
+
+    const loadActiveDiaries = async () => {
+      const { data } = await supabase
+        .from('diaries')
+        .select('id, name, is_active, created_at, updated_at')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (!isMounted) return;
+
+      const activeDiaries = data ?? [];
+      setDiaries(activeDiaries);
+      setDiaryId((currentDiaryId) =>
+        currentDiaryId && activeDiaries.some((diary) => diary.id === currentDiaryId)
+          ? currentDiaryId
+          : activeDiaries[0]?.id ?? ''
+      );
+      setError((currentError) =>
+        currentError === ACTIVE_DIARY_MESSAGE && activeDiaries.length > 0 ? '' : currentError
+      );
+    };
+
+    const refreshActiveDiaries = () => {
+      void loadActiveDiaries();
+    };
+
+    const refreshWhenVisible = () => {
+      if (!document.hidden) refreshActiveDiaries();
+    };
+
+    refreshActiveDiaries();
+    window.addEventListener('focus', refreshActiveDiaries);
+    window.addEventListener('pageshow', refreshActiveDiaries);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    const intervalId = window.setInterval(refreshActiveDiaries, 10000);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', refreshActiveDiaries);
+      window.removeEventListener('pageshow', refreshActiveDiaries);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
