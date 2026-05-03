@@ -56,7 +56,7 @@ export function NewDiary() {
     const { data: diary, error: diaryErr } = await supabase
       .from('diaries')
       .insert({ name: name.trim(), is_active: false })
-      .select()
+      .select('id, name, is_active, created_at')
       .single();
 
     if (diaryErr || !diary) {
