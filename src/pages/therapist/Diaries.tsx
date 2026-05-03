@@ -71,16 +71,19 @@ export function Diaries() {
 
   const activateDiary = async (diary: Diary) => {
     setToggling(diary.id);
-    await supabase.from('diaries').update({ is_active: false }).neq('id', diary.id);
-    await supabase.from('diaries').update({ is_active: true }).eq('id', diary.id);
-    await load();
+    const { error: err1 } = await supabase.from('diaries').update({ is_active: false }).neq('id', diary.id);
+    if (err1) { setToggling(null); return; }
+    const { error: err2 } = await supabase.from('diaries').update({ is_active: true }).eq('id', diary.id);
+    if (err2) { setToggling(null); return; }
+    setDiaries((prev) => prev.map((d) => ({ ...d, is_active: d.id === diary.id })));
     setToggling(null);
   };
 
   const deactivateDiary = async (diary: Diary) => {
     setToggling(diary.id);
-    await supabase.from('diaries').update({ is_active: false }).eq('id', diary.id);
-    await load();
+    const { error } = await supabase.from('diaries').update({ is_active: false }).eq('id', diary.id);
+    if (error) { setToggling(null); return; }
+    setDiaries((prev) => prev.map((d) => d.id === diary.id ? { ...d, is_active: false } : d));
     setToggling(null);
   };
 
@@ -125,8 +128,10 @@ export function Diaries() {
       }
     }
 
+    setDiaries((prev) =>
+      prev.map((d) => d.id === editDiary.id ? { ...d, name: editName.trim() } : d)
+    );
     setEditDiary(null);
-    await load();
     setEditLoading(false);
   };
 
@@ -151,9 +156,10 @@ export function Diaries() {
       return;
     }
 
+    const deletedId = deleteDiary.id;
     setDeleteDiary(null);
     setDeleteLoading(false);
-    await load();
+    setDiaries((prev) => prev.filter((d) => d.id !== deletedId));
   };
 
   if (loading) return <PageSpinner />;

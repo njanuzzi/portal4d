@@ -34,7 +34,7 @@ export function Clients() {
 
   const hasActiveDiary = diaries.some((d) => d.is_active);
 
-  const loadClients = () =>
+  useEffect(() => {
     supabase
       .from('profiles')
       .select('*')
@@ -45,16 +45,11 @@ export function Clients() {
         setLoading(false);
       });
 
-  const loadDiaries = () =>
     supabase
       .from('diaries')
       .select('id, name, is_active, created_at, updated_at')
       .order('created_at', { ascending: false })
       .then(({ data }) => setDiaries(data ?? []));
-
-  useEffect(() => {
-    loadClients();
-    loadDiaries();
   }, []);
 
   const openEdit = (client: Profile) => {
@@ -87,8 +82,19 @@ export function Clients() {
       return;
     }
 
+    const updatedId = editClient.id;
+    const updatedName = editName.trim();
+    const updatedWhatsapp = editWhatsapp || null;
+    const updatedAddress = editAddress || null;
+
+    setClients((prev) =>
+      prev.map((c) =>
+        c.id === updatedId
+          ? { ...c, name: updatedName, whatsapp: updatedWhatsapp, address: updatedAddress }
+          : c
+      )
+    );
     setEditClient(null);
-    await loadClients();
     setEditLoading(false);
   };
 
@@ -100,15 +106,19 @@ export function Clients() {
   const handleDelete = async () => {
     if (!deleteClient) return;
     setDeleteLoading(true);
+    setDeleteError('');
+
     const { error } = await supabase.from('profiles').delete().eq('id', deleteClient.id);
     if (error) {
       setDeleteError(error.message);
       setDeleteLoading(false);
       return;
     }
+
+    const deletedId = deleteClient.id;
     setDeleteClient(null);
     setDeleteLoading(false);
-    await loadClients();
+    setClients((prev) => prev.filter((c) => c.id !== deletedId));
   };
 
   const filtered = clients.filter(
