@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 import type { Diary } from '../../lib/database.types';
 
 const ACTIVE_DIARY_MESSAGE = 'Nenhum diário ativo. Ative um diário antes de cadastrar clientes.';
+const DEBUG_PREFIX = '[NewClient active diaries]';
 
 export function NewClient() {
   const navigate = useNavigate();
@@ -23,48 +24,116 @@ export function NewClient() {
   const hasActiveDiary = diaries.length > 0;
 
   useEffect(() => {
+    console.log(`${DEBUG_PREFIX} state updated`, {
+      activeDiaryExists: hasActiveDiary,
+      activeDiariesCount: diaries.length,
+      selectedDiaryId: diaryId,
+      activeDiaryIds: diaries.map((diary) => diary.id),
+      activeDiaryNames: diaries.map((diary) => diary.name),
+    });
+  }, [diaries, diaryId, hasActiveDiary]);
+
+  useEffect(() => {
     let isMounted = true;
 
-    const loadActiveDiaries = async () => {
-      const { data } = await supabase
+    console.log(`${DEBUG_PREFIX} useEffect mounted: registering refresh listeners`);
+
+    const loadActiveDiaries = async (source: string) => {
+      console.log(`${DEBUG_PREFIX} fetch started`, { source });
+
+      const { data, error: fetchError } = await supabase
         .from('diaries')
         .select('id, name, is_active, created_at, updated_at')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (!isMounted) return;
+      if (fetchError) {
+        console.error(`${DEBUG_PREFIX} fetch error`, { source, error: fetchError });
+        return;
+      }
+
+      console.log(`${DEBUG_PREFIX} fetch result`, {
+        source,
+        count: data?.length ?? 0,
+        rows: data?.map((diary) => ({
+          id: diary.id,
+          name: diary.name,
+          is_active: diary.is_active,
+        })) ?? [],
+      });
+
+      if (!isMounted) {
+        console.log(`${DEBUG_PREFIX} fetch ignored because component is unmounted`, { source });
+        return;
+      }
 
       const activeDiaries = data ?? [];
+      console.log(`${DEBUG_PREFIX} applying fetched diaries to state`, {
+        source,
+        activeDiaryExists: activeDiaries.length > 0,
+        activeDiariesCount: activeDiaries.length,
+      });
+
       setDiaries(activeDiaries);
-      setDiaryId((currentDiaryId) =>
-        currentDiaryId && activeDiaries.some((diary) => diary.id === currentDiaryId)
+      setDiaryId((currentDiaryId) => {
+        const nextDiaryId = currentDiaryId && activeDiaries.some((diary) => diary.id === currentDiaryId)
           ? currentDiaryId
-          : activeDiaries[0]?.id ?? ''
-      );
-      setError((currentError) =>
-        currentError === ACTIVE_DIARY_MESSAGE && activeDiaries.length > 0 ? '' : currentError
-      );
+          : activeDiaries[0]?.id ?? '';
+
+        console.log(`${DEBUG_PREFIX} selected diary recalculated`, {
+          source,
+          previousDiaryId: currentDiaryId,
+          nextDiaryId,
+        });
+
+        return nextDiaryId;
+      });
+      setError((currentError) => {
+        const nextError = currentError === ACTIVE_DIARY_MESSAGE && activeDiaries.length > 0 ? '' : currentError;
+
+        if (nextError !== currentError) {
+          console.log(`${DEBUG_PREFIX} clearing no-active-diary error`, { source });
+        }
+
+        return nextError;
+      });
     };
 
-    const refreshActiveDiaries = () => {
-      void loadActiveDiaries();
+    const refreshActiveDiaries = (source = 'manual') => {
+      console.log(`${DEBUG_PREFIX} refresh requested`, { source });
+      void loadActiveDiaries(source);
     };
 
-    const refreshWhenVisible = () => {
-      if (!document.hidden) refreshActiveDiaries();
+    const handleFocus = () => {
+      console.log(`${DEBUG_PREFIX} window focus listener fired`);
+      refreshActiveDiaries('window.focus');
     };
 
-    refreshActiveDiaries();
-    window.addEventListener('focus', refreshActiveDiaries);
-    window.addEventListener('pageshow', refreshActiveDiaries);
-    document.addEventListener('visibilitychange', refreshWhenVisible);
-    const intervalId = window.setInterval(refreshActiveDiaries, 10000);
+    const handlePageShow = () => {
+      console.log(`${DEBUG_PREFIX} pageshow listener fired`);
+      refreshActiveDiaries('window.pageshow');
+    };
+
+    const handleVisibilityChange = () => {
+      console.log(`${DEBUG_PREFIX} visibilitychange listener fired`, { hidden: document.hidden });
+      if (!document.hidden) refreshActiveDiaries('document.visibilitychange');
+    };
+
+    refreshActiveDiaries('useEffect.mount');
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const intervalId = window.setInterval(() => {
+      console.log(`${DEBUG_PREFIX} interval refresh fired`);
+      refreshActiveDiaries('interval.10000ms');
+    }, 10000);
 
     return () => {
+      console.log(`${DEBUG_PREFIX} useEffect cleanup: removing refresh listeners`);
       isMounted = false;
-      window.removeEventListener('focus', refreshActiveDiaries);
-      window.removeEventListener('pageshow', refreshActiveDiaries);
-      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(intervalId);
     };
   }, []);
