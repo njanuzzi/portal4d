@@ -17,7 +17,6 @@ export interface Diary {
   name: string;
   is_active: boolean;
   created_at: string;
-  updated_at: string;
 }
 
 export interface DiaryQuestion {
@@ -77,7 +76,7 @@ export type Database = {
       };
       diaries: {
         Row: Diary;
-        Insert: Omit<Diary, 'id' | 'created_at' | 'updated_at'>;
+        Insert: Omit<Diary, 'id' | 'created_at'>;
         Update: Partial<Omit<Diary, 'id' | 'created_at'>>;
       };
       diary_questions: {
