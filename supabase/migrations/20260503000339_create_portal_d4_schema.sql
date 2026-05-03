@@ -7,7 +7,7 @@
      - email, name, role (therapist | client), active, created_at
 
   2. `diaries` - Diários estruturados criados pela terapeuta
-     - id, name, is_active, created_at, updated_at
+     - id, name, is_active, created_at
 
   3. `diary_questions` - Perguntas de cada diário
      - id, diary_id, order, text, type (text | number | scale)
@@ -79,8 +79,7 @@ CREATE TABLE IF NOT EXISTS diaries (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   is_active boolean NOT NULL DEFAULT false,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  created_at timestamptz DEFAULT now()
 );
 
 ALTER TABLE diaries ENABLE ROW LEVEL SECURITY;
