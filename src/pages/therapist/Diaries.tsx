@@ -73,17 +73,36 @@ export function Diaries() {
     setToggling(diary.id);
     const { error: err1 } = await supabase.from('diaries').update({ is_active: false }).neq('id', diary.id);
     if (err1) { setToggling(null); return; }
-    const { error: err2 } = await supabase.from('diaries').update({ is_active: true }).eq('id', diary.id);
-    if (err2) { setToggling(null); return; }
-    setDiaries((prev) => prev.map((d) => ({ ...d, is_active: d.id === diary.id })));
+
+    const { data: updatedDiary, error: err2 } = await supabase
+      .from('diaries')
+      .update({ is_active: true })
+      .eq('id', diary.id)
+      .select()
+      .single();
+
+    if (err2 || !updatedDiary) { setToggling(null); return; }
+
+    setDiaries((prev) =>
+      prev.map((d) => d.id === diary.id ? updatedDiary : { ...d, is_active: false })
+    );
     setToggling(null);
   };
 
   const deactivateDiary = async (diary: Diary) => {
     setToggling(diary.id);
-    const { error } = await supabase.from('diaries').update({ is_active: false }).eq('id', diary.id);
-    if (error) { setToggling(null); return; }
-    setDiaries((prev) => prev.map((d) => d.id === diary.id ? { ...d, is_active: false } : d));
+    const { data: updatedDiary, error } = await supabase
+      .from('diaries')
+      .update({ is_active: false })
+      .eq('id', diary.id)
+      .select()
+      .single();
+
+    if (error || !updatedDiary) { setToggling(null); return; }
+
+    setDiaries((prev) =>
+      prev.map((d) => d.id === diary.id ? updatedDiary : { ...d, is_active: false })
+    );
     setToggling(null);
   };
 
@@ -105,13 +124,15 @@ export function Diaries() {
     setEditLoading(true);
     setEditError('');
 
-    const { error: nameErr } = await supabase
+    const { data: updatedDiary, error: nameErr } = await supabase
       .from('diaries')
       .update({ name: editName.trim() })
-      .eq('id', editDiary.id);
+      .eq('id', editDiary.id)
+      .select()
+      .single();
 
-    if (nameErr) {
-      setEditError(nameErr.message);
+    if (nameErr || !updatedDiary) {
+      setEditError(nameErr?.message ?? 'Não foi possível atualizar o diário.');
       setEditLoading(false);
       return;
     }
@@ -129,7 +150,7 @@ export function Diaries() {
     }
 
     setDiaries((prev) =>
-      prev.map((d) => d.id === editDiary.id ? { ...d, name: editName.trim() } : d)
+      prev.map((d) => d.id === editDiary.id ? updatedDiary : d)
     );
     setEditDiary(null);
     setEditLoading(false);
