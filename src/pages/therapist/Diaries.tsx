@@ -1,6 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, BookOpen, CheckCircle, Circle, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { Plus, BookOpen, CheckCircle, Circle, ChevronRight, Pencil, Trash2, XCircle } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -27,7 +27,7 @@ interface EditQuestion {
 export function Diaries() {
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activating, setActivating] = useState<string | null>(null);
+  const [toggling, setToggling] = useState<string | null>(null);
   const [questionCounts, setQuestionCounts] = useState<Record<string, number>>({});
 
   // Edit modal state
@@ -69,13 +69,19 @@ export function Diaries() {
 
   useEffect(() => { load(); }, []);
 
-  const setActive = async (diary: Diary) => {
-    if (diary.is_active) return;
-    setActivating(diary.id);
+  const activateDiary = async (diary: Diary) => {
+    setToggling(diary.id);
     await supabase.from('diaries').update({ is_active: false }).neq('id', diary.id);
     await supabase.from('diaries').update({ is_active: true }).eq('id', diary.id);
     await load();
-    setActivating(null);
+    setToggling(null);
+  };
+
+  const deactivateDiary = async (diary: Diary) => {
+    setToggling(diary.id);
+    await supabase.from('diaries').update({ is_active: false }).eq('id', diary.id);
+    await load();
+    setToggling(null);
   };
 
   const openEdit = async (diary: Diary) => {
@@ -136,12 +142,15 @@ export function Diaries() {
       return;
     }
     setDeleteLoading(true);
+    setDeleteError('');
+
     const { error } = await supabase.from('diaries').delete().eq('id', deleteDiary.id);
     if (error) {
       setDeleteError(error.message);
       setDeleteLoading(false);
       return;
     }
+
     setDeleteDiary(null);
     setDeleteLoading(false);
     await load();
@@ -193,12 +202,22 @@ export function Diaries() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {!diary.is_active && (
+                  {diary.is_active ? (
                     <Button
                       variant="ghost"
                       size="sm"
-                      loading={activating === diary.id}
-                      onClick={() => setActive(diary)}
+                      loading={toggling === diary.id}
+                      onClick={() => deactivateDiary(diary)}
+                    >
+                      <XCircle size={14} />
+                      Desativar
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      loading={toggling === diary.id}
+                      onClick={() => activateDiary(diary)}
                     >
                       <Circle size={14} />
                       Ativar
