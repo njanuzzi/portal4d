@@ -1,20 +1,46 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, BookOpen, CheckCircle, Circle, ChevronRight } from 'lucide-react';
+import { Plus, BookOpen, CheckCircle, Circle, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PageSpinner } from '../../components/ui/Spinner';
+import { Modal } from '../../components/ui/Modal';
+import { Input } from '../../components/ui/Input';
 import { formatDate } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
-import type { Diary } from '../../lib/database.types';
+import type { Diary, DiaryQuestion, QuestionType } from '../../lib/database.types';
+
+const TYPE_LABELS: Record<QuestionType, string> = {
+  text: 'Texto livre',
+  number: 'Número',
+  scale: 'Escala (1-10)',
+};
+
+interface EditQuestion {
+  id: string;
+  text: string;
+  type: QuestionType;
+}
 
 export function Diaries() {
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState<string | null>(null);
   const [questionCounts, setQuestionCounts] = useState<Record<string, number>>({});
+
+  // Edit modal state
+  const [editDiary, setEditDiary] = useState<Diary | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editQuestions, setEditQuestions] = useState<EditQuestion[]>([]);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+
+  // Delete modal state
+  const [deleteDiary, setDeleteDiary] = useState<Diary | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -46,11 +72,79 @@ export function Diaries() {
   const setActive = async (diary: Diary) => {
     if (diary.is_active) return;
     setActivating(diary.id);
-    // Deactivate all then activate selected (DB trigger also handles this, but we do it explicitly)
     await supabase.from('diaries').update({ is_active: false }).neq('id', diary.id);
     await supabase.from('diaries').update({ is_active: true }).eq('id', diary.id);
     await load();
     setActivating(null);
+  };
+
+  const openEdit = async (diary: Diary) => {
+    setEditDiary(diary);
+    setEditName(diary.name);
+    setEditError('');
+    const { data: qs } = await supabase
+      .from('diary_questions')
+      .select('*')
+      .eq('diary_id', diary.id)
+      .order('order_num', { ascending: true });
+    setEditQuestions((qs as DiaryQuestion[] ?? []).map((q) => ({ id: q.id, text: q.text, type: q.type })));
+  };
+
+  const handleEditSave = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!editDiary) return;
+    setEditLoading(true);
+    setEditError('');
+
+    const { error: nameErr } = await supabase
+      .from('diaries')
+      .update({ name: editName.trim() })
+      .eq('id', editDiary.id);
+
+    if (nameErr) {
+      setEditError(nameErr.message);
+      setEditLoading(false);
+      return;
+    }
+
+    for (const q of editQuestions) {
+      const { error: qErr } = await supabase
+        .from('diary_questions')
+        .update({ text: q.text, type: q.type })
+        .eq('id', q.id);
+      if (qErr) {
+        setEditError(qErr.message);
+        setEditLoading(false);
+        return;
+      }
+    }
+
+    setEditDiary(null);
+    await load();
+    setEditLoading(false);
+  };
+
+  const openDelete = (diary: Diary) => {
+    setDeleteDiary(diary);
+    setDeleteError('');
+  };
+
+  const handleDelete = async () => {
+    if (!deleteDiary) return;
+    if (deleteDiary.is_active) {
+      setDeleteError('Desative o diário antes de excluir.');
+      return;
+    }
+    setDeleteLoading(true);
+    const { error } = await supabase.from('diaries').delete().eq('id', deleteDiary.id);
+    if (error) {
+      setDeleteError(error.message);
+      setDeleteLoading(false);
+      return;
+    }
+    setDeleteDiary(null);
+    setDeleteLoading(false);
+    await load();
   };
 
   if (loading) return <PageSpinner />;
@@ -116,6 +210,12 @@ export function Diaries() {
                       Ativo
                     </span>
                   )}
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(diary)}>
+                    <Pencil size={14} />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => openDelete(diary)}>
+                    <Trash2 size={14} className="text-red-400" />
+                  </Button>
                   <Link to={`/diaries/${diary.id}`}>
                     <Button variant="ghost" size="sm">
                       <ChevronRight size={14} />
@@ -127,6 +227,87 @@ export function Diaries() {
           ))}
         </div>
       )}
+
+      {/* Edit Modal */}
+      <Modal open={!!editDiary} onClose={() => setEditDiary(null)} title="Editar Diário" size="md">
+        <form onSubmit={handleEditSave} className="space-y-4">
+          <Input
+            label="Nome do diário"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            required
+            autoFocus
+          />
+
+          {editQuestions.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-dark/80">Perguntas</p>
+              {editQuestions.map((q, idx) => (
+                <div key={q.id} className="flex gap-2 items-start">
+                  <span className="w-5 text-xs text-dark/40 pt-2.5 shrink-0">{idx + 1}.</span>
+                  <div className="flex-1 space-y-1">
+                    <input
+                      type="text"
+                      value={q.text}
+                      onChange={(e) => {
+                        const updated = [...editQuestions];
+                        updated[idx] = { ...updated[idx], text: e.target.value };
+                        setEditQuestions(updated);
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400"
+                      required
+                    />
+                    <select
+                      value={q.type}
+                      onChange={(e) => {
+                        const updated = [...editQuestions];
+                        updated[idx] = { ...updated[idx], type: e.target.value as QuestionType };
+                        setEditQuestions(updated);
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-beige-300 text-xs text-dark/70 bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400"
+                    >
+                      {(Object.keys(TYPE_LABELS) as QuestionType[]).map((t) => (
+                        <option key={t} value={t}>{TYPE_LABELS[t]}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {editError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {editError}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button type="submit" loading={editLoading} className="flex-1">Salvar</Button>
+            <Button type="button" variant="ghost" onClick={() => setEditDiary(null)}>Cancelar</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteDiary} onClose={() => setDeleteDiary(null)} title="Excluir Diário" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-dark/70">
+            Tem certeza? Esta ação não pode ser desfeita.
+          </p>
+          {deleteError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {deleteError}
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Button variant="danger" loading={deleteLoading} onClick={handleDelete} className="flex-1">
+              Excluir
+            </Button>
+            <Button variant="ghost" onClick={() => setDeleteDiary(null)}>Cancelar</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

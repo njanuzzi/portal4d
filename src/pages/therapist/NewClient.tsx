@@ -18,6 +18,8 @@ export function NewClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const hasActiveDiary = diaries.some((d) => d.is_active);
+
   useEffect(() => {
     supabase
       .from('diaries')
@@ -94,6 +96,12 @@ export function NewClient() {
 
       <Card>
         <CardBody>
+          {!hasActiveDiary && diaries.length > 0 && (
+            <div className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Nenhum diário ativo. Cadastre e ative um diário antes de adicionar clientes.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Nome completo"
@@ -157,7 +165,7 @@ export function NewClient() {
             )}
 
             <div className="flex gap-3 pt-2">
-              <Button type="submit" loading={loading} className="flex-1">
+              <Button type="submit" loading={loading} disabled={!hasActiveDiary} className="flex-1">
                 Cadastrar Cliente
               </Button>
               <Link to="/clients">

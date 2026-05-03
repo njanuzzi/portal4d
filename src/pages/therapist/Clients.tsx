@@ -1,21 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { UserPlus, Search, ChevronRight, User } from 'lucide-react';
+import { UserPlus, Search, ChevronRight, User, Pencil, Trash2 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PageSpinner } from '../../components/ui/Spinner';
+import { Modal } from '../../components/ui/Modal';
+import { Input } from '../../components/ui/Input';
 import { formatDate } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
-import type { Profile } from '../../lib/database.types';
+import type { Profile, Diary } from '../../lib/database.types';
 
 export function Clients() {
   const [clients, setClients] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
+  // Edit modal state
+  const [editClient, setEditClient] = useState<Profile | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editWhatsapp, setEditWhatsapp] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editDiaryId, setEditDiaryId] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [diaries, setDiaries] = useState<Diary[]>([]);
+
+  // Delete modal state
+  const [deleteClient, setDeleteClient] = useState<Profile | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  const hasActiveDiary = diaries.some((d) => d.is_active);
+
+  const loadClients = () =>
     supabase
       .from('profiles')
       .select('*')
@@ -25,7 +44,72 @@ export function Clients() {
         setClients(data ?? []);
         setLoading(false);
       });
+
+  const loadDiaries = () =>
+    supabase
+      .from('diaries')
+      .select('id, name, is_active, created_at, updated_at')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setDiaries(data ?? []));
+
+  useEffect(() => {
+    loadClients();
+    loadDiaries();
   }, []);
+
+  const openEdit = (client: Profile) => {
+    setEditClient(client);
+    setEditName(client.name);
+    setEditWhatsapp(client.whatsapp ?? '');
+    setEditAddress(client.address ?? '');
+    setEditDiaryId('');
+    setEditError('');
+  };
+
+  const handleEditSave = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!editClient) return;
+    setEditLoading(true);
+    setEditError('');
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        name: editName.trim(),
+        whatsapp: editWhatsapp || null,
+        address: editAddress || null,
+      })
+      .eq('id', editClient.id);
+
+    if (error) {
+      setEditError(error.message);
+      setEditLoading(false);
+      return;
+    }
+
+    setEditClient(null);
+    await loadClients();
+    setEditLoading(false);
+  };
+
+  const openDelete = (client: Profile) => {
+    setDeleteClient(client);
+    setDeleteError('');
+  };
+
+  const handleDelete = async () => {
+    if (!deleteClient) return;
+    setDeleteLoading(true);
+    const { error } = await supabase.from('profiles').delete().eq('id', deleteClient.id);
+    if (error) {
+      setDeleteError(error.message);
+      setDeleteLoading(false);
+      return;
+    }
+    setDeleteClient(null);
+    setDeleteLoading(false);
+    await loadClients();
+  };
 
   const filtered = clients.filter(
     (c) =>
@@ -80,32 +164,125 @@ export function Clients() {
         <Card>
           <div className="divide-y divide-beige-200">
             {filtered.map((client) => (
-              <Link
-                key={client.id}
-                to={`/clients/${client.id}`}
-                className="flex items-center gap-4 px-6 py-4 hover:bg-beige-50 transition-colors group"
-              >
-                <div className="w-10 h-10 rounded-full bg-petrol-100 flex items-center justify-center shrink-0">
-                  <span className="text-petrol-700 font-medium text-sm">
-                    {client.name?.charAt(0)?.toUpperCase() || '?'}
-                  </span>
+              <div key={client.id} className="flex items-center gap-4 px-6 py-4 hover:bg-beige-50 transition-colors group">
+                <Link to={`/clients/${client.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-petrol-100 flex items-center justify-center shrink-0">
+                    <span className="text-petrol-700 font-medium text-sm">
+                      {client.name?.charAt(0)?.toUpperCase() || '?'}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-dark text-sm">{client.name}</div>
+                    <div className="text-dark/40 text-xs truncate">{client.email}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="hidden sm:block text-xs text-dark/30">{formatDate(client.created_at)}</div>
+                    <Badge variant={client.active ? 'success' : 'neutral'}>
+                      {client.active ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                    <ChevronRight size={16} className="text-dark/20 group-hover:text-dark/50 transition-colors" />
+                  </div>
+                </Link>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="sm" onClick={() => openEdit(client)}>
+                    <Pencil size={14} />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => openDelete(client)}>
+                    <Trash2 size={14} className="text-red-400" />
+                  </Button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-dark text-sm">{client.name}</div>
-                  <div className="text-dark/40 text-xs truncate">{client.email}</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="hidden sm:block text-xs text-dark/30">{formatDate(client.created_at)}</div>
-                  <Badge variant={client.active ? 'success' : 'neutral'}>
-                    {client.active ? 'Ativo' : 'Inativo'}
-                  </Badge>
-                  <ChevronRight size={16} className="text-dark/20 group-hover:text-dark/50 transition-colors" />
-                </div>
-              </Link>
+              </div>
             ))}
           </div>
         </Card>
       )}
+
+      {/* Edit Modal */}
+      <Modal open={!!editClient} onClose={() => setEditClient(null)} title="Editar Cliente" size="md">
+        <form onSubmit={handleEditSave} className="space-y-4">
+          {!hasActiveDiary && (
+            <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Nenhum diário ativo. Cadastre e ative um diário antes de adicionar clientes.
+            </div>
+          )}
+          <Input
+            label="Nome completo"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            required
+            autoFocus
+          />
+          <Input
+            label="WhatsApp"
+            type="text"
+            placeholder="(00) 00000-0000"
+            value={editWhatsapp}
+            onChange={(e) => setEditWhatsapp(e.target.value)}
+          />
+          <Input
+            label="Endereço"
+            type="text"
+            placeholder="Rua, número, cidade"
+            value={editAddress}
+            onChange={(e) => setEditAddress(e.target.value)}
+          />
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-dark/80">Diário vinculado</label>
+            {diaries.length === 0 ? (
+              <div className="w-full px-3 py-2.5 rounded-lg border border-beige-300 bg-beige-50 text-sm text-dark/40">
+                Nenhum diário criado
+              </div>
+            ) : (
+              <select
+                value={editDiaryId}
+                onChange={(e) => setEditDiaryId(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-beige-300 text-dark text-sm bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent transition-colors"
+              >
+                <option value="">Selecionar diário...</option>
+                {diaries.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}{d.is_active ? ' (ativo)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {editError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {editError}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button type="submit" loading={editLoading} disabled={!hasActiveDiary} className="flex-1">
+              Salvar
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setEditClient(null)}>Cancelar</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteClient} onClose={() => setDeleteClient(null)} title="Excluir Cliente" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-dark/70">
+            Tem certeza? Esta ação não pode ser desfeita.
+          </p>
+          {deleteError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {deleteError}
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Button variant="danger" loading={deleteLoading} onClick={handleDelete} className="flex-1">
+              Excluir
+            </Button>
+            <Button variant="ghost" onClick={() => setDeleteClient(null)}>Cancelar</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
