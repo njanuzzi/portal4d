@@ -79,7 +79,7 @@ export function Dashboard() {
                 <CheckCircle size={20} className="text-emerald-500 shrink-0" />
                 <div>
                   <div className="font-medium text-dark text-sm">{stats!.activeDiary.name}</div>
-                  <div className="text-xs text-dark/40">Ativo desde {formatDate(stats!.activeDiary.updated_at)}</div>
+                  <div className="text-xs text-dark/40">Ativo desde {formatDate(stats!.activeDiary.created_at)}</div>
                 </div>
                 <Badge variant="success" className="ml-auto">Ativo</Badge>
               </div>
