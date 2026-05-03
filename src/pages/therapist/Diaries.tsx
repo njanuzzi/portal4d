@@ -7,29 +7,50 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { formatDate } from '../../lib/format';
-import { MOCK_DIARIES } from '../../lib/mockData';
+import { supabase } from '../../lib/supabase';
 import type { Diary } from '../../lib/database.types';
 
 export function Diaries() {
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [loading, setLoading] = useState(true);
   const [activating, setActivating] = useState<string | null>(null);
+  const [questionCounts, setQuestionCounts] = useState<Record<string, number>>({});
 
-  const load = () => {
-    setDiaries([...MOCK_DIARIES]);
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('diaries')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    const list: Diary[] = data ?? [];
+    setDiaries(list);
+
+    if (list.length > 0) {
+      const { data: counts } = await supabase
+        .from('diary_questions')
+        .select('diary_id')
+        .in('diary_id', list.map((d) => d.id));
+
+      const map: Record<string, number> = {};
+      list.forEach((d) => { map[d.id] = 0; });
+      (counts ?? []).forEach((row) => { map[row.diary_id] = (map[row.diary_id] ?? 0) + 1; });
+      setQuestionCounts(map);
+    }
+
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const setActive = (diary: Diary) => {
+  const setActive = async (diary: Diary) => {
     if (diary.is_active) return;
     setActivating(diary.id);
-    setTimeout(() => {
-      MOCK_DIARIES.forEach(d => { d.is_active = d.id === diary.id; });
-      load();
-      setActivating(null);
-    }, 400);
+    // Deactivate all then activate selected (DB trigger also handles this, but we do it explicitly)
+    await supabase.from('diaries').update({ is_active: false }).neq('id', diary.id);
+    await supabase.from('diaries').update({ is_active: true }).eq('id', diary.id);
+    await load();
+    setActivating(null);
   };
 
   if (loading) return <PageSpinner />;
@@ -73,7 +94,9 @@ export function Diaries() {
                     <span className="font-medium text-dark text-sm">{diary.name}</span>
                     {diary.is_active && <Badge variant="success">Ativo</Badge>}
                   </div>
-                  <div className="text-xs text-dark/40 mt-0.5">Criado em {formatDate(diary.created_at)}</div>
+                  <div className="text-xs text-dark/40 mt-0.5">
+                    {questionCounts[diary.id] ?? 0} pergunta{(questionCounts[diary.id] ?? 0) !== 1 ? 's' : ''} · Criado em {formatDate(diary.created_at)}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {!diary.is_active && (

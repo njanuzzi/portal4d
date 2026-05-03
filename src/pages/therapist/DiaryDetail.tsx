@@ -7,8 +7,14 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { MOCK_DIARIES, MOCK_QUESTIONS } from '../../lib/mockData';
+import { supabase } from '../../lib/supabase';
 import type { Diary, DiaryQuestion, QuestionType } from '../../lib/database.types';
+
+const TYPE_LABELS: Record<QuestionType, string> = {
+  text: 'Texto livre',
+  number: 'Número',
+  scale: 'Escala (1-10)',
+};
 
 export function DiaryDetail() {
   const { id } = useParams<{ id: string }>();
@@ -21,48 +27,56 @@ export function DiaryDetail() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  useEffect(() => {
-    setDiary(MOCK_DIARIES.find(d => d.id === id) || null);
-    setQuestions(MOCK_QUESTIONS.filter(q => q.diary_id === id).sort((a, b) => a.order - b.order));
-    setLoading(false);
-  }, [id]);
+  const loadDiary = async () => {
+    const { data: d } = await supabase
+      .from('diaries')
+      .select('*')
+      .eq('id', id!)
+      .maybeSingle();
+    setDiary(d ?? null);
 
-  const addQuestion = (e: FormEvent) => {
+    const { data: qs } = await supabase
+      .from('diary_questions')
+      .select('*')
+      .eq('diary_id', id!)
+      .order('order', { ascending: true });
+    setQuestions(qs ?? []);
+
+    setLoading(false);
+  };
+
+  useEffect(() => { loadDiary(); }, [id]);
+
+  const addQuestion = async (e: FormEvent) => {
     e.preventDefault();
     if (!qText.trim()) return;
     setSaving(true);
-    setTimeout(() => {
-      const newQ: DiaryQuestion = {
-        id: `dev-q-${Date.now()}`,
+
+    const { data: newQ, error } = await supabase
+      .from('diary_questions')
+      .insert({
         diary_id: id!,
-        order: questions.length,
         text: qText.trim(),
         type: qType,
-        created_at: new Date().toISOString(),
-      };
-      MOCK_QUESTIONS.push(newQ);
-      setQuestions(prev => [...prev, newQ]);
+        order: questions.length,
+      })
+      .select()
+      .single();
+
+    if (!error && newQ) {
+      setQuestions((prev) => [...prev, newQ]);
       setQText('');
       setQType('text');
       setAddingQ(false);
-      setSaving(false);
-    }, 300);
+    }
+    setSaving(false);
   };
 
-  const deleteQuestion = (qId: string) => {
+  const deleteQuestion = async (qId: string) => {
     setDeleting(qId);
-    setTimeout(() => {
-      const idx = MOCK_QUESTIONS.findIndex(q => q.id === qId);
-      if (idx !== -1) MOCK_QUESTIONS.splice(idx, 1);
-      setQuestions(prev => prev.filter(q => q.id !== qId));
-      setDeleting(null);
-    }, 300);
-  };
-
-  const typeLabels: Record<QuestionType, string> = {
-    text: 'Texto livre',
-    number: 'Número',
-    scale: 'Escala (1-10)',
+    await supabase.from('diary_questions').delete().eq('id', qId);
+    setQuestions((prev) => prev.filter((q) => q.id !== qId));
+    setDeleting(null);
   };
 
   if (loading) return <PageSpinner />;
@@ -104,7 +118,7 @@ export function DiaryDetail() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-dark">{q.text}</div>
-                  <div className="text-xs text-dark/40 mt-0.5">{typeLabels[q.type]}</div>
+                  <div className="text-xs text-dark/40 mt-0.5">{TYPE_LABELS[q.type]}</div>
                 </div>
                 <button
                   onClick={() => deleteQuestion(q.id)}
