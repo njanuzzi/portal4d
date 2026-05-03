@@ -30,7 +30,7 @@ export function DiaryDetail() {
   const loadDiary = async () => {
     const { data: d } = await supabase
       .from('diaries')
-      .select('*')
+      .select('id, name, is_active, created_at')
       .eq('id', id!)
       .maybeSingle();
     setDiary(d ?? null);
