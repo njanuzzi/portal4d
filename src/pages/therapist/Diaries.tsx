@@ -10,18 +10,25 @@ import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { formatDate } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
-import type { Diary, DiaryQuestion, QuestionType } from '../../lib/database.types';
+import type { Diary, DiaryQuestion } from '../../lib/database.types';
 
-const TYPE_LABELS: Record<QuestionType, string> = {
+type DiaryQuestionType = 'text' | 'scale' | 'yesno';
+
+const TYPE_LABELS: Record<DiaryQuestionType, string> = {
   text: 'Texto livre',
-  number: 'Número',
   scale: 'Escala (1-10)',
+  yesno: 'Sim/Não',
+};
+
+const normalizeQuestionType = (type: string): DiaryQuestionType => {
+  if (type === 'scale' || type === 'yesno') return type;
+  return 'text';
 };
 
 interface EditQuestion {
   id: string;
   text: string;
-  type: QuestionType;
+  type: DiaryQuestionType;
 }
 
 export function Diaries() {
@@ -115,7 +122,11 @@ export function Diaries() {
       .select('*')
       .eq('diary_id', diary.id)
       .order('order_num', { ascending: true });
-    setEditQuestions((qs as DiaryQuestion[] ?? []).map((q) => ({ id: q.id, text: q.text, type: q.type })));
+    setEditQuestions(((qs ?? []) as DiaryQuestion[]).map((q) => ({
+      id: q.id,
+      text: q.text,
+      type: normalizeQuestionType(q.type),
+    })));
   };
 
   const handleEditSave = async (e: FormEvent) => {
@@ -140,7 +151,7 @@ export function Diaries() {
     for (const q of editQuestions) {
       const { error: qErr } = await supabase
         .from('diary_questions')
-        .update({ text: q.text, type: q.type })
+        .update({ text: q.text, type: q.type as any })
         .eq('id', q.id);
       if (qErr) {
         setEditError(qErr.message);
@@ -170,9 +181,20 @@ export function Diaries() {
     setDeleteLoading(true);
     setDeleteError('');
 
-    const { error } = await supabase.from('diaries').delete().eq('id', deleteDiary.id);
+    const { data: deletedRows, error } = await supabase
+      .from('diaries')
+      .delete()
+      .eq('id', deleteDiary.id)
+      .select('id');
+
     if (error) {
       setDeleteError(error.message);
+      setDeleteLoading(false);
+      return;
+    }
+
+    if (!deletedRows || deletedRows.length === 0) {
+      setDeleteError('Não foi possível confirmar a exclusão no banco.');
       setDeleteLoading(false);
       return;
     }
@@ -181,6 +203,10 @@ export function Diaries() {
     setDeleteDiary(null);
     setDeleteLoading(false);
     setDiaries((prev) => prev.filter((d) => d.id !== deletedId));
+    setQuestionCounts((prev) => {
+      const { [deletedId]: _deleted, ...rest } = prev;
+      return rest;
+    });
   };
 
   if (loading) return <PageSpinner />;
@@ -307,12 +333,12 @@ export function Diaries() {
                       value={q.type}
                       onChange={(e) => {
                         const updated = [...editQuestions];
-                        updated[idx] = { ...updated[idx], type: e.target.value as QuestionType };
+                        updated[idx] = { ...updated[idx], type: e.target.value as DiaryQuestionType };
                         setEditQuestions(updated);
                       }}
                       className="w-full px-3 py-2 rounded-lg border border-beige-300 text-xs text-dark/70 bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400"
                     >
-                      {(Object.keys(TYPE_LABELS) as QuestionType[]).map((t) => (
+                      {(Object.keys(TYPE_LABELS) as DiaryQuestionType[]).map((t) => (
                         <option key={t} value={t}>{TYPE_LABELS[t]}</option>
                       ))}
                     </select>
