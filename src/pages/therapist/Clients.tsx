@@ -51,7 +51,7 @@ export function Clients() {
 
     supabase
       .from('diaries')
-      .select('id, name, is_active, created_at, updated_at')
+      .select('id, name, is_active, created_at')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .then(({ data }) => setDiaries(data ?? []));
