@@ -7,6 +7,8 @@ import { Input } from '../../components/ui/Input';
 import { supabase } from '../../lib/supabase';
 import type { Diary } from '../../lib/database.types';
 
+const ACTIVE_DIARY_MESSAGE = 'Nenhum diário ativo. Ative um diário antes de cadastrar clientes.';
+
 export function NewClient() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
@@ -18,24 +20,30 @@ export function NewClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const hasActiveDiary = diaries.some((d) => d.is_active);
+  const hasActiveDiary = diaries.length > 0;
 
   useEffect(() => {
     supabase
       .from('diaries')
       .select('id, name, is_active, created_at, updated_at')
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        const list = data ?? [];
-        setDiaries(list);
-        const active = list.find((d) => d.is_active);
-        if (active) setDiaryId(active.id);
+        const activeDiaries = data ?? [];
+        setDiaries(activeDiaries);
+        setDiaryId(activeDiaries[0]?.id ?? '');
       });
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!diaryId) {
+      setError(ACTIVE_DIARY_MESSAGE);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -65,7 +73,7 @@ export function NewClient() {
       }
 
       if (authData.user) {
-        await supabase.from('profiles').upsert({
+        const { error: profileError } = await supabase.from('profiles').upsert({
           id: authData.user.id,
           email,
           name,
@@ -73,7 +81,14 @@ export function NewClient() {
           active: true,
           whatsapp: whatsapp || null,
           address: address || null,
-        });
+          diary_id: diaryId,
+        } as any);
+
+        if (profileError) {
+          setError(profileError.message);
+          setLoading(false);
+          return;
+        }
       }
 
       navigate('/clients');
@@ -96,9 +111,9 @@ export function NewClient() {
 
       <Card>
         <CardBody>
-          {!hasActiveDiary && diaries.length > 0 && (
+          {!hasActiveDiary && (
             <div className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              Nenhum diário ativo. Cadastre e ative um diário antes de adicionar clientes.
+              {ACTIVE_DIARY_MESSAGE}
             </div>
           )}
 
@@ -138,9 +153,9 @@ export function NewClient() {
             {/* Diary dropdown */}
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-dark/80">Diário vinculado</label>
-              {diaries.length === 0 ? (
+              {!hasActiveDiary ? (
                 <div className="w-full px-3 py-2.5 rounded-lg border border-beige-300 bg-beige-50 text-sm text-dark/40">
-                  Nenhum diário criado
+                  Nenhum diário ativo
                 </div>
               ) : (
                 <select
@@ -148,10 +163,9 @@ export function NewClient() {
                   onChange={(e) => setDiaryId(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-lg border border-beige-300 text-dark text-sm bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent transition-colors"
                 >
-                  <option value="">Selecionar diário...</option>
                   {diaries.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.name}{d.is_active ? ' (ativo)' : ''}
+                      {d.name}
                     </option>
                   ))}
                 </select>
@@ -165,7 +179,7 @@ export function NewClient() {
             )}
 
             <div className="flex gap-3 pt-2">
-              <Button type="submit" loading={loading} disabled={!hasActiveDiary} className="flex-1">
+              <Button type="submit" loading={loading} disabled={!hasActiveDiary || !diaryId} className="flex-1">
                 Cadastrar Cliente
               </Button>
               <Link to="/clients">
