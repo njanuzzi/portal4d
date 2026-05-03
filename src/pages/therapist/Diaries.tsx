@@ -53,7 +53,7 @@ export function Diaries() {
     setLoading(true);
     const { data } = await supabase
       .from('diaries')
-      .select('*')
+      .select('id, name, is_active, created_at')
       .order('created_at', { ascending: false });
 
     const list: Diary[] = data ?? [];
@@ -85,7 +85,7 @@ export function Diaries() {
       .from('diaries')
       .update({ is_active: true })
       .eq('id', diary.id)
-      .select()
+      .select('id, name, is_active, created_at')
       .single();
 
     if (err2 || !updatedDiary) { setToggling(null); return; }
@@ -102,7 +102,7 @@ export function Diaries() {
       .from('diaries')
       .update({ is_active: false })
       .eq('id', diary.id)
-      .select()
+      .select('id, name, is_active, created_at')
       .single();
 
     if (error || !updatedDiary) { setToggling(null); return; }
@@ -139,7 +139,7 @@ export function Diaries() {
       .from('diaries')
       .update({ name: editName.trim() })
       .eq('id', editDiary.id)
-      .select()
+      .select('id, name, is_active, created_at')
       .single();
 
     if (nameErr || !updatedDiary) {
