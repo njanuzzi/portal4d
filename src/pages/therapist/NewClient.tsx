@@ -5,10 +5,16 @@ import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { supabase } from '../../lib/supabase';
-import type { Diary } from '../../lib/database.types';
 
 const ACTIVE_DIARY_MESSAGE = 'Nenhum diário ativo. Ative um diário antes de cadastrar clientes.';
 const DEBUG_PREFIX = '[NewClient active diaries]';
+
+type ActiveDiary = {
+  id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+};
 
 export function NewClient() {
   const navigate = useNavigate();
@@ -16,7 +22,7 @@ export function NewClient() {
   const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [address, setAddress] = useState('');
-  const [diaries, setDiaries] = useState<Diary[]>([]);
+  const [diaries, setDiaries] = useState<ActiveDiary[]>([]);
   const [diaryId, setDiaryId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,7 +49,7 @@ export function NewClient() {
 
       const { data, error: fetchError } = await supabase
         .from('diaries')
-        .select('id, name, is_active, created_at, updated_at')
+        .select('id, name, is_active, created_at')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
