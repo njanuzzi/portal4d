@@ -131,10 +131,10 @@ export function Dashboard() {
   if (loading) return <PageSpinner />;
 
   const statCards = [
-    { label: 'Total de Clientes', value: stats!.totalClients, sub: `${stats!.activeClients} ativos`, icon: <Users size={20} />, color: 'text-petrol-600', bg: 'bg-petrol-50' },
-    { label: 'Diário Ativo', value: stats!.activeDiaries.length, sub: stats!.activeDiaries[0]?.name || 'Nenhum ativo', icon: <BookOpen size={20} />, color: 'text-gold-600', bg: 'bg-gold-50' },
-    { label: 'Respostas Hoje', value: stats!.todayEntries, sub: 'registros do dia', icon: <TrendingUp size={20} />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Relatórios', value: stats!.reportCount, sub: 'total criado', icon: <FileText size={20} />, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Total de Clientes', value: stats!.totalClients, sub: `${stats!.activeClients} ativos`, icon: <Users size={20} />, color: 'text-petrol-600', bg: 'bg-petrol-50', to: '/clients' },
+    { label: 'Diário Ativo', value: stats!.activeDiaries.length, sub: stats!.activeDiaries[0]?.name || 'Nenhum ativo', icon: <BookOpen size={20} />, color: 'text-gold-600', bg: 'bg-gold-50', to: '/diaries' },
+    { label: 'Respostas Hoje', value: stats!.todayEntries, sub: 'registros do dia', icon: <TrendingUp size={20} />, color: 'text-emerald-600', bg: 'bg-emerald-50', to: '/reports' },
+    { label: 'Relatórios', value: stats!.reportCount, sub: 'total criado', icon: <FileText size={20} />, color: 'text-amber-600', bg: 'bg-amber-50', to: '/reports' },
   ];
 
   return (
@@ -152,18 +152,24 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((s) => (
-          <Card key={s.label}>
-            <CardBody className="flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-lg ${s.bg} flex items-center justify-center ${s.color}`}>
-                {s.icon}
-              </div>
-              <div>
-                <div className="text-2xl font-semibold text-dark">{s.value}</div>
-                <div className="text-xs text-dark/50">{s.label}</div>
-                <div className="text-xs text-dark/35 mt-0.5">{s.sub}</div>
-              </div>
-            </CardBody>
-          </Card>
+          <Link
+            key={s.label}
+            to={s.to}
+            className="block h-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-petrol-400 focus-visible:ring-offset-2"
+          >
+            <Card className="h-full cursor-pointer transition-all hover:border-petrol-300 hover:shadow-md">
+              <CardBody className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-lg ${s.bg} flex items-center justify-center ${s.color}`}>
+                  {s.icon}
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold text-dark">{s.value}</div>
+                  <div className="text-xs text-dark/50">{s.label}</div>
+                  <div className="text-xs text-dark/35 mt-0.5">{s.sub}</div>
+                </div>
+              </CardBody>
+            </Card>
+          </Link>
         ))}
       </div>
 
