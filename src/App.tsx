@@ -13,10 +13,12 @@ import { ClientDetail } from './pages/therapist/ClientDetail';
 import { ClientEntries } from './pages/therapist/ClientEntries';
 import { ClientReports } from './pages/therapist/ClientReports';
 import { NewReport } from './pages/therapist/NewReport';
+import { EditReport } from './pages/therapist/EditReport';
 import { Diaries } from './pages/therapist/Diaries';
 import { NewDiary } from './pages/therapist/NewDiary';
 import { DiaryDetail } from './pages/therapist/DiaryDetail';
 import { Reports } from './pages/therapist/Reports';
+import { ReportsByClient } from './pages/therapist/ReportsByClient';
 import { ClientAccess } from './pages/client/ClientAccess';
 import { DiaryPage } from './pages/client/DiaryPage';
 import { DiaryHistory } from './pages/client/DiaryHistory';
@@ -67,6 +69,9 @@ function AppRoutes() {
           <Route path="/diaries/new" element={<NewDiary />} />
           <Route path="/diaries/:id" element={<DiaryDetail />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/reports/:clientId" element={<ReportsByClient />} />
+          <Route path="/reports/:clientId/new" element={<NewReport />} />
+          <Route path="/reports/:clientId/edit/:reportId" element={<EditReport />} />
           <Route path="/login" element={<Navigate to="/dashboard" replace />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
