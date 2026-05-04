@@ -7,7 +7,6 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { formatDate } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
-import DOMPurify from 'dompurify';
 import type { Profile } from '../../lib/database.types';
 
 type ClientProfile = Profile & { diary_id?: string | null };

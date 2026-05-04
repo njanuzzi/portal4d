@@ -9,7 +9,6 @@ import { PageSpinner } from '../../components/ui/Spinner';
 import { Modal } from '../../components/ui/Modal';
 import { formatDate } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
-import DOMPurify from 'dompurify';
 import type { Profile, Report } from '../../lib/database.types';
 
 type ClientProfile = Profile & { diary_id?: string | null };
@@ -41,13 +40,13 @@ const CSV_HEADERS = ['data', 'pergunta', 'tipo', 'resposta_texto', 'resposta_val
 
 function stripHtml(value: string) {
   const container = document.createElement('div');
-  container.innerHTML = DOMPurify.sanitize(value);
+  container.innerHTML = value;
   return container.textContent ?? container.innerText ?? '';
 }
 
 function getReportTitle(content: string) {
   const container = document.createElement('div');
-  container.innerHTML = DOMPurify.sanitize(content);
+  container.innerHTML = content;
   const heading = container.querySelector('h2');
   const text = heading?.textContent?.trim() || stripHtml(content).trim();
   return text.split('\n')[0] || 'Relatório clínico';
@@ -211,11 +210,14 @@ export function ReportsByClient() {
     setCsvModalOpen(true);
     setCsvLoading(true);
     setCsvMessage('');
+    setWeekOptions([]);
+    setSelectedWeekNumber(null);
 
-    const { data: entryRows, error: entriesError } = await supabase
+    const { data, error: entriesError } = await supabase
       .from('diary_entries')
-      .select('id, date')
-      .eq('user_id', clientId);
+      .select('date')
+      .eq('user_id', clientId)
+      .order('date', { ascending: true });
 
     if (entriesError) {
       setCsvMessage(entriesError.message);
@@ -223,123 +225,175 @@ export function ReportsByClient() {
       return;
     }
 
-    const entries = (entryRows ?? []) as DiaryEntryRow[];
-    const entryDates = entries.map(({ date }) => date).sort();
-
-    if (entryDates.length === 0) {
-      setCsvMessage('Nenhuma entrada de diário encontrada para este cliente.');
-      setCsvLoading(false);
-      return;
-    }
-
+    const entryDates = (data ?? []).map((entry) => entry.date);
     const weeks = buildWeeks(entryDates);
+
     setWeekOptions(weeks);
-    setSelectedWeekNumber(weeks.length > 0 ? weeks[weeks.length - 1].weekNumber : null);
+    setSelectedWeekNumber(weeks[0]?.weekNumber ?? null);
+    if (weeks.length === 0) {
+      setCsvMessage('Este cliente ainda não possui registros de diário para exportar.');
+    }
     setCsvLoading(false);
   };
 
-  const handleExportCsv = async () => {
-    if (!clientId || !selectedWeek) return;
+  const handleToggleActive = async (report: ReportRow) => {
+    const nextActive = report.active === false;
+    setError('');
+    setTogglingReportId(report.id);
 
-    setCsvExporting(true);
+    const { data: updatedReport, error: updateError } = await (supabase as any)
+      .from('reports')
+      .update({ active: nextActive })
+      .eq('id', report.id)
+      .select(REPORT_SELECT)
+      .single();
 
-    const periodDates = dateRange(selectedWeek.startDate, selectedWeek.endDate);
-
-    const [
-      { data: entryRows, error: entriesError },
-      { data: answerRows, error: answersError },
-      { data: questionRows, error: questionsError },
-    ] = await Promise.all([
-      supabase
-        .from('diary_entries')
-        .select('id, date')
-        .eq('user_id', clientId)
-        .in('date', periodDates),
-      supabase
-        .from('entry_answers')
-        .select('entry_id, question_id, answer_text, answer_value')
-        .in('entry_id', (entryRows ?? []).map((entry: DiaryEntryRow) => entry.id)),
-      supabase
-        .from('diary_questions')
-        .select('id, order_num, text, type')
-        .order('order_num', { ascending: true }),
-    ]);
-
-    if (entriesError || answersError || questionsError) {
-      console.error('CSV export error:', entriesError || answersError || questionsError);
-      setCsvExporting(false);
+    if (updateError || !updatedReport) {
+      setError(updateError?.message ?? 'Não foi possível atualizar o status do relatório.');
+      setTogglingReportId(null);
       return;
     }
 
-    const entries = (entryRows ?? []) as DiaryEntryRow[];
-    const answers = (answerRows ?? []) as EntryAnswerRow[];
-    const questions = (questionRows ?? []) as DiaryQuestionRow[];
-
-    const answerMap = new Map<string, Map<string, EntryAnswerRow>>();
-    for (const answer of answers) {
-      const entryMap = answerMap.get(answer.entry_id) ?? new Map();
-      entryMap.set(answer.question_id, answer);
-      answerMap.set(answer.entry_id, entryMap);
-    }
-
-    const csvRows: Array<Array<string | number | null | undefined>> = [];
-    for (const entry of entries) {
-      const entryAnswers = answerMap.get(entry.id) ?? new Map();
-      for (const question of questions) {
-        const answer = entryAnswers.get(question.id);
-        csvRows.push([
-          formatCsvDate(entry.date),
-          question.text,
-          question.type,
-          answer?.answer_text ?? null,
-          answer?.answer_value ?? null,
-        ]);
-      }
-    }
-
-    const csvContent = buildCsv(csvRows);
-    const filename = `diario_${sanitizeFilePart(client?.name ?? 'cliente')}_semana_${selectedWeek.weekNumber}.csv`;
-
-    downloadCsv(filename, csvContent);
-    setCsvExporting(false);
-  };
-
-  const handleToggleActive = async (report: ReportRow) => {
-    setTogglingReportId(report.id);
-
-    const newActive = !report.active;
-    const { error: updateError } = await supabase
-      .from('reports')
-      .update({ active: newActive })
-      .eq('id', report.id);
-
-    if (updateError) {
-      console.error('Toggle active error:', updateError);
-    } else {
-      setReports((prev) => prev.map((r) => (r.id === report.id ? { ...r, active: newActive } : r)));
-    }
-
+    setReports((prev) => prev.map((item) => item.id === report.id ? (updatedReport as ReportRow) : item));
     setTogglingReportId(null);
   };
 
   const handleDelete = async () => {
     if (!deleteReport) return;
 
+    setError('');
     setDeleteLoading(true);
 
-    const { error: deleteError } = await supabase
+    const { data: deletedRows, error: deleteError } = await supabase
       .from('reports')
       .delete()
-      .eq('id', deleteReport.id);
+      .eq('id', deleteReport.id)
+      .select('id');
 
     if (deleteError) {
-      console.error('Delete error:', deleteError);
-    } else {
-      setReports((prev) => prev.filter((r) => r.id !== deleteReport.id));
-      setDeleteReport(null);
+      setError(deleteError.message);
+      setDeleteLoading(false);
+      return;
     }
 
+    if (!deletedRows || deletedRows.length === 0) {
+      setError('Não foi possível confirmar a exclusão no banco.');
+      setDeleteLoading(false);
+      return;
+    }
+
+    const deletedId = deleteReport.id;
+    setReports((prev) => prev.filter((report) => report.id !== deletedId));
+    setDeleteReport(null);
     setDeleteLoading(false);
+  };
+
+  const handleExportCsv = async () => {
+    if (!clientId || !client || !selectedWeek) return;
+
+    setCsvExporting(true);
+    setCsvMessage('');
+
+    const { data: entriesData, error: entriesError } = await supabase
+      .from('diary_entries')
+      .select('id, date')
+      .eq('user_id', clientId)
+      .gte('date', selectedWeek.startDate)
+      .lte('date', selectedWeek.endDate)
+      .order('date', { ascending: true });
+
+    if (entriesError) {
+      setCsvMessage(entriesError.message);
+      setCsvExporting(false);
+      return;
+    }
+
+    const entries = (entriesData ?? []) as DiaryEntryRow[];
+    let csvRows: Array<Array<string | number | null | undefined>> = [];
+
+    if (entries.length > 0) {
+      const entryIds = entries.map((entry) => entry.id);
+      const { data: answersData, error: answersError } = await supabase
+        .from('entry_answers')
+        .select('entry_id, question_id, answer_text, answer_value')
+        .in('entry_id', entryIds);
+
+      if (answersError) {
+        setCsvMessage(answersError.message);
+        setCsvExporting(false);
+        return;
+      }
+
+      const answers = (answersData ?? []) as EntryAnswerRow[];
+      const questionIds = Array.from(new Set(answers.map((answer) => answer.question_id).filter(Boolean)));
+      let questionsById = new Map<string, DiaryQuestionRow>();
+
+      if (questionIds.length > 0) {
+        const { data: questionsData, error: questionsError } = await supabase
+          .from('diary_questions')
+          .select('id, order_num, text, type')
+          .in('id', questionIds);
+
+        if (questionsError) {
+          setCsvMessage(questionsError.message);
+          setCsvExporting(false);
+          return;
+        }
+
+        questionsById = new Map((questionsData ?? []).map((question) => [question.id, question as DiaryQuestionRow]));
+      }
+
+      const entriesByDate = new Map<string, DiaryEntryRow[]>();
+      entries.forEach((entry) => {
+        entriesByDate.set(entry.date, [...(entriesByDate.get(entry.date) ?? []), entry]);
+      });
+
+      const answersByEntry = new Map<string, EntryAnswerRow[]>();
+      answers.forEach((answer) => {
+        answersByEntry.set(answer.entry_id, [...(answersByEntry.get(answer.entry_id) ?? []), answer]);
+      });
+
+      csvRows = dateRange(selectedWeek.startDate, selectedWeek.endDate).flatMap((date) => {
+        const entriesForDate = entriesByDate.get(date) ?? [];
+
+        if (entriesForDate.length === 0) {
+          return [[formatCsvDate(date), '', '', '', '']];
+        }
+
+        return entriesForDate.flatMap((entry) => {
+          const answersForEntry = [...(answersByEntry.get(entry.id) ?? [])].sort((a, b) => {
+            const questionA = questionsById.get(a.question_id);
+            const questionB = questionsById.get(b.question_id);
+            return (questionA?.order_num ?? 9999) - (questionB?.order_num ?? 9999);
+          });
+
+          if (answersForEntry.length === 0) {
+            return [[formatCsvDate(date), '', '', '', '']];
+          }
+
+          return answersForEntry.map((answer) => {
+            const question = questionsById.get(answer.question_id);
+            return [
+              formatCsvDate(date),
+              question?.text ?? '',
+              question?.type ?? '',
+              answer.answer_text ?? '',
+              answer.answer_value ?? '',
+            ];
+          });
+        });
+      });
+    }
+
+    if (entries.length === 0) {
+      setCsvMessage('Não há dados nesta semana. O CSV será exportado apenas com o cabeçalho.');
+    }
+
+    const csvContent = buildCsv(csvRows);
+    const filename = `relatorio_semana_${selectedWeek.weekNumber}_${sanitizeFilePart(client.name)}.csv`;
+    downloadCsv(filename, csvContent);
+    setCsvExporting(false);
+    setCsvModalOpen(false);
   };
 
   if (loading) return <PageSpinner />;
@@ -539,7 +593,7 @@ export function ReportsByClient() {
         </div>
         <div
           className="text-dark/80 leading-relaxed text-sm space-y-3"
-          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewReport?.content_text ?? '') }}
+          dangerouslySetInnerHTML={{ __html: previewReport?.content_text ?? '' }}
         />
       </Modal>
 
