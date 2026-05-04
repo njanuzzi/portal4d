@@ -69,6 +69,7 @@ export function EditReport() {
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
   const [contentHtml, setContentHtml] = useState('');
+  const [initialContentHtml, setInitialContentHtml] = useState('');
   const [published, setPublished] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initLoading, setInitLoading] = useState(true);
@@ -109,6 +110,7 @@ export function EditReport() {
       setPeriodStart(loadedReport?.period_start ?? '');
       setPeriodEnd(loadedReport?.period_end ?? '');
       setContentHtml(extracted.bodyHtml);
+      setInitialContentHtml(extracted.bodyHtml);
       setPublished(loadedReport?.published ?? false);
       setError(clientError?.message || reportError?.message || '');
       setInitLoading(false);
@@ -120,12 +122,6 @@ export function EditReport() {
       cancelled = true;
     };
   }, [clientId, reportId]);
-
-  useEffect(() => {
-    if (!initLoading && editorRef.current) {
-      editorRef.current.innerHTML = contentHtml;
-    }
-  }, [initLoading, contentHtml]);
 
   const runEditorCommand = (command: string, value?: string) => {
     editorRef.current?.focus();
@@ -251,9 +247,11 @@ export function EditReport() {
                 <Button type="button" variant="ghost" size="sm" onClick={clearEditor}><Eraser size={14} /></Button>
               </div>
               <div
+                key={report.id}
                 ref={editorRef}
                 contentEditable
                 suppressContentEditableWarning
+                dangerouslySetInnerHTML={{ __html: initialContentHtml }}
                 onInput={(e) => setContentHtml(e.currentTarget.innerHTML)}
                 className="min-h-56 w-full rounded-lg border border-beige-300 bg-white px-3 py-2.5 text-sm text-dark focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent leading-relaxed"
               />
