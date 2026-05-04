@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import DOMPurify from 'dompurify';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Download, Eye, FileText, Pencil, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -40,13 +41,13 @@ const CSV_HEADERS = ['data', 'pergunta', 'tipo', 'resposta_texto', 'resposta_val
 
 function stripHtml(value: string) {
   const container = document.createElement('div');
-  container.innerHTML = value;
+  container.innerHTML = DOMPurify.sanitize(value);
   return container.textContent ?? container.innerText ?? '';
 }
 
 function getReportTitle(content: string) {
   const container = document.createElement('div');
-  container.innerHTML = content;
+  container.innerHTML = DOMPurify.sanitize(content);
   const heading = container.querySelector('h2');
   const text = heading?.textContent?.trim() || stripHtml(content).trim();
   return text.split('\n')[0] || 'Relatório clínico';
@@ -593,7 +594,7 @@ export function ReportsByClient() {
         </div>
         <div
           className="text-dark/80 leading-relaxed text-sm space-y-3"
-          dangerouslySetInnerHTML={{ __html: previewReport?.content_text ?? '' }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewReport?.content_text ?? '') }}
         />
       </Modal>
 
