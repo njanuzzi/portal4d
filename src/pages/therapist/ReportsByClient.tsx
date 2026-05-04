@@ -123,7 +123,7 @@ function csvCell(value: string | number | null | undefined) {
 
 function buildCsv(rows: Array<Array<string | number | null | undefined>>) {
   const lines = [CSV_HEADERS, ...rows].map((row) => row.map(csvCell).join(','));
-  return `\uFEFF${lines.join('\n')}`;
+  return `${String.fromCharCode(0xfeff)}${lines.join(String.fromCharCode(10))}`;
 }
 
 function sanitizeFilePart(value: string) {
