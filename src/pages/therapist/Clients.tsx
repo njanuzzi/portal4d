@@ -1,6 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { UserPlus, Search, ChevronRight, User, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { UserPlus, Search, ChevronRight, User, Pencil, Trash2, ToggleLeft, ToggleRight, Send } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -15,13 +15,17 @@ import type { Profile, Diary } from '../../lib/database.types';
 type ClientProfile = Profile & { diary_id?: string | null };
 
 const ACTIVE_DIARY_MESSAGE = 'Nenhum diário ativo. Ative um diário antes de cadastrar clientes.';
+const INVITE_EXPIRATION_DAYS = 7;
 
 export function Clients() {
   const [clients, setClients] = useState<ClientProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
+  const [inviteLink, setInviteLink] = useState('');
   const [togglingClientId, setTogglingClientId] = useState<string | null>(null);
+  const [invitingClientId, setInvitingClientId] = useState<string | null>(null);
 
   // Edit modal state
   const [editClient, setEditClient] = useState<ClientProfile | null>(null);
@@ -110,8 +114,44 @@ export function Clients() {
     setEditLoading(false);
   };
 
+  const handleSendInvite = async (client: ClientProfile) => {
+    setActionError('');
+    setActionSuccess('');
+    setInviteLink('');
+
+    if (!client.active) {
+      setActionError('Ative o cliente antes de enviar um convite.');
+      return;
+    }
+
+    setInvitingClientId(client.id);
+
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + INVITE_EXPIRATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error } = await (supabase as any)
+      .from('client_tokens')
+      .insert({
+        client_id: client.id,
+        token,
+        expires_at: expiresAt,
+      });
+
+    if (error) {
+      setActionError(error.message ?? 'Não foi possível gerar o convite.');
+      setInvitingClientId(null);
+      return;
+    }
+
+    setActionSuccess(`Convite enviado para ${client.email}`);
+    setInviteLink(`${window.location.origin}/client/${token}`);
+    setInvitingClientId(null);
+  };
+
   const toggleClientActive = async (client: ClientProfile) => {
     setActionError('');
+    setActionSuccess('');
+    setInviteLink('');
     setTogglingClientId(client.id);
 
     const { data: updatedClient, error } = await supabase
@@ -209,6 +249,17 @@ export function Clients() {
         </div>
       )}
 
+      {actionSuccess && (
+        <div className="mb-4 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+          <div>{actionSuccess}</div>
+          {inviteLink && (
+            <a href={inviteLink} className="block mt-1 text-petrol-700 hover:underline break-all">
+              {inviteLink}
+            </a>
+          )}
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <EmptyState
           icon={<User size={40} />}
@@ -252,6 +303,15 @@ export function Clients() {
                     </div>
                   </Link>
                   <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      loading={invitingClientId === client.id}
+                      onClick={() => handleSendInvite(client)}
+                    >
+                      <Send size={14} />
+                      <span className="hidden md:inline">Enviar Convite</span>
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
