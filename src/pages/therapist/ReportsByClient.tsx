@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Eye, FileText, Pencil, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ArrowLeft, Download, Eye, FileText, Pencil, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -15,8 +15,28 @@ type ClientProfile = Profile & { diary_id?: string | null };
 type ReportRow = Pick<Report, 'id' | 'user_id' | 'period_start' | 'period_end' | 'content_text' | 'published' | 'created_at'> & {
   active?: boolean | null;
 };
+type WeekOption = {
+  weekNumber: number;
+  startDate: string;
+  endDate: string;
+  entryCount: number;
+};
+type DiaryEntryRow = { id: string; date: string };
+type EntryAnswerRow = {
+  entry_id: string;
+  question_id: string;
+  answer_text: string | null;
+  answer_value: number | null;
+};
+type DiaryQuestionRow = {
+  id: string;
+  order_num: number;
+  text: string;
+  type: string;
+};
 
 const REPORT_SELECT = 'id, user_id, period_start, period_end, content_text, published, active, created_at';
+const CSV_HEADERS = ['data', 'pergunta', 'tipo', 'resposta_texto', 'resposta_valor'];
 
 function stripHtml(value: string) {
   const container = document.createElement('div');
@@ -32,6 +52,101 @@ function getReportTitle(content: string) {
   return text.split('\n')[0] || 'Relatório clínico';
 }
 
+function parseISODate(date: string) {
+  const [year, month, day] = date.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function toISODate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(date: string, days: number) {
+  const parsed = parseISODate(date);
+  parsed.setDate(parsed.getDate() + days);
+  return toISODate(parsed);
+}
+
+function todayISO() {
+  return toISODate(new Date());
+}
+
+function formatShortDate(date: string) {
+  return parseISODate(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+function formatCsvDate(date: string) {
+  return parseISODate(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function dateRange(startDate: string, endDate: string) {
+  const dates: string[] = [];
+  let current = startDate;
+
+  while (current <= endDate) {
+    dates.push(current);
+    current = addDays(current, 1);
+  }
+
+  return dates;
+}
+
+function buildWeeks(entryDates: string[]) {
+  if (entryDates.length === 0) return [];
+
+  const today = todayISO();
+  const firstDate = entryDates[0];
+  const weeks: WeekOption[] = [];
+  let startDate = firstDate;
+  let weekNumber = 1;
+
+  while (startDate <= today) {
+    const fullEndDate = addDays(startDate, 6);
+    const endDate = fullEndDate > today ? today : fullEndDate;
+    const entryCount = entryDates.filter((date) => date >= startDate && date <= endDate).length;
+
+    weeks.push({ weekNumber, startDate, endDate, entryCount });
+    startDate = addDays(startDate, 7);
+    weekNumber += 1;
+  }
+
+  return weeks;
+}
+
+function csvCell(value: string | number | null | undefined) {
+  const text = value == null ? '' : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function buildCsv(rows: Array<Array<string | number | null | undefined>>) {
+  const lines = [CSV_HEADERS, ...rows].map((row) => row.map(csvCell).join(','));
+  return `\uFEFF${lines.join('\n')}`;
+}
+
+function sanitizeFilePart(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase() || 'cliente';
+}
+
+function downloadCsv(filename: string, csvContent: string) {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export function ReportsByClient() {
   const { clientId } = useParams<{ clientId: string }>();
   const [client, setClient] = useState<ClientProfile | null>(null);
@@ -42,6 +157,12 @@ export function ReportsByClient() {
   const [deleteReport, setDeleteReport] = useState<ReportRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [togglingReportId, setTogglingReportId] = useState<string | null>(null);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [csvLoading, setCsvLoading] = useState(false);
+  const [csvExporting, setCsvExporting] = useState(false);
+  const [csvMessage, setCsvMessage] = useState('');
+  const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
+  const [selectedWeekNumber, setSelectedWeekNumber] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +201,40 @@ export function ReportsByClient() {
       cancelled = true;
     };
   }, [clientId]);
+
+  const selectedWeek = weekOptions.find((week) => week.weekNumber === selectedWeekNumber) ?? null;
+
+  const openCsvModal = async () => {
+    if (!clientId) return;
+
+    setCsvModalOpen(true);
+    setCsvLoading(true);
+    setCsvMessage('');
+    setWeekOptions([]);
+    setSelectedWeekNumber(null);
+
+    const { data, error: entriesError } = await supabase
+      .from('diary_entries')
+      .select('date')
+      .eq('user_id', clientId)
+      .order('date', { ascending: true });
+
+    if (entriesError) {
+      setCsvMessage(entriesError.message);
+      setCsvLoading(false);
+      return;
+    }
+
+    const entryDates = (data ?? []).map((entry) => entry.date);
+    const weeks = buildWeeks(entryDates);
+
+    setWeekOptions(weeks);
+    setSelectedWeekNumber(weeks[0]?.weekNumber ?? null);
+    if (weeks.length === 0) {
+      setCsvMessage('Este cliente ainda não possui registros de diário para exportar.');
+    }
+    setCsvLoading(false);
+  };
 
   const handleToggleActive = async (report: ReportRow) => {
     const nextActive = report.active === false;
@@ -133,6 +288,114 @@ export function ReportsByClient() {
     setDeleteLoading(false);
   };
 
+  const handleExportCsv = async () => {
+    if (!clientId || !client || !selectedWeek) return;
+
+    setCsvExporting(true);
+    setCsvMessage('');
+
+    const { data: entriesData, error: entriesError } = await supabase
+      .from('diary_entries')
+      .select('id, date')
+      .eq('user_id', clientId)
+      .gte('date', selectedWeek.startDate)
+      .lte('date', selectedWeek.endDate)
+      .order('date', { ascending: true });
+
+    if (entriesError) {
+      setCsvMessage(entriesError.message);
+      setCsvExporting(false);
+      return;
+    }
+
+    const entries = (entriesData ?? []) as DiaryEntryRow[];
+    let csvRows: Array<Array<string | number | null | undefined>> = [];
+
+    if (entries.length > 0) {
+      const entryIds = entries.map((entry) => entry.id);
+      const { data: answersData, error: answersError } = await supabase
+        .from('entry_answers')
+        .select('entry_id, question_id, answer_text, answer_value')
+        .in('entry_id', entryIds);
+
+      if (answersError) {
+        setCsvMessage(answersError.message);
+        setCsvExporting(false);
+        return;
+      }
+
+      const answers = (answersData ?? []) as EntryAnswerRow[];
+      const questionIds = Array.from(new Set(answers.map((answer) => answer.question_id).filter(Boolean)));
+      let questionsById = new Map<string, DiaryQuestionRow>();
+
+      if (questionIds.length > 0) {
+        const { data: questionsData, error: questionsError } = await supabase
+          .from('diary_questions')
+          .select('id, order_num, text, type')
+          .in('id', questionIds);
+
+        if (questionsError) {
+          setCsvMessage(questionsError.message);
+          setCsvExporting(false);
+          return;
+        }
+
+        questionsById = new Map((questionsData ?? []).map((question) => [question.id, question as DiaryQuestionRow]));
+      }
+
+      const entriesByDate = new Map<string, DiaryEntryRow[]>();
+      entries.forEach((entry) => {
+        entriesByDate.set(entry.date, [...(entriesByDate.get(entry.date) ?? []), entry]);
+      });
+
+      const answersByEntry = new Map<string, EntryAnswerRow[]>();
+      answers.forEach((answer) => {
+        answersByEntry.set(answer.entry_id, [...(answersByEntry.get(answer.entry_id) ?? []), answer]);
+      });
+
+      csvRows = dateRange(selectedWeek.startDate, selectedWeek.endDate).flatMap((date) => {
+        const entriesForDate = entriesByDate.get(date) ?? [];
+
+        if (entriesForDate.length === 0) {
+          return [[formatCsvDate(date), '', '', '', '']];
+        }
+
+        return entriesForDate.flatMap((entry) => {
+          const answersForEntry = [...(answersByEntry.get(entry.id) ?? [])].sort((a, b) => {
+            const questionA = questionsById.get(a.question_id);
+            const questionB = questionsById.get(b.question_id);
+            return (questionA?.order_num ?? 9999) - (questionB?.order_num ?? 9999);
+          });
+
+          if (answersForEntry.length === 0) {
+            return [[formatCsvDate(date), '', '', '', '']];
+          }
+
+          return answersForEntry.map((answer) => {
+            const question = questionsById.get(answer.question_id);
+            return [
+              formatCsvDate(date),
+              question?.text ?? '',
+              question?.type ?? '',
+              answer.answer_text ?? '',
+              answer.answer_value ?? '',
+            ];
+          });
+        });
+      });
+    }
+
+    if (entries.length === 0) {
+      setCsvMessage('Não há dados nesta semana. O CSV será exportado apenas com o cabeçalho.');
+    }
+
+    const csvContent = buildCsv(csvRows);
+    const filename = `relatorio_semana_${selectedWeek.weekNumber}_${sanitizeFilePart(client.name)}.csv`;
+    downloadCsv(filename, csvContent);
+    setCsvExporting(false);
+    setCsvModalOpen(false);
+  };
+
   if (loading) return <PageSpinner />;
 
   if (!client) {
@@ -163,12 +426,18 @@ export function ReportsByClient() {
             <h1 className="text-2xl font-semibold text-dark font-serif">Relatórios - {client.name}</h1>
             <p className="text-dark/50 text-sm mt-1">{reports.length} relatório{reports.length !== 1 ? 's' : ''} cadastrado{reports.length !== 1 ? 's' : ''}</p>
           </div>
-          <Link to={`/reports/${client.id}/new`}>
-            <Button>
-              <Plus size={16} />
-              Novo Relatório
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="ghost" onClick={openCsvModal}>
+              <Download size={16} />
+              Exportar CSV
             </Button>
-          </Link>
+            <Link to={`/reports/${client.id}/new`}>
+              <Button>
+                <Plus size={16} />
+                Novo Relatório
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -244,6 +513,73 @@ export function ReportsByClient() {
           })}
         </div>
       )}
+
+      <Modal
+        open={csvModalOpen}
+        onClose={() => setCsvModalOpen(false)}
+        title="Exportar CSV"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-dark/60">
+            Selecione uma semana de respostas do diário emocional para exportar.
+          </p>
+
+          {csvLoading ? (
+            <div className="text-sm text-dark/40 py-4">Carregando semanas disponíveis...</div>
+          ) : weekOptions.length === 0 ? (
+            <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              {csvMessage || 'Nenhuma semana disponível para exportação.'}
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {weekOptions.map((week) => (
+                <label
+                  key={week.weekNumber}
+                  className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${selectedWeekNumber === week.weekNumber ? 'border-petrol-400 bg-petrol-50' : 'border-beige-300 bg-white hover:bg-beige-50'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="csv-week"
+                      checked={selectedWeekNumber === week.weekNumber}
+                      onChange={() => setSelectedWeekNumber(week.weekNumber)}
+                      className="h-4 w-4 border-beige-300 text-petrol-700 focus:ring-petrol-400"
+                    />
+                    <div>
+                      <div className="text-sm font-medium text-dark">
+                        Semana {week.weekNumber} — {formatShortDate(week.startDate)} a {formatShortDate(week.endDate)}
+                      </div>
+                      <div className="text-xs text-dark/40">
+                        {week.entryCount} registro{week.entryCount !== 1 ? 's' : ''} no período
+                      </div>
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+
+          {selectedWeek && selectedWeek.entryCount === 0 && (
+            <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Não há dados nesta semana. O CSV será exportado apenas com o cabeçalho.
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              onClick={handleExportCsv}
+              loading={csvExporting}
+              disabled={!selectedWeek || csvLoading}
+              className="flex-1"
+            >
+              <Download size={16} />
+              Exportar
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setCsvModalOpen(false)}>Cancelar</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={!!previewReport}
