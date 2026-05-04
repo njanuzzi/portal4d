@@ -30,6 +30,7 @@ export function Clients() {
   // Edit modal state
   const [editClient, setEditClient] = useState<ClientProfile | null>(null);
   const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [editWhatsapp, setEditWhatsapp] = useState('');
   const [editAddress, setEditAddress] = useState('');
   const [editDiaryId, setEditDiaryId] = useState('');
@@ -71,6 +72,7 @@ export function Clients() {
 
     setEditClient(client);
     setEditName(client.name);
+    setEditEmail(client.email);
     setEditWhatsapp(client.whatsapp ?? '');
     setEditAddress(client.address ?? '');
     setEditDiaryId(selectedDiaryId);
@@ -93,6 +95,7 @@ export function Clients() {
       .from('profiles')
       .update({
         name: editName.trim(),
+        email: editEmail.trim(),
         whatsapp: editWhatsapp || null,
         address: editAddress || null,
         diary_id: editDiaryId,
@@ -349,6 +352,13 @@ export function Clients() {
             onChange={(e) => setEditName(e.target.value)}
             required
             autoFocus
+          />
+          <Input
+            label="Email"
+            type="email"
+            value={editEmail}
+            onChange={(e) => setEditEmail(e.target.value)}
+            required
           />
           <Input
             label="WhatsApp"
