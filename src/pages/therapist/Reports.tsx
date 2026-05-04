@@ -23,13 +23,12 @@ interface ReportWithProfile extends ReportRow {
 const REPORT_SELECT = 'id, user_id, period_start, period_end, content_text, published, created_at';
 
 function escapeHtml(value: string) {
-  return value.replace(/[&<>'"]/g, (char) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '\'': '&#039;',
-    '"': '&quot;',
-  }[char] ?? char));
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function stripHtml(value: string) {
@@ -144,9 +143,9 @@ export function Reports() {
     };
   }, []);
 
-  const runEditorCommand = (command: string) => {
+  const runEditorCommand = (command: string, value?: string) => {
     editorRef.current?.focus();
-    document.execCommand(command, false);
+    document.execCommand(command, false, value);
     setContentHtml(editorRef.current?.innerHTML ?? '');
   };
 
@@ -320,7 +319,7 @@ export function Reports() {
                 <Button type="button" variant="ghost" size="sm" onClick={() => runEditorCommand('insertOrderedList')}>
                   <ListOrdered size={14} />
                 </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => runEditorCommand('formatBlock')}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => runEditorCommand('formatBlock', 'blockquote')}>
                   <Quote size={14} />
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={clearEditor}>
