@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TherapistLayout } from './components/layout/TherapistLayout';
 import { ClientLayout } from './components/layout/ClientLayout';
@@ -17,12 +17,24 @@ import { Diaries } from './pages/therapist/Diaries';
 import { NewDiary } from './pages/therapist/NewDiary';
 import { DiaryDetail } from './pages/therapist/DiaryDetail';
 import { Reports } from './pages/therapist/Reports';
+import { ClientAccess } from './pages/client/ClientAccess';
 import { DiaryPage } from './pages/client/DiaryPage';
 import { DiaryHistory } from './pages/client/DiaryHistory';
 import { ClientReports as ClientReportsPage } from './pages/client/ClientReports';
 
 function AppRoutes() {
+  const location = useLocation();
   const { user, profile, loading } = useAuth();
+  const isClientTokenRoute = /^\/client\/[^/]+\/?$/.test(location.pathname);
+
+  if (isClientTokenRoute) {
+    return (
+      <Routes>
+        <Route path="/client/:token" element={<ClientAccess />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
   if (loading) return <PageSpinner />;
 
