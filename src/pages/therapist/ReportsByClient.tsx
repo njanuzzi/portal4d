@@ -245,28 +245,40 @@ export function ReportsByClient() {
 
     const periodDates = dateRange(selectedWeek.startDate, selectedWeek.endDate);
 
+    // 1. Busca entradas da semana
+    const { data: entryRows, error: entriesError } = await supabase
+      .from('diary_entries')
+      .select('id, date')
+      .eq('user_id', clientId)
+      .in('date', periodDates);
+
+    if (entriesError) {
+      console.error('CSV export error:', entriesError);
+      setCsvExporting(false);
+      return;
+    }
+
+    const entryIds = (entryRows ?? []).map((e: DiaryEntryRow) => e.id);
+
+    // 2. Busca respostas e perguntas em paralelo (respostas só se houver entradas)
     const [
-      { data: entryRows, error: entriesError },
       { data: answerRows, error: answersError },
       { data: questionRows, error: questionsError },
     ] = await Promise.all([
-      supabase
-        .from('diary_entries')
-        .select('id, date')
-        .eq('user_id', clientId)
-        .in('date', periodDates),
-      supabase
-        .from('entry_answers')
-        .select('entry_id, question_id, answer_text, answer_value')
-        .in('entry_id', (entryRows ?? []).map((entry: DiaryEntryRow) => entry.id)),
+      entryIds.length > 0
+        ? supabase
+            .from('entry_answers')
+            .select('entry_id, question_id, answer_text, answer_value')
+            .in('entry_id', entryIds)
+        : Promise.resolve({ data: [], error: null }),
       supabase
         .from('diary_questions')
         .select('id, order_num, text, type')
         .order('order_num', { ascending: true }),
     ]);
 
-    if (entriesError || answersError || questionsError) {
-      console.error('CSV export error:', entriesError || answersError || questionsError);
+    if (answersError || questionsError) {
+      console.error('CSV export error:', answersError || questionsError);
       setCsvExporting(false);
       return;
     }
