@@ -16,7 +16,52 @@ interface AccessClient {
   expires_at: string;
 }
 
+type RpcError = {
+  code?: string;
+  message?: string;
+  details?: string;
+};
+
 const CLIENT_ACCESS_KEY = 'portal_client_access';
+const VALIDATE_CLIENT_TOKEN_RPC = 'validate_client_token';
+
+function normalizeToken(rawToken: string) {
+  return decodeURIComponent(rawToken).trim();
+}
+
+function firstRpcRow<T>(data: T[] | T | null) {
+  return Array.isArray(data) ? data[0] ?? null : data;
+}
+
+function isRpcSignatureError(error: RpcError | null) {
+  const message = `${error?.code ?? ''} ${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase();
+  return message.includes('pgrst202') || message.includes('could not find the function');
+}
+
+async function validateClientToken(rawToken: string) {
+  const normalizedToken = normalizeToken(rawToken);
+  const primaryArgs = { invite_token: normalizedToken };
+
+  const { data, error } = await (supabase as any)
+    .rpc(VALIDATE_CLIENT_TOKEN_RPC, primaryArgs);
+
+  if (!error) {
+    return { data: firstRpcRow<AccessClient>(data), error: null };
+  }
+
+  if (!isRpcSignatureError(error)) {
+    return { data: null, error };
+  }
+
+  const fallbackArgs = { token: normalizedToken };
+  const fallback = await (supabase as any)
+    .rpc(VALIDATE_CLIENT_TOKEN_RPC, fallbackArgs);
+
+  return {
+    data: fallback.error ? null : firstRpcRow<AccessClient>(fallback.data),
+    error: fallback.error ?? null,
+  };
+}
 
 export function ClientAccess() {
   const { token } = useParams<{ token: string }>();
@@ -37,9 +82,7 @@ export function ClientAccess() {
         return;
       }
 
-      const { data, error: tokenError } = await (supabase as any)
-        .rpc('validate_client_token', { invite_token: token })
-        .maybeSingle();
+      const { data, error: tokenError } = await validateClientToken(token);
 
       if (cancelled) return;
 
@@ -54,7 +97,7 @@ export function ClientAccess() {
       localStorage.setItem(
         CLIENT_ACCESS_KEY,
         JSON.stringify({
-          token,
+          token: normalizeToken(token),
           client_id: validatedClient.client_id,
           expires_at: validatedClient.expires_at,
         })
