@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, X } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -29,6 +29,16 @@ const DEFAULT_EMOTIONS: EmotionOption[] = [
   { emoji: '😴', label: 'Cansado/a' },
 ];
 
+const EMOJI_OPTIONS = [
+  '😊','😄','😁','🥰','😍','🤩','😎','🤗',
+  '😔','😢','😭','😞','😟','🥺','😕','😣',
+  '😰','😨','😧','😦','😱','🫣','😬','😳',
+  '😤','😡','😠','🤬','💢','😾','😒','🙄',
+  '😌','😏','🤭','😶','😑','😐','🫤','😴',
+  '🥱','😪','😫','🤒','🤕','🥴','🤔','🫠',
+  '🥳','😇','🤓','🫡','💪','🙏','❤️','💔',
+];
+
 function newQuestion(): QuestionDraft {
   return { text: '', type: 'text', options: [] };
 }
@@ -39,6 +49,19 @@ export function NewDiary() {
   const [questions, setQuestions] = useState<QuestionDraft[]>([newQuestion()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [openPicker, setOpenPicker] = useState<string | null>(null); // "qIdx-eIdx"
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!openPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setOpenPicker(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openPicker]);
 
   const addQuestion = () => {
     if (questions.length >= 10) return;
@@ -206,32 +229,55 @@ export function NewDiary() {
                       {q.type === 'emotion' && (
                         <div className="border border-beige-200 rounded-lg p-3 space-y-2 bg-beige-50/50">
                           <p className="text-xs font-medium text-dark/50 mb-2">Opções de emoção</p>
-                          {q.options.map((opt, eIdx) => (
-                            <div key={eIdx} className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={opt.emoji}
-                                onChange={(e) => updateEmotion(idx, eIdx, 'emoji', e.target.value)}
-                                placeholder="😊"
-                                maxLength={2}
-                                className="w-12 text-center px-2 py-1.5 rounded-lg border border-beige-300 text-base bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400"
-                              />
-                              <input
-                                type="text"
-                                value={opt.label}
-                                onChange={(e) => updateEmotion(idx, eIdx, 'label', e.target.value)}
-                                placeholder="Rótulo"
-                                className="flex-1 px-3 py-1.5 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeEmotion(idx, eIdx)}
-                                className="text-dark/20 hover:text-red-400 transition-colors"
-                              >
-                                <X size={14} />
-                              </button>
-                            </div>
-                          ))}
+                          {q.options.map((opt, eIdx) => {
+                            const pickerKey = `${idx}-${eIdx}`;
+                            return (
+                              <div key={eIdx} className="flex items-center gap-2">
+                                <div className="relative" ref={openPicker === pickerKey ? pickerRef : null}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenPicker(openPicker === pickerKey ? null : pickerKey)}
+                                    className="w-12 h-9 text-center text-xl rounded-lg border border-beige-300 bg-white hover:border-petrol-400 focus:outline-none focus:ring-2 focus:ring-petrol-400 transition-colors"
+                                  >
+                                    {opt.emoji || '＋'}
+                                  </button>
+                                  {openPicker === pickerKey && (
+                                    <div className="absolute z-50 top-10 left-0 bg-white border border-beige-300 rounded-xl shadow-lg p-2 w-52">
+                                      <div className="grid grid-cols-8 gap-0.5">
+                                        {EMOJI_OPTIONS.map((em) => (
+                                          <button
+                                            key={em}
+                                            type="button"
+                                            onClick={() => {
+                                              updateEmotion(idx, eIdx, 'emoji', em);
+                                              setOpenPicker(null);
+                                            }}
+                                            className="text-xl w-6 h-6 flex items-center justify-center rounded hover:bg-beige-100 transition-colors"
+                                          >
+                                            {em}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                <input
+                                  type="text"
+                                  value={opt.label}
+                                  onChange={(e) => updateEmotion(idx, eIdx, 'label', e.target.value)}
+                                  placeholder="Rótulo"
+                                  className="flex-1 px-3 py-1.5 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeEmotion(idx, eIdx)}
+                                  className="text-dark/20 hover:text-red-400 transition-colors"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            );
+                          })}
                           <button
                             type="button"
                             onClick={() => addEmotion(idx)}
