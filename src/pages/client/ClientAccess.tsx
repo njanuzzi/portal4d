@@ -22,8 +22,14 @@ type RpcError = {
   details?: string;
 };
 
+type ValidationResult = {
+  data: AccessClient | null;
+  error: RpcError | null;
+};
+
 const CLIENT_ACCESS_KEY = 'portal_client_access';
 const VALIDATE_CLIENT_TOKEN_RPC = 'validate_client_token';
+const validationRequests = new Map<string, Promise<ValidationResult>>();
 
 function normalizeToken(rawToken: string) {
   return decodeURIComponent(rawToken).trim();
@@ -33,40 +39,27 @@ function firstRpcRow<T>(data: T[] | T | null) {
   return Array.isArray(data) ? data[0] ?? null : data;
 }
 
-function isRpcSignatureError(error: RpcError | null) {
-  const message = `${error?.code ?? ''} ${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase();
-  return message.includes('pgrst202') || message.includes('could not find the function');
-}
-
-async function validateClientToken(rawToken: string) {
-  const normalizedToken = normalizeToken(rawToken);
-  const argAttempts = [
-    { p_token: normalizedToken },
-    { invite_token: normalizedToken },
-    { token: normalizedToken },
-  ];
-
-  let lastError: RpcError | null = null;
-
-  for (const args of argAttempts) {
-    const { data, error } = await (supabase as any)
-      .rpc(VALIDATE_CLIENT_TOKEN_RPC, args);
-
-    if (!error) {
-      return { data: firstRpcRow<AccessClient>(data), error: null };
-    }
-
-    lastError = error;
-
-    if (!isRpcSignatureError(error)) {
-      return { data: null, error };
-    }
-  }
+async function requestClientTokenValidation(normalizedToken: string): Promise<ValidationResult> {
+  const { data, error } = await (supabase as any)
+    .rpc(VALIDATE_CLIENT_TOKEN_RPC, { p_token: normalizedToken });
 
   return {
-    data: null,
-    error: lastError,
+    data: error ? null : firstRpcRow<AccessClient>(data),
+    error: error ?? null,
   };
+}
+
+function validateClientToken(rawToken: string) {
+  const normalizedToken = normalizeToken(rawToken);
+  const cachedRequest = validationRequests.get(normalizedToken);
+
+  if (cachedRequest) {
+    return cachedRequest;
+  }
+
+  const request = requestClientTokenValidation(normalizedToken);
+  validationRequests.set(normalizedToken, request);
+  return request;
 }
 
 export function ClientAccess() {
