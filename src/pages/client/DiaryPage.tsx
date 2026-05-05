@@ -1,4 +1,5 @@
 import { useEffect, useState, FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CheckCircle, BookOpen } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,7 +9,7 @@ import { Textarea } from '../../components/ui/Textarea';
 import { ScaleInput } from '../../components/ui/ScaleInput';
 import { Input } from '../../components/ui/Input';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { formatDateLong, todayISO } from '../../lib/format';
+import { formatDateLong } from '../../lib/format';
 import type { Diary, DiaryQuestion, DiaryEntry } from '../../lib/database.types';
 
 interface Answer {
@@ -17,8 +18,30 @@ interface Answer {
   answer_value: number | null;
 }
 
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function toLocalISODate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isValidISODate(date: string) {
+  if (!ISO_DATE_PATTERN.test(date)) return false;
+  const parsed = new Date(`${date}T00:00:00`);
+  return toLocalISODate(parsed) === date;
+}
+
+function resolveDiaryDate(dateParam: string | null) {
+  const today = toLocalISODate();
+  if (!dateParam || !isValidISODate(dateParam)) return today;
+  return dateParam > today ? today : dateParam;
+}
+
 export function DiaryPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [diary, setDiary] = useState<Diary | null>(null);
   const [questions, setQuestions] = useState<DiaryQuestion[]>([]);
   const [todayEntry, setTodayEntry] = useState<DiaryEntry | null>(null);
@@ -27,13 +50,21 @@ export function DiaryPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const today = todayISO();
+  const diaryDate = resolveDiaryDate(searchParams.get('date'));
+  const isToday = diaryDate === toLocalISODate();
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
+      setDiary(null);
+      setQuestions([]);
+      setTodayEntry(null);
+      setAnswers([]);
+      setSaved(false);
+
       const [{ data: activeDiary }, { data: entry }] = await Promise.all([
         supabase.from('diaries').select('id, name, is_active, created_at').eq('is_active', true).maybeSingle(),
-        supabase.from('diary_entries').select('*').eq('user_id', user!.id).eq('date', today).maybeSingle(),
+        supabase.from('diary_entries').select('*').eq('user_id', user!.id).eq('date', diaryDate).maybeSingle(),
       ]);
 
       setDiary(activeDiary);
@@ -74,7 +105,7 @@ export function DiaryPage() {
       setLoading(false);
     };
     load();
-  }, [user, today]);
+  }, [user, diaryDate]);
 
   const updateAnswer = (questionId: string, field: 'answer_text' | 'answer_value', value: string | number) => {
     setAnswers(prev =>
@@ -87,10 +118,15 @@ export function DiaryPage() {
     if (!diary) return;
     setSaving(true);
 
+    if (!isValidISODate(diaryDate) || diaryDate > toLocalISODate()) {
+      setSaving(false);
+      return;
+    }
+
     // Create entry
     const { data: entry, error: entryError } = await supabase
       .from('diary_entries')
-      .insert({ user_id: user!.id, diary_id: diary.id, date: today })
+      .insert({ user_id: user!.id, diary_id: diary.id, date: diaryDate })
       .select()
       .single();
 
@@ -132,8 +168,10 @@ export function DiaryPage() {
         <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
           <CheckCircle size={32} className="text-emerald-600" />
         </div>
-        <h2 className="text-xl font-semibold text-dark font-serif mb-2">Diário de hoje registrado!</h2>
-        <p className="text-dark/50 text-sm capitalize">{formatDateLong(today)}</p>
+        <h2 className="text-xl font-semibold text-dark font-serif mb-2">
+          {isToday ? 'Diário de hoje registrado!' : 'Diário registrado!'}
+        </h2>
+        <p className="text-dark/50 text-sm capitalize">{formatDateLong(diaryDate)}</p>
         <div className="mt-6 bg-white rounded-xl border border-beige-300 p-4 text-left space-y-3 max-w-sm mx-auto">
           {questions.map((q, idx) => {
             const a = answers.find(a => a.question_id === q.id);
@@ -157,7 +195,7 @@ export function DiaryPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-dark font-serif">{diary.name}</h1>
-        <p className="text-dark/50 text-sm mt-1 capitalize">{formatDateLong(today)}</p>
+        <p className="text-dark/50 text-sm mt-1 capitalize">{formatDateLong(diaryDate)}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
