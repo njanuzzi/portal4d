@@ -1,6 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { CheckCircle, BookOpen } from 'lucide-react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { CheckCircle, BookOpen, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -187,6 +187,18 @@ export function DiaryPage() {
             );
           })}
         </div>
+
+        {!isToday && (
+          <div className="mt-6">
+            <Link
+              to="/diary/history"
+              className="inline-flex items-center gap-2 text-sm text-petrol-600 hover:text-petrol-800 transition-colors"
+            >
+              <ArrowLeft size={15} />
+              Voltar para o histórico
+            </Link>
+          </div>
+        )}
       </div>
     );
   }
