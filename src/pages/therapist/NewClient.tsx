@@ -1,10 +1,19 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Copy, Check, UserCheck } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+
+// Isolated client for creating user accounts — session is never persisted,
+// so it won't replace the therapist's active session.
+const supabaseSignup = createClient(
+  import.meta.env.VITE_SUPABASE_URL as string,
+  import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+  { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
+);
 
 const ACTIVE_DIARY_MESSAGE = 'Nenhum diário ativo. Ative um diário antes de cadastrar clientes.';
 const DEBUG_PREFIX = '[NewClient active diaries]';
@@ -14,6 +23,12 @@ type ActiveDiary = {
   name: string;
   is_active: boolean;
   created_at: string;
+};
+
+type CreatedClient = {
+  name: string;
+  email: string;
+  tempPassword: string;
 };
 
 export function NewClient() {
@@ -26,6 +41,8 @@ export function NewClient() {
   const [diaryId, setDiaryId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [createdClient, setCreatedClient] = useState<CreatedClient | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const hasActiveDiary = diaries.length > 0;
 
@@ -58,70 +75,27 @@ export function NewClient() {
         return;
       }
 
-      console.log(`${DEBUG_PREFIX} fetch result`, {
-        source,
-        count: data?.length ?? 0,
-        rows: data?.map((diary) => ({
-          id: diary.id,
-          name: diary.name,
-          is_active: diary.is_active,
-        })) ?? [],
-      });
-
-      if (!isMounted) {
-        console.log(`${DEBUG_PREFIX} fetch ignored because component is unmounted`, { source });
-        return;
-      }
+      if (!isMounted) return;
 
       const activeDiaries = data ?? [];
-      console.log(`${DEBUG_PREFIX} applying fetched diaries to state`, {
-        source,
-        activeDiaryExists: activeDiaries.length > 0,
-        activeDiariesCount: activeDiaries.length,
-      });
-
       setDiaries(activeDiaries);
-      setDiaryId((currentDiaryId) => {
-        const nextDiaryId = currentDiaryId && activeDiaries.some((diary) => diary.id === currentDiaryId)
+      setDiaryId((currentDiaryId) =>
+        currentDiaryId && activeDiaries.some((diary) => diary.id === currentDiaryId)
           ? currentDiaryId
-          : activeDiaries[0]?.id ?? '';
-
-        console.log(`${DEBUG_PREFIX} selected diary recalculated`, {
-          source,
-          previousDiaryId: currentDiaryId,
-          nextDiaryId,
-        });
-
-        return nextDiaryId;
-      });
-      setError((currentError) => {
-        const nextError = currentError === ACTIVE_DIARY_MESSAGE && activeDiaries.length > 0 ? '' : currentError;
-
-        if (nextError !== currentError) {
-          console.log(`${DEBUG_PREFIX} clearing no-active-diary error`, { source });
-        }
-
-        return nextError;
-      });
+          : activeDiaries[0]?.id ?? ''
+      );
+      setError((currentError) =>
+        currentError === ACTIVE_DIARY_MESSAGE && activeDiaries.length > 0 ? '' : currentError
+      );
     };
 
     const refreshActiveDiaries = (source = 'manual') => {
-      console.log(`${DEBUG_PREFIX} refresh requested`, { source });
       void loadActiveDiaries(source);
     };
 
-    const handleFocus = () => {
-      console.log(`${DEBUG_PREFIX} window focus listener fired`);
-      refreshActiveDiaries('window.focus');
-    };
-
-    const handlePageShow = () => {
-      console.log(`${DEBUG_PREFIX} pageshow listener fired`);
-      refreshActiveDiaries('window.pageshow');
-    };
-
+    const handleFocus = () => refreshActiveDiaries('window.focus');
+    const handlePageShow = () => refreshActiveDiaries('window.pageshow');
     const handleVisibilityChange = () => {
-      console.log(`${DEBUG_PREFIX} visibilitychange listener fired`, { hidden: document.hidden });
       if (!document.hidden) refreshActiveDiaries('document.visibilitychange');
     };
 
@@ -129,13 +103,9 @@ export function NewClient() {
     window.addEventListener('focus', handleFocus);
     window.addEventListener('pageshow', handlePageShow);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    const intervalId = window.setInterval(() => {
-      console.log(`${DEBUG_PREFIX} interval refresh fired`);
-      refreshActiveDiaries('interval.10000ms');
-    }, 10000);
+    const intervalId = window.setInterval(() => refreshActiveDiaries('interval.10000ms'), 10000);
 
     return () => {
-      console.log(`${DEBUG_PREFIX} useEffect cleanup: removing refresh listeners`);
       isMounted = false;
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('pageshow', handlePageShow);
@@ -169,7 +139,7 @@ export function NewClient() {
       }
 
       const tempPassword = `PortalNJ@${Math.random().toString(36).slice(2, 10)}`;
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      const { data: authData, error: signUpError } = await supabaseSignup.auth.signUp({
         email,
         password: tempPassword,
         options: { data: { name, role: 'client' } },
@@ -198,14 +168,110 @@ export function NewClient() {
           setLoading(false);
           return;
         }
+
+        // Send first-access email so client can set their own password
+        await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
       }
 
-      navigate('/clients');
+      setCreatedClient({ name, email, tempPassword });
     } catch {
       setError('Erro inesperado. Tente novamente.');
       setLoading(false);
     }
   };
+
+  const handleCopy = async () => {
+    if (!createdClient) return;
+    await navigator.clipboard.writeText(createdClient.tempPassword);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (createdClient) {
+    return (
+      <div className="p-6 max-w-xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-dark font-serif">Cliente cadastrado</h1>
+          <p className="text-dark/50 text-sm mt-1">Compartilhe as credenciais de acesso com o cliente.</p>
+        </div>
+
+        <Card>
+          <CardBody className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                <UserCheck size={20} className="text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-medium text-dark">{createdClient.name}</p>
+                <p className="text-sm text-dark/50">{createdClient.email}</p>
+              </div>
+            </div>
+
+            <div className="border-t border-beige-200 pt-4">
+              <p className="text-xs font-medium text-dark/40 uppercase tracking-wide mb-3">
+                Credenciais de acesso
+              </p>
+
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-dark/50">E-mail</span>
+                  <span className="text-sm font-medium text-dark bg-beige-50 rounded-lg px-3 py-2 border border-beige-200">
+                    {createdClient.email}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-dark/50">Senha temporária</span>
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 text-sm font-mono font-medium text-dark bg-beige-50 rounded-lg px-3 py-2 border border-beige-200 tracking-wider">
+                      {createdClient.tempPassword}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="shrink-0 w-9 h-9 rounded-lg border border-beige-300 flex items-center justify-center text-dark/50 hover:text-petrol-700 hover:border-petrol-300 transition-colors"
+                    >
+                      {copied ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-emerald-700 leading-relaxed">
+                <strong>E-mail enviado!</strong> O cliente receberá um link para definir a própria senha.
+              </p>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+              <p className="text-xs text-amber-700 leading-relaxed">
+                <strong>Atenção:</strong> A senha temporária acima é um backup caso o e-mail não chegue. Não será exibida novamente.
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <Button className="flex-1" onClick={() => navigate('/clients')}>
+                Ir para Clientes
+              </Button>
+              <Button variant="ghost" onClick={() => {
+                setCreatedClient(null);
+                setName('');
+                setEmail('');
+                setWhatsapp('');
+                setAddress('');
+                setCopied(false);
+              }}>
+                Novo cliente
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-xl mx-auto">
@@ -259,7 +325,6 @@ export function NewClient() {
               onChange={(e) => setAddress(e.target.value)}
             />
 
-            {/* Diary dropdown */}
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-dark/80">Diário vinculado</label>
               {!hasActiveDiary ? (
