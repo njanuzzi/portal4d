@@ -1,12 +1,13 @@
 import { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, FileText, LogOut } from 'lucide-react';
+import { Home, BookOpen, Clock, FileText, LogOut } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const navItems = [
-  { to: '/diary', label: 'Diário', icon: <BookOpen size={18} /> },
-  { to: '/diary/history', label: 'Histórico', icon: <Clock size={18} /> },
-  { to: '/reports', label: 'Relatórios', icon: <FileText size={18} /> },
+  { to: '/home', label: 'Início', icon: <Home size={18} />, end: true },
+  { to: '/diary', label: 'Diário', icon: <BookOpen size={18} />, end: true },
+  { to: '/diary/history', label: 'Histórico', icon: <Clock size={18} />, end: false },
+  { to: '/reports', label: 'Relatórios', icon: <FileText size={18} />, end: false },
 ];
 
 export function ClientLayout({ children }: { children: ReactNode }) {
@@ -48,7 +49,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === '/diary'}
+                end={item.end}
                 className={({ isActive }) =>
                   `flex items-center gap-2 px-4 py-3 text-sm transition-colors border-b-2 ${
                     isActive
