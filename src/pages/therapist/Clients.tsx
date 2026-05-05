@@ -13,36 +13,9 @@ import { supabase } from '../../lib/supabase';
 import type { Profile, Diary } from '../../lib/database.types';
 
 type ClientProfile = Profile & { diary_id?: string | null };
+type ClientProfileUpdate = Partial<Pick<ClientProfile, 'name' | 'email' | 'whatsapp' | 'address' | 'diary_id'>>;
 
 const ACTIVE_DIARY_MESSAGE = 'Nenhum diário ativo. Ative um diário antes de cadastrar clientes.';
-const INVITE_EXPIRATION_DAYS = 7;
-const INVITE_EMAIL_FROM = 'contato@nubiajanuzzi.com';
-const INVITE_EMAIL_SUBJECT = 'Acesso ao Sistema Núbia Januzzi';
-
-function buildInviteEmailBody(client: ClientProfile, inviteUrl: string) {
-  return `Olá ${client.name},
-
-Você foi cadastrado(a) no Sistema Núbia Januzzi para acompanhamento personalizado com sua terapeuta.
-
-Para acessar sua área pessoal e começar a utilizar o diário digital, clique no link abaixo:
-${inviteUrl}
-
-Este link é válido por 7 dias e é exclusivo para você.
-
-Em seu primeiro acesso, você poderá:
-
-Definir sua senha de acesso
-Confirmar seus dados pessoais
-Iniciar o preenchimento do seu diário
-
-Para acessos futuros, utilize seu email e a senha que você criou.
-
-Dúvidas? Entre em contato conosco.
-
-Atenciosamente,
-Núbia Januzzi
-${INVITE_EMAIL_FROM}`;
-}
 
 export function Clients() {
   const [clients, setClients] = useState<ClientProfile[]>([]);
@@ -50,8 +23,6 @@ export function Clients() {
   const [search, setSearch] = useState('');
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
-  const [inviteLink, setInviteLink] = useState('');
-  const [inviteEmailBody, setInviteEmailBody] = useState('');
   const [togglingClientId, setTogglingClientId] = useState<string | null>(null);
   const [invitingClientId, setInvitingClientId] = useState<string | null>(null);
 
@@ -118,16 +89,17 @@ export function Clients() {
     }
 
     setEditLoading(true);
+    const updates: ClientProfileUpdate = {
+      name: editName.trim(),
+      email: editEmail.trim(),
+      whatsapp: editWhatsapp || null,
+      address: editAddress || null,
+      diary_id: editDiaryId,
+    };
 
     const { data: updatedClient, error } = await supabase
       .from('profiles')
-      .update({
-        name: editName.trim(),
-        email: editEmail.trim(),
-        whatsapp: editWhatsapp || null,
-        address: editAddress || null,
-        diary_id: editDiaryId,
-      } as any)
+      .update(updates)
       .eq('id', editClient.id)
       .select()
       .single();
@@ -148,8 +120,6 @@ export function Clients() {
   const handleSendInvite = async (client: ClientProfile) => {
     setActionError('');
     setActionSuccess('');
-    setInviteLink('');
-    setInviteEmailBody('');
 
     if (!client.active) {
       setActionError('Ative o cliente antes de enviar um convite.');
@@ -158,35 +128,23 @@ export function Clients() {
 
     setInvitingClientId(client.id);
 
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + INVITE_EXPIRATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
-
-    const { error } = await (supabase as any)
-      .from('client_tokens')
-      .insert({
-        client_id: client.id,
-        token,
-        expires_at: expiresAt,
-      });
+    const { error } = await supabase.auth.resetPasswordForEmail(client.email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
 
     if (error) {
-      setActionError(error.message ?? 'Não foi possível gerar o convite.');
+      setActionError(error.message ?? 'Não foi possível enviar o e-mail de acesso.');
       setInvitingClientId(null);
       return;
     }
 
-    const generatedInviteLink = `${window.location.origin}/client/${token}`;
-    setActionSuccess(`Convite enviado para ${client.email}`);
-    setInviteLink(generatedInviteLink);
-    setInviteEmailBody(buildInviteEmailBody(client, generatedInviteLink));
+    setActionSuccess(`E-mail de acesso enviado para ${client.email}`);
     setInvitingClientId(null);
   };
 
   const toggleClientActive = async (client: ClientProfile) => {
     setActionError('');
     setActionSuccess('');
-    setInviteLink('');
-    setInviteEmailBody('');
     setTogglingClientId(client.id);
 
     const { data: updatedClient, error } = await supabase
@@ -286,17 +244,7 @@ export function Clients() {
 
       {actionSuccess && (
         <div className="mb-4 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-          <div>{actionSuccess}</div>
-          {inviteLink && inviteEmailBody && (
-            <div className="mt-3 rounded-lg border border-emerald-200 bg-white p-3 text-dark/70">
-              <div className="text-xs text-dark/50 mb-2">Email simulado</div>
-              <div className="text-xs"><span className="font-medium text-dark">Remetente:</span> {INVITE_EMAIL_FROM}</div>
-              <div className="text-xs"><span className="font-medium text-dark">Assunto:</span> {INVITE_EMAIL_SUBJECT}</div>
-              <pre className="mt-3 whitespace-pre-wrap break-words font-sans text-xs leading-relaxed text-dark/70">
-                {inviteEmailBody}
-              </pre>
-            </div>
-          )}
+          {actionSuccess}
         </div>
       )}
 
