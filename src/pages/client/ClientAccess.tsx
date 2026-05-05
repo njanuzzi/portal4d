@@ -40,26 +40,32 @@ function isRpcSignatureError(error: RpcError | null) {
 
 async function validateClientToken(rawToken: string) {
   const normalizedToken = normalizeToken(rawToken);
-  const primaryArgs = { invite_token: normalizedToken };
+  const argAttempts = [
+    { p_token: normalizedToken },
+    { invite_token: normalizedToken },
+    { token: normalizedToken },
+  ];
 
-  const { data, error } = await (supabase as any)
-    .rpc(VALIDATE_CLIENT_TOKEN_RPC, primaryArgs);
+  let lastError: RpcError | null = null;
 
-  if (!error) {
-    return { data: firstRpcRow<AccessClient>(data), error: null };
+  for (const args of argAttempts) {
+    const { data, error } = await (supabase as any)
+      .rpc(VALIDATE_CLIENT_TOKEN_RPC, args);
+
+    if (!error) {
+      return { data: firstRpcRow<AccessClient>(data), error: null };
+    }
+
+    lastError = error;
+
+    if (!isRpcSignatureError(error)) {
+      return { data: null, error };
+    }
   }
-
-  if (!isRpcSignatureError(error)) {
-    return { data: null, error };
-  }
-
-  const fallbackArgs = { token: normalizedToken };
-  const fallback = await (supabase as any)
-    .rpc(VALIDATE_CLIENT_TOKEN_RPC, fallbackArgs);
 
   return {
-    data: fallback.error ? null : firstRpcRow<AccessClient>(fallback.data),
-    error: fallback.error ?? null,
+    data: null,
+    error: lastError,
   };
 }
 
