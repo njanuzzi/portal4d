@@ -1,5 +1,10 @@
 export type Role = 'therapist' | 'client';
-export type QuestionType = 'text' | 'number' | 'scale';
+export type QuestionType = 'text' | 'number' | 'scale' | 'emotion';
+
+export interface EmotionOption {
+  emoji: string;
+  label: string;
+}
 
 export interface Profile {
   id: string;
@@ -25,6 +30,7 @@ export interface DiaryQuestion {
   order_num: number;
   text: string;
   type: QuestionType;
+  options: EmotionOption[] | null;
   created_at: string;
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, CheckCircle, Clock, FileText, ChevronRight, Flame } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, FileText, ChevronRight, Flame, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -13,6 +13,7 @@ interface HomeData {
   totalEntries: number;
   streak: number;
   pendingReports: number;
+  pastPendingCount: number;
 }
 
 function calcStreak(dates: string[], today: string): number {
@@ -60,11 +61,25 @@ export function ClientHome() {
       const todayFilled = dates.includes(today);
       const streak = calcStreak(dates, today);
 
+      // Conta dias passados sem preenchimento desde o cadastro
+      const filledSet = new Set(dates);
+      const registeredAt = profile?.created_at
+        ? profile.created_at.split('T')[0]
+        : today;
+      let pastPendingCount = 0;
+      const start = new Date(registeredAt + 'T00:00:00');
+      const todayDate = new Date(today + 'T00:00:00');
+      for (let d = new Date(start); d < todayDate; d.setDate(d.getDate() + 1)) {
+        const iso = d.toISOString().split('T')[0];
+        if (!filledSet.has(iso)) pastPendingCount++;
+      }
+
       setData({
         todayFilled,
         totalEntries: dates.length,
         streak,
         pendingReports: reportCount ?? 0,
+        pastPendingCount,
       });
       setLoading(false);
     };
@@ -83,6 +98,24 @@ export function ClientHome() {
         <h1 className="text-xl font-semibold text-dark font-serif">Olá, {firstName}!</h1>
         <p className="text-dark/50 text-sm mt-0.5 capitalize">{formatDateLong(today)}</p>
       </div>
+
+      {/* Past pending days warning */}
+      {data!.pastPendingCount > 0 && (
+        <Link to="/diary/history" className="block">
+          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 hover:bg-amber-100 transition-colors">
+            <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-800">
+                {data!.pastPendingCount} dia{data!.pastPendingCount !== 1 ? 's' : ''} anterior{data!.pastPendingCount !== 1 ? 'es' : ''} sem preenchimento
+              </p>
+              <p className="text-xs text-amber-600 mt-0.5">
+                Toque para ver o histórico e preencher os dias em aberto
+              </p>
+            </div>
+            <ChevronRight size={16} className="text-amber-500 shrink-0 mt-0.5" />
+          </div>
+        </Link>
+      )}
 
       {/* Today's diary CTA */}
       {data!.todayFilled ? (

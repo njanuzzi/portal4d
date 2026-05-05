@@ -1,33 +1,48 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, X } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { supabase } from '../../lib/supabase';
-import type { QuestionType } from '../../lib/database.types';
+import type { QuestionType, EmotionOption } from '../../lib/database.types';
 
 interface QuestionDraft {
   text: string;
   type: QuestionType;
+  options: EmotionOption[];
 }
 
 const TYPE_LABELS: Record<QuestionType, string> = {
   text: 'Texto livre',
   number: 'Número',
   scale: 'Escala (1 a 10)',
+  emotion: 'Escala de emoções',
 };
+
+const DEFAULT_EMOTIONS: EmotionOption[] = [
+  { emoji: '😊', label: 'Alegre' },
+  { emoji: '😔', label: 'Triste' },
+  { emoji: '😰', label: 'Ansioso/a' },
+  { emoji: '😤', label: 'Com raiva' },
+  { emoji: '😌', label: 'Calmo/a' },
+  { emoji: '😴', label: 'Cansado/a' },
+];
+
+function newQuestion(): QuestionDraft {
+  return { text: '', type: 'text', options: [] };
+}
 
 export function NewDiary() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
-  const [questions, setQuestions] = useState<QuestionDraft[]>([{ text: '', type: 'text' }]);
+  const [questions, setQuestions] = useState<QuestionDraft[]>([newQuestion()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const addQuestion = () => {
     if (questions.length >= 10) return;
-    setQuestions((prev) => [...prev, { text: '', type: 'text' }]);
+    setQuestions((prev) => [...prev, newQuestion()]);
   };
 
   const removeQuestion = (idx: number) => {
@@ -35,9 +50,46 @@ export function NewDiary() {
     setQuestions((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const updateQuestion = (idx: number, field: keyof QuestionDraft, value: string) => {
+  const updateQuestion = (idx: number, field: keyof QuestionDraft, value: unknown) => {
     setQuestions((prev) =>
-      prev.map((q, i) => (i === idx ? { ...q, [field]: value } : q))
+      prev.map((q, i) => {
+        if (i !== idx) return q;
+        const updated = { ...q, [field]: value };
+        // Ao trocar para emotion, pré-popula com emoções padrão se ainda vazio
+        if (field === 'type' && value === 'emotion' && q.options.length === 0) {
+          updated.options = DEFAULT_EMOTIONS.map((e) => ({ ...e }));
+        }
+        return updated;
+      })
+    );
+  };
+
+  const addEmotion = (qIdx: number) => {
+    setQuestions((prev) =>
+      prev.map((q, i) =>
+        i === qIdx ? { ...q, options: [...q.options, { emoji: '', label: '' }] } : q
+      )
+    );
+  };
+
+  const removeEmotion = (qIdx: number, eIdx: number) => {
+    setQuestions((prev) =>
+      prev.map((q, i) =>
+        i === qIdx ? { ...q, options: q.options.filter((_, j) => j !== eIdx) } : q
+      )
+    );
+  };
+
+  const updateEmotion = (qIdx: number, eIdx: number, field: keyof EmotionOption, value: string) => {
+    setQuestions((prev) =>
+      prev.map((q, i) =>
+        i === qIdx
+          ? {
+              ...q,
+              options: q.options.map((e, j) => (j === eIdx ? { ...e, [field]: value } : e)),
+            }
+          : q
+      )
     );
   };
 
@@ -49,6 +101,13 @@ export function NewDiary() {
     if (filledQuestions.length === 0) {
       setError('Adicione pelo menos uma pergunta.');
       return;
+    }
+
+    for (const q of filledQuestions) {
+      if (q.type === 'emotion' && q.options.filter((o) => o.emoji && o.label).length < 2) {
+        setError('Perguntas de emoção precisam ter pelo menos 2 opções preenchidas.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -71,6 +130,9 @@ export function NewDiary() {
         text: q.text.trim(),
         type: q.type,
         order_num: idx,
+        options: q.type === 'emotion'
+          ? q.options.filter((o) => o.emoji && o.label)
+          : null,
       }))
     );
 
@@ -132,13 +194,54 @@ export function NewDiary() {
                       />
                       <select
                         value={q.type}
-                        onChange={(e) => updateQuestion(idx, 'type', e.target.value)}
+                        onChange={(e) => updateQuestion(idx, 'type', e.target.value as QuestionType)}
                         className="w-full px-3 py-2 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent transition-colors"
                       >
                         {(Object.keys(TYPE_LABELS) as QuestionType[]).map((t) => (
                           <option key={t} value={t}>{TYPE_LABELS[t]}</option>
                         ))}
                       </select>
+
+                      {/* Emotion options editor */}
+                      {q.type === 'emotion' && (
+                        <div className="border border-beige-200 rounded-lg p-3 space-y-2 bg-beige-50/50">
+                          <p className="text-xs font-medium text-dark/50 mb-2">Opções de emoção</p>
+                          {q.options.map((opt, eIdx) => (
+                            <div key={eIdx} className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={opt.emoji}
+                                onChange={(e) => updateEmotion(idx, eIdx, 'emoji', e.target.value)}
+                                placeholder="😊"
+                                maxLength={2}
+                                className="w-12 text-center px-2 py-1.5 rounded-lg border border-beige-300 text-base bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400"
+                              />
+                              <input
+                                type="text"
+                                value={opt.label}
+                                onChange={(e) => updateEmotion(idx, eIdx, 'label', e.target.value)}
+                                placeholder="Rótulo"
+                                className="flex-1 px-3 py-1.5 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeEmotion(idx, eIdx)}
+                                className="text-dark/20 hover:text-red-400 transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => addEmotion(idx)}
+                            className="flex items-center gap-1.5 text-xs text-petrol-600 hover:text-petrol-800 transition-colors mt-1"
+                          >
+                            <Plus size={13} />
+                            Adicionar emoção
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <button
                       type="button"

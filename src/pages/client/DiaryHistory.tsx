@@ -154,6 +154,14 @@ export function DiaryHistory() {
                           </div>
                           <span className="text-xs text-dark/30">10</span>
                         </div>
+                      ) : answer.question.type === 'emotion' && answer.answer_text ? (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {answer.answer_text.split('|').map(s => s.trim()).filter(Boolean).map(v => (
+                            <span key={v} className="inline-flex items-center gap-1 bg-petrol-50 text-petrol-700 text-xs font-medium px-2 py-1 rounded-full">
+                              {v}
+                            </span>
+                          ))}
+                        </div>
                       ) : (
                         <p className="text-sm text-dark">{answer.answer_text || answer.answer_value?.toString() || '—'}</p>
                       )}

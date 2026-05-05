@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
 import { FileText, Eye } from 'lucide-react';
+
+function stripHtml(html: string) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent || div.innerText || '';
+}
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -61,7 +67,7 @@ export function ClientReports() {
                     <div className="text-xs text-dark/40 mt-0.5">
                       Disponível desde {formatDate(report.created_at)}
                     </div>
-                    <p className="text-sm text-dark/60 mt-2 line-clamp-3">{report.content_text}</p>
+                    <p className="text-sm text-dark/60 mt-2 line-clamp-3">{stripHtml(report.content_text)}</p>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setPreviewReport(report)} className="shrink-0">
                     <Eye size={14} />
@@ -80,9 +86,10 @@ export function ClientReports() {
         title={`Relatório — ${previewReport ? formatDate(previewReport.period_start) : ''} a ${previewReport ? formatDate(previewReport.period_end) : ''}`}
         size="lg"
       >
-        <p className="text-dark/80 whitespace-pre-wrap leading-relaxed text-sm">
-          {previewReport?.content_text}
-        </p>
+        <div
+          className="prose prose-sm max-w-none text-dark/80 leading-relaxed [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-dark [&_h2]:mb-3 [&_p]:mb-2 [&_ul]:pl-4 [&_li]:mb-1"
+          dangerouslySetInnerHTML={{ __html: previewReport?.content_text ?? '' }}
+        />
       </Modal>
     </div>
   );

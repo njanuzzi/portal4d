@@ -179,9 +179,19 @@ export function DiaryPage() {
               <div key={q.id}>
                 <div className="text-xs font-medium text-dark/40 mb-0.5">{idx + 1}. {q.text}</div>
                 <div className="text-sm text-dark">
-                  {q.type === 'scale' && a?.answer_value !== null
-                    ? <span className="font-semibold text-petrol-700">{a?.answer_value}/10</span>
-                    : a?.answer_text || a?.answer_value?.toString() || '—'}
+                  {q.type === 'scale' && a?.answer_value !== null ? (
+                    <span className="font-semibold text-petrol-700">{a?.answer_value}/10</span>
+                  ) : q.type === 'emotion' && a?.answer_text ? (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {a.answer_text.split('|').map(s => s.trim()).filter(Boolean).map(v => (
+                        <span key={v} className="inline-flex items-center gap-1 bg-petrol-50 text-petrol-700 text-xs font-medium px-2 py-1 rounded-full">
+                          {v}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    a?.answer_text || a?.answer_value?.toString() || '—'
+                  )}
                 </div>
               </div>
             );
@@ -245,6 +255,47 @@ export function DiaryPage() {
                     value={answer?.answer_value ?? null}
                     onChange={(val) => updateAnswer(q.id, 'answer_value', val)}
                   />
+                )}
+                {q.type === 'emotion' && q.options && q.options.length > 0 && (
+                  <div>
+                    <p className="text-xs text-dark/40 mb-2">Selecione quantas quiser</p>
+                    <div className="flex flex-wrap gap-2">
+                      {q.options.map((opt) => {
+                        const value = `${opt.emoji} ${opt.label}`;
+                        const selected = (answer?.answer_text || '')
+                          .split('|')
+                          .map(s => s.trim())
+                          .includes(value);
+                        const toggle = () => {
+                          const current = (answer?.answer_text || '')
+                            .split('|')
+                            .map(s => s.trim())
+                            .filter(Boolean);
+                          const next = selected
+                            ? current.filter(v => v !== value)
+                            : [...current, value];
+                          updateAnswer(q.id, 'answer_text', next.join(' | '));
+                        };
+                        return (
+                          <button
+                            key={opt.label}
+                            type="button"
+                            onClick={toggle}
+                            className={`flex flex-col items-center gap-1 px-4 py-3 rounded-xl border-2 transition-all ${
+                              selected
+                                ? 'border-petrol-500 bg-petrol-50 shadow-sm scale-105'
+                                : 'border-beige-300 bg-white hover:border-petrol-300'
+                            }`}
+                          >
+                            <span className="text-2xl leading-none">{opt.emoji}</span>
+                            <span className={`text-xs font-medium ${selected ? 'text-petrol-700' : 'text-dark/60'}`}>
+                              {opt.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </CardBody>
             </Card>
