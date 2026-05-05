@@ -20,19 +20,32 @@ import { DiaryDetail } from './pages/therapist/DiaryDetail';
 import { Reports } from './pages/therapist/Reports';
 import { ReportsByClient } from './pages/therapist/ReportsByClient';
 import { ClientAccess } from './pages/client/ClientAccess';
+import { ClientDiaryForm } from './pages/client/ClientDiaryForm';
+import { ClientHome } from './pages/client/ClientHome';
 import { DiaryPage } from './pages/client/DiaryPage';
 import { DiaryHistory } from './pages/client/DiaryHistory';
 import { ClientReports as ClientReportsPage } from './pages/client/ClientReports';
+import { ResetPassword } from './pages/ResetPassword';
 
 function AppRoutes() {
   const location = useLocation();
   const { user, profile, loading } = useAuth();
-  const isClientTokenRoute = /^\/client\/[^/]+\/?$/.test(location.pathname);
+  const isClientTokenRoute = /^\/client\/[^/]+(\/diary)?\/?$/.test(location.pathname);
+
+  // Reset password route is always public
+  if (location.pathname === '/reset-password') {
+    return (
+      <Routes>
+        <Route path="/reset-password" element={<ResetPassword />} />
+      </Routes>
+    );
+  }
 
   if (isClientTokenRoute) {
     return (
       <Routes>
         <Route path="/client/:token" element={<ClientAccess />} />
+        <Route path="/client/:token/diary" element={<ClientDiaryForm />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -85,12 +98,13 @@ function AppRoutes() {
     return (
       <ClientLayout>
         <Routes>
+          <Route path="/home" element={<ClientHome />} />
           <Route path="/diary" element={<DiaryPage />} />
           <Route path="/diary/history" element={<DiaryHistory />} />
           <Route path="/reports" element={<ClientReportsPage />} />
-          <Route path="/login" element={<Navigate to="/diary" replace />} />
-          <Route path="/" element={<Navigate to="/diary" replace />} />
-          <Route path="*" element={<Navigate to="/diary" replace />} />
+          <Route path="/login" element={<Navigate to="/home" replace />} />
+          <Route path="/" element={<Navigate to="/home" replace />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </ClientLayout>
     );
