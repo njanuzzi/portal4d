@@ -13,7 +13,6 @@ import { supabase } from '../../lib/supabase';
 import type { Profile, Diary } from '../../lib/database.types';
 
 type ClientProfile = Profile & { diary_id?: string | null };
-type ClientProfileUpdate = Partial<Pick<ClientProfile, 'name' | 'email' | 'whatsapp' | 'address' | 'diary_id'>>;
 
 const ACTIVE_DIARY_MESSAGE = 'Nenhum diário ativo. Ative um diário antes de cadastrar clientes.';
 
@@ -89,30 +88,35 @@ export function Clients() {
     }
 
     setEditLoading(true);
-    const updates: ClientProfileUpdate = {
-      name: editName.trim(),
-      email: editEmail.trim(),
-      whatsapp: editWhatsapp || null,
-      address: editAddress || null,
-      diary_id: editDiaryId,
-    };
 
-    const { data: updatedClient, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', editClient.id)
-      .select()
-      .single();
+    const { error: rpcError } = await supabase.rpc('update_client_profile', {
+      p_client_id: editClient.id,
+      p_name:      editName.trim(),
+      p_email:     editEmail.trim(),
+      p_whatsapp:  editWhatsapp || null,
+      p_address:   editAddress || null,
+      p_diary_id:  editDiaryId,
+    });
 
-    if (error || !updatedClient) {
-      setEditError(error?.message ?? 'Não foi possível atualizar o cliente.');
+    if (rpcError) {
+      setEditError(rpcError.message ?? 'Não foi possível atualizar o cliente.');
       setEditLoading(false);
       return;
     }
 
-    setClients((prev) =>
-      prev.map((c) => c.id === editClient.id ? (updatedClient as ClientProfile) : c)
-    );
+    // Busca o perfil atualizado para refletir na lista
+    const { data: updatedClient } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', editClient.id)
+      .single();
+
+    if (updatedClient) {
+      setClients((prev) =>
+        prev.map((c) => c.id === editClient.id ? (updatedClient as ClientProfile) : c)
+      );
+    }
+
     setEditClient(null);
     setEditLoading(false);
   };
