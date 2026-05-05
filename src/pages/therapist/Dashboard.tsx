@@ -1,14 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, BookOpen, FileText, TrendingUp, ChevronRight, CheckCircle, Clock } from 'lucide-react';
+import { Users, BookOpen, FileText, TrendingUp, ChevronRight, CheckCircle, Clock, XCircle, MessageCircle } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { formatDate } from '../../lib/format';
+import { formatDate, formatDateLong, todayISO } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
 import type { Profile, Diary, Report } from '../../lib/database.types';
 
 type ReportSummary = Pick<Report, 'id' | 'user_id' | 'period_start' | 'period_end' | 'content_text' | 'published' | 'created_at'>;
+
+interface ClientTodayStatus {
+  id: string;
+  name: string;
+  registeredAt: string;
+  whatsapp: string | null;
+  responded: boolean;
+  entryId: string | null;
+  lastEntryDate: string | null;
+  daysSinceActivity: number;
+}
 
 interface Stats {
   totalClients: number;
@@ -17,12 +28,7 @@ interface Stats {
   reportCount: number;
   recentReports: (ReportSummary & { profile: Profile | null })[];
   todayEntries: number;
-}
-
-function currentDateISO() {
-  const now = new Date();
-  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return localDate.toISOString().split('T')[0];
+  clientsToday: ClientTodayStatus[];
 }
 
 export function Dashboard() {
@@ -37,7 +43,7 @@ export function Dashboard() {
       setLoading(true);
       setError('');
 
-      const today = currentDateISO();
+      const today = todayISO();
 
       const [
         totalClientsResult,
@@ -46,58 +52,90 @@ export function Dashboard() {
         todayEntriesResult,
         reportsCountResult,
         recentReportsResult,
+        allActiveClientsResult,
       ] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id', { count: 'exact', head: true })
-          .eq('role', 'client'),
-        supabase
-          .from('profiles')
-          .select('id', { count: 'exact', head: true })
-          .eq('role', 'client')
-          .eq('active', true),
-        supabase
-          .from('diaries')
-          .select('id, name, is_active, created_at')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('diary_entries')
-          .select('id', { count: 'exact', head: true })
-          .eq('date', today),
-        supabase
-          .from('reports')
-          .select('id', { count: 'exact', head: true }),
-        supabase
-          .from('reports')
-          .select('id, user_id, period_start, period_end, content_text, published, created_at')
-          .order('created_at', { ascending: false })
-          .limit(5),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client').eq('active', true),
+        supabase.from('diaries').select('id, name, is_active, created_at').eq('is_active', true).order('created_at', { ascending: false }),
+        supabase.from('diary_entries').select('id', { count: 'exact', head: true }).eq('date', today),
+        supabase.from('reports').select('id', { count: 'exact', head: true }),
+        supabase.from('reports').select('id, user_id, period_start, period_end, content_text, published, created_at').order('created_at', { ascending: false }).limit(5),
+        supabase.from('profiles').select('id, name, created_at, whatsapp').eq('role', 'client').eq('active', true).order('name'),
       ]);
 
       if (cancelled) return;
 
+      // Build today's status per client
+      const activeClients = (allActiveClientsResult.data ?? []) as { id: string; name: string; created_at: string; whatsapp: string | null }[];
+      let clientsToday: ClientTodayStatus[] = [];
+
+      if (activeClients.length > 0) {
+        const clientIds = activeClients.map(c => c.id);
+
+        // Fetch today's entries and all entries (to find last response per client)
+        const [{ data: todayEntryRows }, { data: allEntryRows }] = await Promise.all([
+          supabase
+            .from('diary_entries')
+            .select('id, user_id')
+            .eq('date', today)
+            .in('user_id', clientIds),
+          supabase
+            .from('diary_entries')
+            .select('user_id, date')
+            .in('user_id', clientIds)
+            .order('date', { ascending: false }),
+        ]);
+
+        if (cancelled) return;
+
+        const respondedMap = new Map(
+          (todayEntryRows ?? []).map(e => [e.user_id, e.id])
+        );
+
+        // Most recent entry date per client (first occurrence per user since sorted desc)
+        const lastEntryMap = new Map<string, string>();
+        for (const e of (allEntryRows ?? [])) {
+          if (!lastEntryMap.has(e.user_id)) lastEntryMap.set(e.user_id, e.date);
+        }
+
+        const daysBetween = (dateStr: string) => {
+          const ms = new Date(today + 'T00:00:00').getTime() - new Date(dateStr + 'T00:00:00').getTime();
+          return Math.floor(ms / 86_400_000);
+        };
+
+        clientsToday = activeClients.map(c => {
+          const lastEntryDate = lastEntryMap.get(c.id) ?? null;
+          const registeredAt = c.created_at.split('T')[0];
+          const daysSinceActivity = lastEntryDate
+            ? daysBetween(lastEntryDate)
+            : daysBetween(registeredAt);
+          return {
+            id: c.id,
+            name: c.name,
+            registeredAt,
+            whatsapp: c.whatsapp ?? null,
+            responded: respondedMap.has(c.id),
+            entryId: respondedMap.get(c.id) ?? null,
+            lastEntryDate,
+            daysSinceActivity,
+          };
+        });
+      }
+
+      // Enrich recent reports with profile names
       const reportRows = (recentReportsResult.data ?? []) as ReportSummary[];
-      const profileIds = Array.from(new Set(reportRows.map((report) => report.user_id).filter(Boolean)));
+      const profileIds = Array.from(new Set(reportRows.map(r => r.user_id).filter(Boolean)));
       let profilesById = new Map<string, Profile>();
-      let profilesErrorMessage = '';
 
       if (profileIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
+        const { data: profiles } = await supabase
           .from('profiles')
           .select('id, email, name, role, active, whatsapp, address, created_at')
           .in('id', profileIds);
 
         if (cancelled) return;
-
-        profilesById = new Map((profiles ?? []).map((profile) => [profile.id, profile as Profile]));
-        profilesErrorMessage = profilesError?.message ?? '';
+        profilesById = new Map((profiles ?? []).map(p => [p.id, p as Profile]));
       }
-
-      const recentReports = reportRows.map((report) => ({
-        ...report,
-        profile: profilesById.get(report.user_id) ?? null,
-      }));
 
       const queryError = [
         totalClientsResult.error?.message,
@@ -106,7 +144,6 @@ export function Dashboard() {
         todayEntriesResult.error?.message,
         reportsCountResult.error?.message,
         recentReportsResult.error?.message,
-        profilesErrorMessage,
       ].find(Boolean);
 
       setStats({
@@ -114,26 +151,38 @@ export function Dashboard() {
         activeClients: activeClientsResult.count ?? 0,
         activeDiaries: (activeDiariesResult.data ?? []) as Diary[],
         reportCount: reportsCountResult.count ?? 0,
-        recentReports,
+        recentReports: reportRows.map(r => ({ ...r, profile: profilesById.get(r.user_id) ?? null })),
         todayEntries: todayEntriesResult.count ?? 0,
+        clientsToday,
       });
+
       setError(queryError ?? '');
       setLoading(false);
     };
 
     fetchDashboard();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   if (loading) return <PageSpinner />;
 
+  const respondedCount = stats!.clientsToday.filter(c => c.responded).length;
+  const pendingCount = stats!.clientsToday.filter(c => !c.responded).length;
+
+  const whatsappLink = (client: ClientTodayStatus) => {
+    if (!client.whatsapp) return null;
+    const digits = client.whatsapp.replace(/\D/g, '');
+    const number = digits.startsWith('55') ? digits : `55${digits}`;
+    const msg = encodeURIComponent(
+      `Olá, ${client.name.split(' ')[0]}! Lembrete para preencher o diário de hoje no portal. 😊`
+    );
+    return `https://wa.me/${number}?text=${msg}`;
+  };
+
   const statCards = [
     { label: 'Total de Clientes', value: stats!.totalClients, sub: `${stats!.activeClients} ativos`, icon: <Users size={20} />, color: 'text-petrol-600', bg: 'bg-petrol-50', to: '/clients' },
     { label: 'Diário Ativo', value: stats!.activeDiaries.length, sub: stats!.activeDiaries[0]?.name || 'Nenhum ativo', icon: <BookOpen size={20} />, color: 'text-gold-600', bg: 'bg-gold-50', to: '/diaries' },
-    { label: 'Respostas Hoje', value: stats!.todayEntries, sub: 'registros do dia', icon: <TrendingUp size={20} />, color: 'text-emerald-600', bg: 'bg-emerald-50', to: '/reports' },
+    { label: 'Respostas Hoje', value: stats!.todayEntries, sub: `${pendingCount} pendente${pendingCount !== 1 ? 's' : ''}`, icon: <TrendingUp size={20} />, color: 'text-emerald-600', bg: 'bg-emerald-50', to: '/dashboard' },
     { label: 'Relatórios', value: stats!.reportCount, sub: 'total criado', icon: <FileText size={20} />, color: 'text-amber-600', bg: 'bg-amber-50', to: '/reports' },
   ];
 
@@ -150,13 +199,10 @@ export function Dashboard() {
         </div>
       )}
 
+      {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((s) => (
-          <Link
-            key={s.label}
-            to={s.to}
-            className="block h-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-petrol-400 focus-visible:ring-offset-2"
-          >
+          <Link key={s.label} to={s.to} className="block h-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-petrol-400 focus-visible:ring-offset-2">
             <Card className="h-full cursor-pointer transition-all hover:border-petrol-300 hover:shadow-md">
               <CardBody className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-lg ${s.bg} flex items-center justify-center ${s.color}`}>
@@ -173,7 +219,91 @@ export function Dashboard() {
         ))}
       </div>
 
+      {/* Today's diary status */}
+      {stats!.clientsToday.length > 0 && (
+        <Card className="mb-6">
+          <div className="px-6 py-4 border-b border-beige-300 flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-dark text-sm">Diário de Hoje</h2>
+              <p className="text-xs text-dark/40 mt-0.5 capitalize">{formatDateLong(todayISO())}</p>
+            </div>
+            <div className="flex items-center gap-3 text-xs">
+              <span className="flex items-center gap-1 text-emerald-600">
+                <CheckCircle size={13} />
+                {respondedCount} respondeu{respondedCount !== 1 ? 'ram' : ''}
+              </span>
+              {pendingCount > 0 && (
+                <span className="flex items-center gap-1 text-dark/40">
+                  <Clock size={13} />
+                  {pendingCount} pendente{pendingCount !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="divide-y divide-beige-100">
+            {stats!.clientsToday.map((c) => (
+              <div key={c.id} className="flex items-center justify-between px-6 py-3">
+                <div className="flex items-center gap-3">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${c.responded ? 'bg-emerald-100 text-emerald-700' : 'bg-beige-200 text-dark/40'}`}>
+                    {c.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm text-dark">{c.name}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {c.responded ? (
+                    <>
+                      <span className="flex items-center gap-1 text-xs text-emerald-600">
+                        <CheckCircle size={13} /> Respondeu
+                      </span>
+                      <Link
+                        to={`/clients/${c.id}/entries`}
+                        className="text-xs text-petrol-600 hover:text-petrol-800 flex items-center gap-1"
+                      >
+                        Ver <ChevronRight size={12} />
+                      </Link>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 text-xs text-dark/35">
+                        <XCircle size={13} /> Pendente
+                      </span>
+                      <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${
+                        c.daysSinceActivity === 0
+                          ? 'bg-beige-100 text-dark/40'
+                          : c.daysSinceActivity <= 2
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-red-100 text-red-600'
+                      }`}>
+                        {c.lastEntryDate
+                          ? `${c.daysSinceActivity}d sem responder`
+                          : c.daysSinceActivity === 0
+                            ? 'cadastrado hoje'
+                            : `${c.daysSinceActivity}d desde o cadastro`
+                        }
+                      </span>
+                      {whatsappLink(c) && (
+                        <a
+                          href={whatsappLink(c)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Enviar lembrete via WhatsApp"
+                          className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 transition-colors"
+                        >
+                          <MessageCircle size={13} />
+                          <span className="hidden sm:inline">Lembrete</span>
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Active diary */}
         <Card>
           <div className="px-6 py-4 border-b border-beige-300 flex items-center justify-between">
             <h2 className="font-semibold text-dark text-sm">Diário Ativo</h2>
@@ -205,6 +335,7 @@ export function Dashboard() {
           </CardBody>
         </Card>
 
+        {/* Recent reports */}
         <Card>
           <div className="px-6 py-4 border-b border-beige-300 flex items-center justify-between">
             <h2 className="font-semibold text-dark text-sm">Relatórios Recentes</h2>
