@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Clock, FileText, LogOut } from 'lucide-react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { Home, BookOpen, Clock, FileText, LogOut, KeyRound } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const navItems = [
@@ -34,13 +34,23 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                 <div className="text-petrol-200 text-xs">Olá, {profile?.name?.split(' ')[0] || 'Cliente'}</div>
               </div>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors text-sm"
-            >
-              <LogOut size={16} />
-              <span className="hidden sm:inline">Sair</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/change-password"
+                className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors text-sm"
+                title="Alterar senha"
+              >
+                <KeyRound size={16} />
+                <span className="hidden sm:inline">Alterar senha</span>
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors text-sm"
+              >
+                <LogOut size={16} />
+                <span className="hidden sm:inline">Sair</span>
+              </button>
+            </div>
           </div>
 
           {/* Nav tabs */}
