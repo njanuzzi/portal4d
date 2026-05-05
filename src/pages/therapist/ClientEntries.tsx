@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { formatDateLong } from '../../lib/format';
-import { MOCK_CLIENTS, MOCK_ENTRIES, MOCK_ANSWERS, MOCK_QUESTIONS, MOCK_DIARIES } from '../../lib/mockData';
 import type { Profile, DiaryEntry, EntryAnswer, DiaryQuestion, Diary } from '../../lib/database.types';
 
 interface EntryWithDetails extends DiaryEntry {
@@ -21,26 +21,24 @@ export function ClientEntries() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const found = MOCK_CLIENTS.find(c => c.id === id) || null;
-    setClient(found);
+    if (!id) return;
 
-    const clientEntries = MOCK_ENTRIES
-      .filter(e => e.user_id === id)
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .map(entry => ({
-        ...entry,
-        diary: MOCK_DIARIES.find(d => d.id === entry.diary_id) as Diary,
-        answers: MOCK_ANSWERS
-          .filter(a => a.entry_id === entry.id)
-          .map(a => ({
-            ...a,
-            question: MOCK_QUESTIONS.find(q => q.id === a.question_id) as DiaryQuestion,
-          }))
-          .filter(a => a.question),
-      }));
+    const load = async () => {
+      const [{ data: profile }, { data: entryRows }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', id).maybeSingle(),
+        supabase
+          .from('diary_entries')
+          .select('*, diary:diaries(*), answers:entry_answers(*, question:diary_questions(*))')
+          .eq('user_id', id)
+          .order('date', { ascending: false }),
+      ]);
 
-    setEntries(clientEntries);
-    setLoading(false);
+      setClient(profile ?? null);
+      setEntries((entryRows as EntryWithDetails[]) ?? []);
+      setLoading(false);
+    };
+
+    load();
   }, [id]);
 
   const toggle = (entryId: string) => {
@@ -61,7 +59,9 @@ export function ClientEntries() {
           Voltar para {client?.name || 'Cliente'}
         </Link>
         <h1 className="text-2xl font-semibold text-dark font-serif">Registros do Diário</h1>
-        <p className="text-dark/50 text-sm mt-1">{entries.length} registro{entries.length !== 1 ? 's' : ''} encontrado{entries.length !== 1 ? 's' : ''}</p>
+        <p className="text-dark/50 text-sm mt-1">
+          {entries.length} registro{entries.length !== 1 ? 's' : ''} encontrado{entries.length !== 1 ? 's' : ''}
+        </p>
       </div>
 
       {entries.length === 0 ? (
@@ -73,7 +73,9 @@ export function ClientEntries() {
         <div className="space-y-3">
           {entries.map((entry) => {
             const isOpen = expanded.has(entry.id);
-            const sortedAnswers = [...entry.answers].sort((a, b) => a.question.order_num - b.question.order);
+            const sortedAnswers = [...entry.answers].sort(
+              (a, b) => a.question.order_num - b.question.order_num
+            );
 
             return (
               <Card key={entry.id}>
@@ -82,17 +84,25 @@ export function ClientEntries() {
                   onClick={() => toggle(entry.id)}
                 >
                   <div>
-                    <div className="font-medium text-dark text-sm capitalize">{formatDateLong(entry.date)}</div>
-                    <div className="text-xs text-dark/40 mt-0.5">{entry.diary?.name} · {sortedAnswers.length} resposta{sortedAnswers.length !== 1 ? 's' : ''}</div>
+                    <div className="font-medium text-dark text-sm capitalize">
+                      {formatDateLong(entry.date)}
+                    </div>
+                    <div className="text-xs text-dark/40 mt-0.5">
+                      {entry.diary?.name} · {sortedAnswers.length} resposta{sortedAnswers.length !== 1 ? 's' : ''}
+                    </div>
                   </div>
-                  {isOpen ? <ChevronUp size={16} className="text-dark/30" /> : <ChevronDown size={16} className="text-dark/30" />}
+                  {isOpen
+                    ? <ChevronUp size={16} className="text-dark/30" />
+                    : <ChevronDown size={16} className="text-dark/30" />}
                 </button>
 
                 {isOpen && (
                   <div className="px-6 pb-4 border-t border-beige-200 space-y-4 pt-4">
                     {sortedAnswers.map((answer) => (
                       <div key={answer.id}>
-                        <div className="text-xs font-medium text-dark/50 mb-1">{answer.question.text}</div>
+                        <div className="text-xs font-medium text-dark/50 mb-1">
+                          {answer.question.text}
+                        </div>
                         {answer.question.type === 'scale' && answer.answer_value !== null ? (
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-petrol-700 text-white text-sm flex items-center justify-center font-semibold">
