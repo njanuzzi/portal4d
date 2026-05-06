@@ -87,14 +87,12 @@ export function Login() {
 
         {/* Left column */}
         <div className="md:w-5/12 flex flex-col justify-center px-10 py-12" style={{ background: '#153d49' }}>
-          <div
-            className="flex items-center justify-center mb-8 self-start"
-            style={{ width: 200, height: 200, border: '1.5px dashed #C9A84C', borderRadius: 8 }}
-          >
-            <span style={{ color: '#8aacb5', fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>
-              Logo aqui
-            </span>
-          </div>
+          <img
+            src="/logosistema.png"
+            alt="Logo Desbloqueio Comportamental"
+            className="mb-8 self-start"
+            style={{ width: 160, height: 160, objectFit: 'contain', borderRadius: 8 }}
+          />
 
           <p style={{ fontFamily: "'Playfair Display', serif", color: '#E8DCC8', fontSize: 20, fontWeight: 400, margin: '0 0 4px' }}>
             Núbia Januzzi

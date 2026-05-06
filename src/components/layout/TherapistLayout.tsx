@@ -40,11 +40,9 @@ export function TherapistLayout({ children }: { children: ReactNode }) {
       {/* Logo */}
       <div className="px-6 py-6 border-b border-petrol-600">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gold-500 flex items-center justify-center">
-            <span className="text-white font-bold text-sm font-serif">NJ</span>
-          </div>
+          <img src="/logosistema.png" alt="Logo" className="w-9 h-9 rounded-lg object-cover shrink-0" />
           <div>
-            <div className="text-white font-semibold text-sm font-serif leading-tight">Sistema Núbia Januzzi</div>
+            <div className="text-white font-semibold text-sm font-serif leading-tight">Desbloqueio Comportamental</div>
             <div className="text-petrol-200 text-xs">Protocolo NJ</div>
           </div>
         </div>
@@ -121,10 +119,8 @@ export function TherapistLayout({ children }: { children: ReactNode }) {
             <Menu size={22} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-gold-500 flex items-center justify-center">
-              <span className="text-white font-bold text-xs font-serif">NJ</span>
-            </div>
-            <span className="font-semibold text-petrol-700 font-serif text-sm">Sistema Núbia Januzzi</span>
+            <img src="/logosistema.png" alt="Logo" className="w-6 h-6 rounded object-cover" />
+            <span className="font-semibold text-petrol-700 font-serif text-sm">Desbloqueio Comportamental</span>
           </div>
           <div className="w-6" />
         </div>
