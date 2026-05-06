@@ -35,9 +35,14 @@ type DiaryQuestionRow = {
   text: string;
   type: string;
 };
+type DayNoteRow = {
+  noted_at: string;
+  content: string | null;
+  emotions: { label: string; intensity: number }[] | null;
+};
 
 const REPORT_SELECT = 'id, user_id, period_start, period_end, content_text, published, active, created_at';
-const CSV_HEADERS = ['data', 'pergunta', 'tipo', 'resposta_texto', 'resposta_valor'];
+const CSV_HEADERS = ['data', 'horario', 'secao', 'pergunta_ou_conteudo', 'tipo', 'resposta_texto', 'resposta_valor', 'emocoes'];
 
 function stripHtml(value: string) {
   const container = document.createElement('div');
@@ -125,6 +130,16 @@ function csvCell(value: string | number | null | undefined) {
 function buildCsv(rows: Array<Array<string | number | null | undefined>>) {
   const lines = [CSV_HEADERS, ...rows].map((row) => row.map(csvCell).join(','));
   return `${String.fromCharCode(0xfeff)}${lines.join(String.fromCharCode(10))}`;
+}
+
+function formatNoteTime(isoString: string) {
+  const d = new Date(isoString);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function formatNoteDate(isoString: string) {
+  const d = new Date(isoString);
+  return toISODate(d);
 }
 
 function sanitizeFilePart(value: string) {
@@ -245,7 +260,7 @@ export function ReportsByClient() {
 
     const periodDates = dateRange(selectedWeek.startDate, selectedWeek.endDate);
 
-    // 1. Busca entradas da semana
+    // 1. Busca entradas do diário + anotações da semana em paralelo
     const { data: entryRows, error: entriesError } = await supabase
       .from('diary_entries')
       .select('id, date')
@@ -260,10 +275,11 @@ export function ReportsByClient() {
 
     const entryIds = (entryRows ?? []).map((e: DiaryEntryRow) => e.id);
 
-    // 2. Busca respostas e perguntas em paralelo (respostas só se houver entradas)
+    // 2. Busca respostas, perguntas e anotações em paralelo
     const [
       { data: answerRows, error: answersError },
       { data: questionRows, error: questionsError },
+      { data: noteRows, error: notesError },
     ] = await Promise.all([
       entryIds.length > 0
         ? supabase
@@ -275,10 +291,17 @@ export function ReportsByClient() {
         .from('diary_questions')
         .select('id, order_num, text, type')
         .order('order_num', { ascending: true }),
+      supabase
+        .from('day_notes')
+        .select('noted_at, content, emotions')
+        .eq('user_id', clientId)
+        .gte('noted_at', `${selectedWeek.startDate}T00:00:00`)
+        .lte('noted_at', `${selectedWeek.endDate}T23:59:59`)
+        .order('noted_at', { ascending: true }),
     ]);
 
-    if (answersError || questionsError) {
-      console.error('CSV export error:', answersError || questionsError);
+    if (answersError || questionsError || notesError) {
+      console.error('CSV export error:', answersError || questionsError || notesError);
       setCsvExporting(false);
       return;
     }
@@ -286,6 +309,7 @@ export function ReportsByClient() {
     const entries = (entryRows ?? []) as DiaryEntryRow[];
     const answers = (answerRows ?? []) as EntryAnswerRow[];
     const questions = (questionRows ?? []) as DiaryQuestionRow[];
+    const notes = (noteRows ?? []) as DayNoteRow[];
 
     const answerMap = new Map<string, Map<string, EntryAnswerRow>>();
     for (const answer of answers) {
@@ -295,18 +319,40 @@ export function ReportsByClient() {
     }
 
     const csvRows: Array<Array<string | number | null | undefined>> = [];
+
+    // Seção Diário
     for (const entry of entries) {
       const entryAnswers = answerMap.get(entry.id) ?? new Map();
       for (const question of questions) {
         const answer = entryAnswers.get(question.id);
         csvRows.push([
           formatCsvDate(entry.date),
+          '',
+          'Diário',
           question.text,
           question.type,
           answer?.answer_text ?? null,
           answer?.answer_value ?? null,
+          '',
         ]);
       }
+    }
+
+    // Seção Anotações
+    for (const note of notes) {
+      const emotions = (note.emotions ?? [])
+        .map((e) => `${e.label} (${e.intensity})`)
+        .join(' | ');
+      csvRows.push([
+        formatCsvDate(formatNoteDate(note.noted_at)),
+        formatNoteTime(note.noted_at),
+        'Anotação',
+        note.content ?? '',
+        'nota',
+        null,
+        null,
+        emotions || null,
+      ]);
     }
 
     const csvContent = buildCsv(csvRows);
