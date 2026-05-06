@@ -26,11 +26,9 @@ export function ClientLayout({ children }: { children: ReactNode }) {
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gold-500 flex items-center justify-center shrink-0">
-                <span className="text-white font-bold text-sm font-serif">NJ</span>
-              </div>
+              <img src="/logosistema.png" alt="Logo" className="w-9 h-9 rounded-lg object-cover shrink-0" />
               <div>
-                <div className="text-white font-semibold text-sm font-serif leading-tight">Sistema Núbia Januzzi</div>
+                <div className="text-white font-semibold text-sm font-serif leading-tight">Desbloqueio Comportamental</div>
                 <div className="text-petrol-200 text-xs">Olá, {profile?.name?.split(' ')[0] || 'Cliente'}</div>
               </div>
             </div>
