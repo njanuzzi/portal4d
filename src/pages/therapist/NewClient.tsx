@@ -173,6 +173,12 @@ export function NewClient() {
         await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
+
+        // Register invite history
+        await supabase.from('client_invites').insert({
+          client_id: authData.user.id,
+          email,
+        });
       }
 
       setCreatedClient({ name, email, tempPassword });

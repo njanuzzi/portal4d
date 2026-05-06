@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -11,10 +11,24 @@ import type { Profile, Diary, DiaryEntry } from '../../lib/database.types';
 
 type ClientProfile = Profile & { diary_id?: string | null };
 
+interface ClientInvite {
+  id: string;
+  email: string;
+  sent_at: string;
+}
+
 function lastSevenDaysStartISO() {
   const date = new Date();
   date.setDate(date.getDate() - 6);
   return date.toISOString().split('T')[0];
+}
+
+function formatDateTime(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
 }
 
 export function ClientDetail() {
@@ -23,8 +37,12 @@ export function ClientDetail() {
   const [linkedDiary, setLinkedDiary] = useState<Diary | null>(null);
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [last7Count, setLast7Count] = useState(0);
+  const [invites, setInvites] = useState<ClientInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [inviteSent, setInviteSent] = useState(false);
+  const [inviteError, setInviteError] = useState('');
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -32,11 +50,7 @@ export function ClientDetail() {
     let cancelled = false;
 
     const fetchClientDetail = async () => {
-      if (!id) {
-        setClient(null);
-        setLoading(false);
-        return;
-      }
+      if (!id) { setClient(null); setLoading(false); return; }
 
       setLoading(true);
       setError('');
@@ -44,25 +58,16 @@ export function ClientDetail() {
       setLinkedDiary(null);
       setEntries([]);
       setLast7Count(0);
+      setInvites([]);
 
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', id)
-        .eq('role', 'client')
-        .maybeSingle();
+        .from('profiles').select('*').eq('id', id).eq('role', 'client').maybeSingle();
 
       if (cancelled) return;
 
-      if (profileError) {
+      if (profileError || !profile) {
         setClient(null);
-        setError(profileError.message);
-        setLoading(false);
-        return;
-      }
-
-      if (!profile) {
-        setClient(null);
+        if (profileError) setError(profileError.message);
         setLoading(false);
         return;
       }
@@ -70,31 +75,24 @@ export function ClientDetail() {
       const loadedClient = profile as ClientProfile;
       setClient(loadedClient);
 
-      const { data: entryRows, error: entriesError } = await supabase
-        .from('diary_entries')
-        .select('id, user_id, diary_id, date, created_at')
-        .eq('user_id', id)
-        .order('date', { ascending: false })
-        .limit(10);
-
-      const { count, error: countError } = await supabase
-        .from('diary_entries')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', id)
-        .gte('date', lastSevenDaysStartISO());
+      const [
+        { data: entryRows, error: entriesError },
+        { count, error: countError },
+        { data: inviteRows },
+      ] = await Promise.all([
+        supabase.from('diary_entries').select('id, user_id, diary_id, date, created_at')
+          .eq('user_id', id).order('date', { ascending: false }).limit(10),
+        supabase.from('diary_entries').select('id', { count: 'exact', head: true })
+          .eq('user_id', id).gte('date', lastSevenDaysStartISO()),
+        supabase.from('client_invites').select('id, email, sent_at')
+          .eq('client_id', id).order('sent_at', { ascending: false }),
+      ]);
 
       let diaryRow: Diary | null = null;
-      let diaryErrorMessage = '';
-
       if (loadedClient.diary_id) {
-        const { data: diary, error: diaryError } = await supabase
-          .from('diaries')
-          .select('id, name, is_active, created_at')
-          .eq('id', loadedClient.diary_id)
-          .maybeSingle();
-
+        const { data: diary } = await supabase
+          .from('diaries').select('id, name, is_active, created_at').eq('id', loadedClient.diary_id).maybeSingle();
         diaryRow = diary;
-        diaryErrorMessage = diaryError?.message ?? '';
       }
 
       if (cancelled) return;
@@ -102,40 +100,67 @@ export function ClientDetail() {
       setEntries((entryRows ?? []) as DiaryEntry[]);
       setLast7Count(count ?? 0);
       setLinkedDiary(diaryRow);
+      setInvites((inviteRows ?? []) as ClientInvite[]);
 
-      const loadError = entriesError?.message || countError?.message || diaryErrorMessage;
+      const loadError = entriesError?.message || countError?.message;
       if (loadError) setError(loadError);
       setLoading(false);
     };
 
     fetchClientDetail();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [id]);
 
   const toggleActive = async () => {
     if (!client) return;
-
     setActionError('');
     setToggling(true);
-
     const { data: updatedClient, error: updateError } = await supabase
-      .from('profiles')
-      .update({ active: !client.active })
-      .eq('id', client.id)
-      .select()
-      .single();
-
+      .from('profiles').update({ active: !client.active }).eq('id', client.id).select().single();
     if (updateError || !updatedClient) {
-      setActionError(updateError?.message ?? 'Não foi possível atualizar o status do cliente.');
+      setActionError(updateError?.message ?? 'Não foi possível atualizar o status.');
       setToggling(false);
       return;
     }
-
     setClient(updatedClient as ClientProfile);
     setToggling(false);
+  };
+
+  const handleSendInvite = async () => {
+    if (!client) return;
+    setSendingInvite(true);
+    setInviteError('');
+    setInviteSent(false);
+
+    const { error: emailError } = await supabase.auth.resetPasswordForEmail(client.email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (emailError) {
+      // 429 = rate limit
+      if (emailError.status === 429) {
+        setInviteError('Limite de envio atingido. Aguarde alguns minutos e tente novamente.');
+      } else {
+        setInviteError(emailError.message);
+      }
+      setSendingInvite(false);
+      return;
+    }
+
+    // Record in history
+    const { data: newInvite } = await supabase
+      .from('client_invites')
+      .insert({ client_id: client.id, email: client.email })
+      .select('id, email, sent_at')
+      .single();
+
+    if (newInvite) {
+      setInvites(prev => [newInvite as ClientInvite, ...prev]);
+    }
+
+    setInviteSent(true);
+    setSendingInvite(false);
+    setTimeout(() => setInviteSent(false), 4000);
   };
 
   if (loading) return <PageSpinner />;
@@ -147,9 +172,7 @@ export function ClientDetail() {
     </div>
   );
 
-  const diaryName = client.diary_id
-    ? linkedDiary?.name ?? 'Diário não encontrado'
-    : 'Não vinculado';
+  const diaryName = client.diary_id ? linkedDiary?.name ?? 'Diário não encontrado' : 'Não vinculado';
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -175,13 +198,7 @@ export function ClientDetail() {
               </div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            loading={toggling}
-            onClick={toggleActive}
-            className="shrink-0"
-          >
+          <Button variant="ghost" size="sm" loading={toggling} onClick={toggleActive} className="shrink-0">
             {client.active ? <ToggleRight size={16} className="text-emerald-500" /> : <ToggleLeft size={16} />}
             {client.active ? 'Desativar' : 'Ativar'}
           </Button>
@@ -189,18 +206,14 @@ export function ClientDetail() {
       </div>
 
       {actionError && (
-        <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          {actionError}
-        </div>
+        <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{actionError}</div>
       )}
-
       {error && (
-        <div className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-          {error}
-        </div>
+        <div className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{error}</div>
       )}
 
-      <Card className="mb-6">
+      {/* Info */}
+      <Card className="mb-4">
         <CardBody className="space-y-3">
           <div className="flex items-center gap-3 text-sm">
             <Mail size={16} className="text-dark/30 shrink-0" />
@@ -217,6 +230,63 @@ export function ClientDetail() {
         </CardBody>
       </Card>
 
+      {/* Invite section */}
+      <Card className="mb-4">
+        <CardBody>
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="font-semibold text-dark font-serif text-base">Convite de acesso</h2>
+              <p className="text-xs text-dark/40 mt-0.5">
+                Envia um link para o cliente criar ou redefinir a senha
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant={inviteSent ? 'ghost' : 'primary'}
+              loading={sendingInvite}
+              onClick={handleSendInvite}
+              className="shrink-0"
+            >
+              {inviteSent
+                ? <><CheckCircle size={14} className="text-emerald-500" /> Enviado!</>
+                : <><Send size={14} /> {invites.length > 0 ? 'Reenviar' : 'Enviar convite'}</>
+              }
+            </Button>
+          </div>
+
+          {inviteError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+              {inviteError}
+            </div>
+          )}
+
+          {invites.length === 0 ? (
+            <div className="text-sm text-dark/35 border border-dashed border-beige-300 rounded-lg px-4 py-4 text-center">
+              Nenhum convite enviado ainda
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-dark/40 mb-1">Histórico de convites</p>
+              {invites.map((invite, idx) => (
+                <div key={invite.id} className="flex items-center gap-3 py-2 border-b border-beige-100 last:border-0">
+                  <Clock size={13} className="text-dark/25 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs text-dark/60">{invite.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {idx === 0 && (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">último</span>
+                    )}
+                    <span className="text-xs text-dark/40">{formatDateTime(invite.sent_at)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Diary timeline */}
       <Card className="mb-6">
         <CardBody>
           <div className="flex items-center justify-between gap-4 mb-5">
@@ -226,7 +296,7 @@ export function ClientDetail() {
             </div>
             <div className="text-right shrink-0">
               <div className="text-2xl font-semibold text-petrol-700">{last7Count}</div>
-              <div className="text-xs text-dark/40">Últimos 7 dias: {last7Count} entrada{last7Count !== 1 ? 's' : ''}</div>
+              <div className="text-xs text-dark/40">Últimos 7 dias</div>
             </div>
           </div>
 
