@@ -259,12 +259,12 @@ export function Dashboard() {
           <div className="divide-y divide-beige-100">
             {stats!.clientsToday.map((c) => (
               <div key={c.id} className="flex items-center justify-between px-6 py-3">
-                <div className="flex items-center gap-3">
+                <Link to={`/clients/${c.id}`} className="flex items-center gap-3 hover:opacity-75 transition-opacity">
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${c.responded ? 'bg-emerald-100 text-emerald-700' : 'bg-beige-200 text-dark/40'}`}>
                     {c.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-sm text-dark">{c.name}</span>
-                </div>
+                  <span className="text-sm text-dark hover:text-petrol-700 transition-colors">{c.name}</span>
+                </Link>
                 <div className="flex items-center gap-3">
                   {c.responded ? (
                     <>
