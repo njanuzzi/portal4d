@@ -14,6 +14,7 @@ interface ClientTodayStatus {
   id: string;
   name: string;
   registeredAt: string;
+  firstLogin: string | null;   // null = never logged in
   whatsapp: string | null;
   responded: boolean;
   entryId: string | null;
@@ -53,6 +54,7 @@ export function Dashboard() {
         reportsCountResult,
         recentReportsResult,
         allActiveClientsResult,
+        lastLoginResult,
       ] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client'),
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client').eq('active', true),
@@ -61,6 +63,7 @@ export function Dashboard() {
         supabase.from('reports').select('id', { count: 'exact', head: true }),
         supabase.from('reports').select('id, user_id, period_start, period_end, content_text, published, created_at').order('created_at', { ascending: false }).limit(5),
         supabase.from('profiles').select('id, name, created_at, whatsapp').eq('role', 'client').eq('active', true).order('name'),
+        supabase.rpc('get_clients_last_login'),
       ]);
 
       if (cancelled) return;
@@ -68,6 +71,12 @@ export function Dashboard() {
       // Build today's status per client
       const activeClients = (allActiveClientsResult.data ?? []) as { id: string; name: string; created_at: string; whatsapp: string | null }[];
       let clientsToday: ClientTodayStatus[] = [];
+
+      // Build first-login map from RPC (null means never logged in)
+      const firstLoginMap = new Map<string, string | null>();
+      for (const row of ((lastLoginResult.data ?? []) as { client_id: string; last_login: string | null }[])) {
+        firstLoginMap.set(row.client_id, row.last_login ?? null);
+      }
 
       if (activeClients.length > 0) {
         const clientIds = activeClients.map(c => c.id);
@@ -106,13 +115,20 @@ export function Dashboard() {
         clientsToday = activeClients.map(c => {
           const lastEntryDate = lastEntryMap.get(c.id) ?? null;
           const registeredAt = c.created_at.split('T')[0];
-          const daysSinceActivity = lastEntryDate
-            ? daysBetween(lastEntryDate)
-            : daysBetween(registeredAt);
+          const firstLogin = firstLoginMap.get(c.id) ?? null;
+          // Days counter: only starts after first login; never logged in = 0
+          let daysSinceActivity = 0;
+          if (firstLogin) {
+            const firstLoginDate = firstLogin.split('T')[0];
+            daysSinceActivity = lastEntryDate
+              ? daysBetween(lastEntryDate)
+              : daysBetween(firstLoginDate);
+          }
           return {
             id: c.id,
             name: c.name,
             registeredAt,
+            firstLogin,
             whatsapp: c.whatsapp ?? null,
             responded: respondedMap.has(c.id),
             entryId: respondedMap.get(c.id) ?? null,
@@ -262,6 +278,11 @@ export function Dashboard() {
                         Ver <ChevronRight size={12} />
                       </Link>
                     </>
+                  ) : !c.firstLogin ? (
+                    // Never logged in — awaiting first access
+                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-beige-100 text-dark/40">
+                      <Clock size={12} /> Aguardando acesso
+                    </span>
                   ) : (
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1 text-xs text-dark/35">
@@ -277,8 +298,8 @@ export function Dashboard() {
                         {c.lastEntryDate
                           ? `${c.daysSinceActivity}d sem responder`
                           : c.daysSinceActivity === 0
-                            ? 'cadastrado hoje'
-                            : `${c.daysSinceActivity}d desde o cadastro`
+                            ? 'acessou hoje'
+                            : `${c.daysSinceActivity}d sem responder`
                         }
                       </span>
                       {whatsappLink(c) && (

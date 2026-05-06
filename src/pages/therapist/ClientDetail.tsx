@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -38,6 +38,7 @@ export function ClientDetail() {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [last7Count, setLast7Count] = useState(0);
   const [invites, setInvites] = useState<ClientInvite[]>([]);
+  const [lastLogin, setLastLogin] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [sendingInvite, setSendingInvite] = useState(false);
@@ -59,6 +60,7 @@ export function ClientDetail() {
       setEntries([]);
       setLast7Count(0);
       setInvites([]);
+      setLastLogin(null);
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles').select('*').eq('id', id).eq('role', 'client').maybeSingle();
@@ -79,6 +81,7 @@ export function ClientDetail() {
         { data: entryRows, error: entriesError },
         { count, error: countError },
         { data: inviteRows },
+        { data: lastLoginData },
       ] = await Promise.all([
         supabase.from('diary_entries').select('id, user_id, diary_id, date, created_at')
           .eq('user_id', id).order('date', { ascending: false }).limit(10),
@@ -86,6 +89,7 @@ export function ClientDetail() {
           .eq('user_id', id).gte('date', lastSevenDaysStartISO()),
         supabase.from('client_invites').select('id, email, sent_at')
           .eq('client_id', id).order('sent_at', { ascending: false }),
+        supabase.rpc('get_client_last_login', { p_client_id: id }),
       ]);
 
       let diaryRow: Diary | null = null;
@@ -101,6 +105,7 @@ export function ClientDetail() {
       setLast7Count(count ?? 0);
       setLinkedDiary(diaryRow);
       setInvites((inviteRows ?? []) as ClientInvite[]);
+      setLastLogin((lastLoginData as string | null) ?? null);
 
       const loadError = entriesError?.message || countError?.message;
       if (loadError) setError(loadError);
@@ -226,6 +231,14 @@ export function ClientDetail() {
           <div className="flex items-center gap-3 text-sm">
             <Calendar size={16} className="text-dark/30 shrink-0" />
             <span className="text-dark/70">Cadastrado em {formatDate(client.created_at)}</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            <LogIn size={16} className="text-dark/30 shrink-0" />
+            <span className="text-dark/70">
+              {lastLogin
+                ? `Último acesso em ${formatDateTime(lastLogin)}`
+                : 'Nunca acessou o sistema'}
+            </span>
           </div>
         </CardBody>
       </Card>
