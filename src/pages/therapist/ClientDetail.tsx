@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -41,6 +41,9 @@ export function ClientDetail() {
   const [lastLogin, setLastLogin] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [editingWhatsapp, setEditingWhatsapp] = useState(false);
+  const [whatsappDraft, setWhatsappDraft] = useState('');
+  const [savingWhatsapp, setSavingWhatsapp] = useState(false);
   const [sendingInvite, setSendingInvite] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
   const [inviteError, setInviteError] = useState('');
@@ -115,6 +118,27 @@ export function ClientDetail() {
     fetchClientDetail();
     return () => { cancelled = true; };
   }, [id]);
+
+  const whatsappLink = (phone: string) => {
+    const raw = phone.trim();
+    const digits = raw.replace(/\D/g, '');
+    // If typed with + prefix or more than 11 digits → already has country code
+    const number = (raw.startsWith('+') || digits.length > 11) ? digits : `55${digits}`;
+    const msg = encodeURIComponent(`Olá, ${client?.name.split(' ')[0]}! Lembrete para preencher o diário de hoje no portal. 😊`);
+    return `https://wa.me/${number}?text=${msg}`;
+  };
+
+  const saveWhatsapp = async () => {
+    if (!client) return;
+    setSavingWhatsapp(true);
+    const { data: updated, error: updateError } = await supabase
+      .from('profiles').update({ whatsapp: whatsappDraft || null }).eq('id', client.id).select().single();
+    if (!updateError && updated) {
+      setClient(updated as ClientProfile);
+    }
+    setSavingWhatsapp(false);
+    setEditingWhatsapp(false);
+  };
 
   const toggleActive = async () => {
     if (!client) return;
@@ -224,6 +248,48 @@ export function ClientDetail() {
             <Mail size={16} className="text-dark/30 shrink-0" />
             <span className="text-dark/70">{client.email}</span>
           </div>
+
+          {/* WhatsApp — editable */}
+          <div className="flex items-center gap-3 text-sm">
+            <Phone size={16} className="text-dark/30 shrink-0" />
+            {editingWhatsapp ? (
+              <div className="flex items-center gap-2 flex-1">
+                <input
+                  type="text"
+                  value={whatsappDraft}
+                  onChange={e => setWhatsappDraft(e.target.value)}
+                  placeholder="+52 618 230 0413 ou (11) 99999-9999"
+                  className="flex-1 text-sm border border-beige-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-petrol-400"
+                  autoFocus
+                />
+                <button onClick={saveWhatsapp} disabled={savingWhatsapp} className="text-emerald-600 hover:text-emerald-800">
+                  <Check size={15} />
+                </button>
+                <button onClick={() => setEditingWhatsapp(false)} className="text-dark/40 hover:text-dark">
+                  <X size={15} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-1">
+                {client.whatsapp ? (
+                  <a href={whatsappLink(client.whatsapp)} target="_blank" rel="noopener noreferrer"
+                    className="text-emerald-600 hover:underline">
+                    {client.whatsapp}
+                  </a>
+                ) : (
+                  <span className="text-dark/40 italic">Não informado</span>
+                )}
+                <button
+                  onClick={() => { setWhatsappDraft(client.whatsapp ?? ''); setEditingWhatsapp(true); }}
+                  className="text-dark/30 hover:text-petrol-600 transition-colors"
+                  title="Editar WhatsApp"
+                >
+                  <Pencil size={13} />
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-3 text-sm">
             <BookOpen size={16} className="text-dark/30 shrink-0" />
             <span className="text-dark/70">Diário vinculado: {diaryName}</span>

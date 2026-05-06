@@ -187,8 +187,10 @@ export function Dashboard() {
 
   const whatsappLink = (client: ClientTodayStatus) => {
     if (!client.whatsapp) return null;
-    const digits = client.whatsapp.replace(/\D/g, '');
-    const number = digits.startsWith('55') ? digits : `55${digits}`;
+    const raw = client.whatsapp.trim();
+    const digits = raw.replace(/\D/g, '');
+    // If typed with + prefix or more than 11 digits → already has country code
+    const number = (raw.startsWith('+') || digits.length > 11) ? digits : `55${digits}`;
     const msg = encodeURIComponent(
       `Olá, ${client.name.split(' ')[0]}! Lembrete para preencher o diário de hoje no portal. 😊`
     );

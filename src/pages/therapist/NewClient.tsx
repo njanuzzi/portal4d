@@ -319,9 +319,10 @@ export function NewClient() {
             <Input
               label="WhatsApp"
               type="text"
-              placeholder="(00) 00000-0000"
+              placeholder="+55 11 99999-9999 ou +52 618 230 0413"
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
+              hint="Use o código do país para clientes internacionais (ex: +52 para México)"
             />
             <Input
               label="Endereço"
