@@ -133,6 +133,11 @@ export function DiaryPage() {
       setTodayEntry(null);
       setAnswers([]);
       setSaved(false);
+      setNotes([]);
+
+      // Convert local day boundaries to UTC so the filter works in any timezone
+      const dayStart = new Date(`${diaryDate}T00:00:00`).toISOString();
+      const dayEnd   = new Date(`${diaryDate}T23:59:59`).toISOString();
 
       const [{ data: activeDiary }, { data: entry }, { data: dayNotes }, { data: goalRows }, { count: entryCount }] = await Promise.all([
         supabase.from('diaries').select('*').eq('is_active', true).maybeSingle(),
@@ -141,8 +146,8 @@ export function DiaryPage() {
           .from('day_notes')
           .select('*')
           .eq('user_id', user!.id)
-          .gte('noted_at', `${diaryDate}T00:00:00`)
-          .lte('noted_at', `${diaryDate}T23:59:59`)
+          .gte('noted_at', dayStart)
+          .lte('noted_at', dayEnd)
           .order('noted_at', { ascending: true }),
         supabase.from('client_goals').select('id, goal_text, entry_count_at_creation')
           .eq('user_id', user!.id).order('created_at', { ascending: false }).limit(1),
