@@ -1,7 +1,8 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Clock, FileText, LogOut, KeyRound } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 const navItems = [
   { to: '/home', label: 'Início', icon: Home, end: true },
@@ -13,6 +14,14 @@ const navItems = [
 export function ClientLayout({ children }: { children: ReactNode }) {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const loginRecorded = useRef(false);
+
+  // Record real client login once per session
+  useEffect(() => {
+    if (loginRecorded.current || !profile) return;
+    loginRecorded.current = true;
+    supabase.rpc('record_client_login').catch(() => {/* silent */});
+  }, [profile]);
 
   const handleSignOut = async () => {
     await signOut();

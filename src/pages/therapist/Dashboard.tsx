@@ -72,10 +72,10 @@ export function Dashboard() {
       const activeClients = (allActiveClientsResult.data ?? []) as { id: string; name: string; created_at: string; whatsapp: string | null }[];
       let clientsToday: ClientTodayStatus[] = [];
 
-      // Build first-login map from RPC (null means never logged in)
+      // Build first-login map from RPC (null means never really logged in)
       const firstLoginMap = new Map<string, string | null>();
-      for (const row of ((lastLoginResult.data ?? []) as { client_id: string; last_login: string | null }[])) {
-        firstLoginMap.set(row.client_id, row.last_login ?? null);
+      for (const row of ((lastLoginResult.data ?? []) as { client_id: string; last_login: string | null; first_login: string | null }[])) {
+        firstLoginMap.set(row.client_id, row.first_login ?? null);
       }
 
       if (activeClients.length > 0) {
