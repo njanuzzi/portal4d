@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Eye, EyeOff, CheckCircle } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase, resetPasswordUrl } from '../lib/supabase';
 
 type Tab = 'therapist' | 'client';
 type View = 'login' | 'forgot' | 'forgot_sent';
@@ -32,7 +32,7 @@ export function Login() {
     setError('');
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: resetPasswordUrl,
     });
     setLoading(false);
     if (error) {

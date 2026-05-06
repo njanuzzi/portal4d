@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { formatDate } from '../../lib/format';
-import { supabase } from '../../lib/supabase';
+import { supabase, resetPasswordUrl } from '../../lib/supabase';
 import type { Profile, Diary, DiaryEntry } from '../../lib/database.types';
 
 type ClientProfile = Profile & { diary_id?: string | null };
@@ -162,7 +162,7 @@ export function ClientDetail() {
     setInviteSent(false);
 
     const { error: emailError } = await supabase.auth.resetPasswordForEmail(client.email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: resetPasswordUrl,
     });
 
     if (emailError) {

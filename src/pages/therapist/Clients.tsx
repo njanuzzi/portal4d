@@ -9,7 +9,7 @@ import { PageSpinner } from '../../components/ui/Spinner';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { formatDate } from '../../lib/format';
-import { supabase } from '../../lib/supabase';
+import { supabase, resetPasswordUrl } from '../../lib/supabase';
 import type { Profile, Diary } from '../../lib/database.types';
 
 type ClientProfile = Profile & { diary_id?: string | null };
@@ -133,7 +133,7 @@ export function Clients() {
     setInvitingClientId(client.id);
 
     const { error } = await supabase.auth.resetPasswordForEmail(client.email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: resetPasswordUrl,
     });
 
     if (error) {

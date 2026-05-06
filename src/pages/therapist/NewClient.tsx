@@ -5,7 +5,7 @@ import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from '../../lib/supabase';
+import { supabase, resetPasswordUrl } from '../../lib/supabase';
 
 // Isolated client for creating user accounts — session is never persisted,
 // so it won't replace the therapist's active session.
@@ -171,7 +171,7 @@ export function NewClient() {
 
         // Send first-access email so client can set their own password
         await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: resetPasswordUrl,
         });
 
         // Register invite history
