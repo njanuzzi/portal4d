@@ -20,7 +20,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loginRecorded.current || !profile) return;
     loginRecorded.current = true;
-    supabase.rpc('record_client_login').catch(() => {/* silent */});
+    void supabase.rpc('record_client_login').then(() => {}, () => {});
   }, [profile]);
 
   const handleSignOut = async () => {
