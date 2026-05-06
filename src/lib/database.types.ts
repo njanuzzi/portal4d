@@ -21,6 +21,8 @@ export interface Diary {
   id: string;
   name: string;
   is_active: boolean;
+  available_from: string | null;
+  available_to: string | null;
   created_at: string;
 }
 
@@ -31,6 +33,16 @@ export interface DiaryQuestion {
   text: string;
   type: QuestionType;
   options: EmotionOption[] | null;
+  required: boolean;
+  created_at: string;
+}
+
+export interface DayNote {
+  id: string;
+  user_id: string;
+  noted_at: string;
+  content: string | null;
+  emotions: { label: string; intensity: number }[];
   created_at: string;
 }
 

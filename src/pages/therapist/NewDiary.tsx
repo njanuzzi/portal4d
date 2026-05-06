@@ -1,6 +1,6 @@
 import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, X, Clock } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -11,6 +11,7 @@ interface QuestionDraft {
   text: string;
   type: QuestionType;
   options: EmotionOption[];
+  required: boolean;
 }
 
 const TYPE_LABELS: Record<QuestionType, string> = {
@@ -40,16 +41,18 @@ const EMOJI_OPTIONS = [
 ];
 
 function newQuestion(): QuestionDraft {
-  return { text: '', type: 'text', options: [] };
+  return { text: '', type: 'text', options: [], required: true };
 }
 
 export function NewDiary() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
+  const [availableFrom, setAvailableFrom] = useState('');
+  const [availableTo, setAvailableTo] = useState('');
   const [questions, setQuestions] = useState<QuestionDraft[]>([newQuestion()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [openPicker, setOpenPicker] = useState<string | null>(null); // "qIdx-eIdx"
+  const [openPicker, setOpenPicker] = useState<string | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,7 +81,6 @@ export function NewDiary() {
       prev.map((q, i) => {
         if (i !== idx) return q;
         const updated = { ...q, [field]: value };
-        // Ao trocar para emotion, pré-popula com emoções padrão se ainda vazio
         if (field === 'type' && value === 'emotion' && q.options.length === 0) {
           updated.options = DEFAULT_EMOTIONS.map((e) => ({ ...e }));
         }
@@ -107,10 +109,7 @@ export function NewDiary() {
     setQuestions((prev) =>
       prev.map((q, i) =>
         i === qIdx
-          ? {
-              ...q,
-              options: q.options.map((e, j) => (j === eIdx ? { ...e, [field]: value } : e)),
-            }
+          ? { ...q, options: q.options.map((e, j) => (j === eIdx ? { ...e, [field]: value } : e)) }
           : q
       )
     );
@@ -137,7 +136,12 @@ export function NewDiary() {
 
     const { data: diary, error: diaryErr } = await supabase
       .from('diaries')
-      .insert({ name: name.trim(), is_active: false })
+      .insert({
+        name: name.trim(),
+        is_active: false,
+        available_from: availableFrom || null,
+        available_to: availableTo || null,
+      })
       .select('id, name, is_active, created_at')
       .single();
 
@@ -153,9 +157,8 @@ export function NewDiary() {
         text: q.text.trim(),
         type: q.type,
         order_num: idx,
-        options: q.type === 'emotion'
-          ? q.options.filter((o) => o.emoji && o.label)
-          : null,
+        required: q.required,
+        options: q.type === 'emotion' ? q.options.filter((o) => o.emoji && o.label) : null,
       }))
     );
 
@@ -181,7 +184,7 @@ export function NewDiary() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <Card>
-          <CardBody>
+          <CardBody className="space-y-4">
             <Input
               label="Nome do diário"
               placeholder="Ex: Diário de Acompanhamento Semanal"
@@ -190,6 +193,38 @@ export function NewDiary() {
               required
               autoFocus
             />
+
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Clock size={14} className="text-dark/40" />
+                <span className="text-xs font-medium text-dark/60">Horário de disponibilidade (opcional)</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <label className="text-xs text-dark/40 mb-1 block">Das</label>
+                  <input
+                    type="time"
+                    value={availableFrom}
+                    onChange={(e) => setAvailableFrom(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent transition-colors"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-dark/40 mb-1 block">Até</label>
+                  <input
+                    type="time"
+                    value={availableTo}
+                    onChange={(e) => setAvailableTo(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent transition-colors"
+                  />
+                </div>
+              </div>
+              {(availableFrom || availableTo) && (
+                <p className="text-xs text-dark/40 mt-1.5">
+                  Fora deste horário o cliente verá uma mensagem pedindo para usar as Anotações do Dia.
+                </p>
+              )}
+            </div>
           </CardBody>
         </Card>
 
@@ -215,17 +250,27 @@ export function NewDiary() {
                         value={q.text}
                         onChange={(e) => updateQuestion(idx, 'text', e.target.value)}
                       />
-                      <select
-                        value={q.type}
-                        onChange={(e) => updateQuestion(idx, 'type', e.target.value as QuestionType)}
-                        className="w-full px-3 py-2 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent transition-colors"
-                      >
-                        {(Object.keys(TYPE_LABELS) as QuestionType[]).map((t) => (
-                          <option key={t} value={t}>{TYPE_LABELS[t]}</option>
-                        ))}
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={q.type}
+                          onChange={(e) => updateQuestion(idx, 'type', e.target.value as QuestionType)}
+                          className="flex-1 px-3 py-2 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent transition-colors"
+                        >
+                          {(Object.keys(TYPE_LABELS) as QuestionType[]).map((t) => (
+                            <option key={t} value={t}>{TYPE_LABELS[t]}</option>
+                          ))}
+                        </select>
+                        <label className="flex items-center gap-1.5 shrink-0 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={q.required}
+                            onChange={(e) => updateQuestion(idx, 'required', e.target.checked)}
+                            className="w-3.5 h-3.5 accent-petrol-600"
+                          />
+                          <span className="text-xs text-dark/50">Obrigatória</span>
+                        </label>
+                      </div>
 
-                      {/* Emotion options editor */}
                       {q.type === 'emotion' && (
                         <div className="border border-beige-200 rounded-lg p-3 space-y-2 bg-beige-50/50">
                           <p className="text-xs font-medium text-dark/50 mb-2">Opções de emoção</p>
