@@ -4,10 +4,10 @@ import { Home, BookOpen, Clock, FileText, LogOut, KeyRound } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext';
 
 const navItems = [
-  { to: '/home', label: 'Início', icon: <Home size={18} />, end: true },
-  { to: '/diary', label: 'Diário', icon: <BookOpen size={18} />, end: true },
-  { to: '/diary/history', label: 'Histórico', icon: <Clock size={18} />, end: false },
-  { to: '/reports', label: 'Relatórios', icon: <FileText size={18} />, end: false },
+  { to: '/home', label: 'Início', icon: Home, end: true },
+  { to: '/diary', label: 'Diário', icon: BookOpen, end: true },
+  { to: '/diary/history', label: 'Histórico', icon: Clock, end: false },
+  { to: '/reports', label: 'Relatórios', icon: FileText, end: false },
 ];
 
 export function ClientLayout({ children }: { children: ReactNode }) {
@@ -22,15 +22,15 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-beige-200 flex flex-col">
       {/* Header */}
-      <header className="bg-petrol-700 text-white">
+      <header className="bg-petrol-700 text-white sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-4">
-          <div className="flex items-center justify-between py-4">
+          <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gold-500 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gold-500 flex items-center justify-center shrink-0">
                 <span className="text-white font-bold text-sm font-serif">NJ</span>
               </div>
               <div>
-                <div className="text-white font-semibold text-sm font-serif">Sistema Núbia Januzzi</div>
+                <div className="text-white font-semibold text-sm font-serif leading-tight">Sistema Núbia Januzzi</div>
                 <div className="text-petrol-200 text-xs">Olá, {profile?.name?.split(' ')[0] || 'Cliente'}</div>
               </div>
             </div>
@@ -41,20 +41,21 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                 title="Alterar senha"
               >
                 <KeyRound size={16} />
-                <span className="hidden sm:inline">Alterar senha</span>
+                <span className="hidden sm:inline text-xs">Alterar senha</span>
               </Link>
               <button
                 onClick={handleSignOut}
-                className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors text-sm"
+                className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors"
+                title="Sair"
               >
                 <LogOut size={16} />
-                <span className="hidden sm:inline">Sair</span>
+                <span className="hidden sm:inline text-xs">Sair</span>
               </button>
             </div>
           </div>
 
-          {/* Nav tabs */}
-          <nav className="flex border-t border-petrol-600">
+          {/* Desktop top nav — hidden on mobile */}
+          <nav className="hidden sm:flex border-t border-petrol-600">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -68,7 +69,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
                   }`
                 }
               >
-                {item.icon}
+                <item.icon size={16} />
                 {item.label}
               </NavLink>
             ))}
@@ -76,12 +77,33 @@ export function ClientLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      {/* Content */}
+      {/* Content — extra bottom padding on mobile for the bottom nav */}
       <main className="flex-1">
-        <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="max-w-2xl mx-auto px-4 py-6 pb-24 sm:pb-6">
           {children}
         </div>
       </main>
+
+      {/* Mobile bottom nav — hidden on desktop */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-petrol-700 border-t border-petrol-600 z-40 safe-area-pb">
+        <div className="flex">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${
+                  isActive ? 'text-gold-300' : 'text-petrol-300 hover:text-white'
+                }`
+              }
+            >
+              <item.icon size={20} />
+              <span className="text-[10px] font-medium leading-none">{item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }
