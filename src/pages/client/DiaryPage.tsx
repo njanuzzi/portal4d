@@ -1,6 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle, BookOpen, ArrowLeft, PenLine, Clock } from 'lucide-react';
+import { CheckCircle, BookOpen, ArrowLeft, PenLine, Clock, Target } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -113,6 +113,16 @@ export function DiaryPage() {
   const [selectedEmotions, setSelectedEmotions] = useState<SelectedEmotion[]>([]);
   const [savingNote, setSavingNote] = useState(false);
 
+  // Goal state
+  interface ClientGoal { id: string; goal_text: string; entry_count_at_creation: number; }
+  const [currentGoal, setCurrentGoal] = useState<ClientGoal | null>(null);
+  const [totalEntries, setTotalEntries] = useState(0);
+  const [showGoalForm, setShowGoalForm] = useState(false);
+  const [goalPhase, setGoalPhase] = useState<'new' | 'renew'>('new');
+  const [goalDraft, setGoalDraft] = useState('');
+  const [keepingGoal, setKeepingGoal] = useState(false);
+  const [savingGoal, setSavingGoal] = useState(false);
+
   // ── Load diary + notes ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -124,7 +134,7 @@ export function DiaryPage() {
       setAnswers([]);
       setSaved(false);
 
-      const [{ data: activeDiary }, { data: entry }, { data: dayNotes }] = await Promise.all([
+      const [{ data: activeDiary }, { data: entry }, { data: dayNotes }, { data: goalRows }, { count: entryCount }] = await Promise.all([
         supabase.from('diaries').select('*').eq('is_active', true).maybeSingle(),
         supabase.from('diary_entries').select('*').eq('user_id', user!.id).eq('date', diaryDate).maybeSingle(),
         supabase
@@ -134,7 +144,36 @@ export function DiaryPage() {
           .gte('noted_at', `${diaryDate}T00:00:00`)
           .lte('noted_at', `${diaryDate}T23:59:59`)
           .order('noted_at', { ascending: true }),
+        supabase.from('client_goals').select('id, goal_text, entry_count_at_creation')
+          .eq('user_id', user!.id).order('created_at', { ascending: false }).limit(1),
+        supabase.from('diary_entries').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
       ]);
+
+      const latestGoal = goalRows?.[0] ?? null;
+      const total = entryCount ?? 0;
+      setCurrentGoal(latestGoal);
+      setTotalEntries(total);
+
+      // Determine if goal form should show (only for today)
+      if (diaryDate === toLocalISODate()) {
+        if (!latestGoal) {
+          setGoalPhase('new');
+          setGoalDraft('');
+          setShowGoalForm(true);
+        } else {
+          const entriesSinceGoal = total - latestGoal.entry_count_at_creation;
+          if (entriesSinceGoal >= 7) {
+            setGoalPhase('renew');
+            setGoalDraft(latestGoal.goal_text); // pre-fill with previous so client can keep or edit
+            setKeepingGoal(false);
+            setShowGoalForm(true);
+          } else {
+            setShowGoalForm(false);
+          }
+        }
+      } else {
+        setShowGoalForm(false);
+      }
 
       setDiary(activeDiary);
       setTodayEntry(entry);
@@ -207,6 +246,30 @@ export function DiaryPage() {
     setSavingNote(false);
   };
 
+  // ── Goal submit ─────────────────────────────────────────────────────────────
+
+  const handleGoalSubmit = async () => {
+    const text = goalDraft.trim();
+    if (!text) return;
+    setSavingGoal(true);
+    const { data: newGoal } = await supabase
+      .from('client_goals')
+      .insert({
+        user_id: user!.id,
+        goal_text: text,
+        entry_count_at_creation: totalEntries,
+      })
+      .select('id, goal_text, entry_count_at_creation')
+      .single();
+    if (newGoal) {
+      setCurrentGoal(newGoal as ClientGoal);
+      setShowGoalForm(false);
+      setGoalDraft('');
+      setKeepingGoal(false);
+    }
+    setSavingGoal(false);
+  };
+
   // ── Diary submit ────────────────────────────────────────────────────────────
 
   const updateAnswer = (questionId: string, field: 'answer_text' | 'answer_value', value: string | number) => {
@@ -276,6 +339,78 @@ export function DiaryPage() {
         <h1 className="text-xl font-semibold text-dark font-serif">{diary.name}</h1>
         <p className="text-dark/50 text-sm mt-1 capitalize">{formatDateLong(diaryDate)}</p>
       </div>
+
+      {/* ── Goal Form — blocks diary access until goal is set ── */}
+      {showGoalForm && (
+        <Card className="border-2 border-gold-300">
+          <CardBody className="space-y-4">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gold-100 flex items-center justify-center shrink-0">
+                <Target size={20} className="text-gold-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-dark font-serif">
+                  {goalPhase === 'new' ? 'Qual é a sua meta desta semana?' : 'Hora de renovar sua meta!'}
+                </h2>
+                <p className="text-xs text-dark/50 mt-0.5">
+                  {goalPhase === 'new'
+                    ? 'Defina uma intenção que guiará suas reflexões nos próximos 7 registros.'
+                    : 'Você completou mais um ciclo de 7 registros. Parabéns! Renove ou ajuste sua meta.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Previous goal (renew only) */}
+            {goalPhase === 'renew' && currentGoal && (
+              <div className="bg-beige-100 rounded-lg p-3 border border-beige-200">
+                <p className="text-xs font-medium text-dark/40 mb-1">Sua meta do ciclo anterior</p>
+                <p className="text-sm text-dark/70">{currentGoal.goal_text}</p>
+              </div>
+            )}
+
+            {/* Textarea */}
+            <div>
+              <Textarea
+                placeholder={
+                  goalPhase === 'new'
+                    ? 'Ex: Quero praticar parar e respirar antes de reagir às situações difíceis.'
+                    : 'Edite ou mantenha sua meta para os próximos 7 registros...'
+                }
+                value={goalDraft}
+                onChange={e => setGoalDraft(e.target.value.slice(0, 300))}
+                rows={4}
+              />
+              <div className="flex justify-end mt-1">
+                <span className="text-xs text-dark/30">{goalDraft.length}/300</span>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleGoalSubmit}
+              loading={savingGoal}
+              disabled={!goalDraft.trim()}
+              className="w-full"
+            >
+              {goalPhase === 'new' ? 'Definir minha meta' : 'Confirmar meta'}
+            </Button>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* ── Rest of page (hidden while goal form is open) ── */}
+      {!showGoalForm && (
+        <>
+          {/* Current goal reminder */}
+          {currentGoal && isToday && (
+            <div className="flex items-start gap-2.5 bg-gold-50 border border-gold-200 rounded-xl p-3 mb-4">
+              <Target size={14} className="text-gold-600 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gold-700 mb-0.5">Meta desta semana</p>
+                <p className="text-sm text-dark/70 leading-snug">{currentGoal.goal_text}</p>
+              </div>
+            </div>
+          )}
 
       {/* Tabs — only show for today */}
       {isToday && (
@@ -568,6 +703,8 @@ export function DiaryPage() {
               )}
             </form>
           )}
+        </>
+      )}
         </>
       )}
     </div>

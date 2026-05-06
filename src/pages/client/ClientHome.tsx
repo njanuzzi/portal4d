@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, CheckCircle, Clock, FileText, ChevronRight, Flame, AlertCircle } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, FileText, ChevronRight, Flame, AlertCircle, Target } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -30,9 +30,12 @@ function calcStreak(dates: string[], today: string): number {
   return streak;
 }
 
+interface ClientGoal { id: string; goal_text: string; }
+
 export function ClientHome() {
   const { user, profile } = useAuth();
   const [data, setData] = useState<HomeData | null>(null);
+  const [currentGoal, setCurrentGoal] = useState<ClientGoal | null>(null);
   const [loading, setLoading] = useState(true);
 
   const today = todayISO();
@@ -44,6 +47,7 @@ export function ClientHome() {
       const [
         { data: entries },
         { count: reportCount },
+        { data: goalRows },
       ] = await Promise.all([
         supabase
           .from('diary_entries')
@@ -55,7 +59,15 @@ export function ClientHome() {
           .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
           .eq('published', true),
+        supabase
+          .from('client_goals')
+          .select('id, goal_text')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1),
       ]);
+
+      setCurrentGoal((goalRows?.[0] as ClientGoal) ?? null);
 
       const dates = (entries ?? []).map((e: { date: string }) => e.date);
       const todayFilled = dates.includes(today);
@@ -151,6 +163,20 @@ export function ClientHome() {
             </Link>
           </CardBody>
         </Card>
+      )}
+
+      {/* Current goal */}
+      {currentGoal && (
+        <Link to="/diary" className="block">
+          <div className="flex items-start gap-3 bg-gold-50 border border-gold-200 rounded-xl px-4 py-3 hover:bg-gold-100 transition-colors">
+            <Target size={18} className="text-gold-600 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-gold-700 mb-0.5">Meta desta semana</p>
+              <p className="text-sm text-dark/70 leading-snug line-clamp-2">{currentGoal.goal_text}</p>
+            </div>
+            <ChevronRight size={16} className="text-gold-400 shrink-0 mt-0.5" />
+          </div>
+        </Link>
       )}
 
       {/* Stats row */}

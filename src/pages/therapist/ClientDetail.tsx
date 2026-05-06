@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -15,6 +15,13 @@ interface ClientInvite {
   id: string;
   email: string;
   sent_at: string;
+}
+
+interface ClientGoal {
+  id: string;
+  goal_text: string;
+  created_at: string;
+  entry_count_at_creation: number;
 }
 
 function lastSevenDaysStartISO() {
@@ -39,6 +46,7 @@ export function ClientDetail() {
   const [last7Count, setLast7Count] = useState(0);
   const [invites, setInvites] = useState<ClientInvite[]>([]);
   const [lastLogin, setLastLogin] = useState<string | null>(null);
+  const [goals, setGoals] = useState<ClientGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [editingWhatsapp, setEditingWhatsapp] = useState(false);
@@ -64,6 +72,7 @@ export function ClientDetail() {
       setLast7Count(0);
       setInvites([]);
       setLastLogin(null);
+      setGoals([]);
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles').select('*').eq('id', id).eq('role', 'client').maybeSingle();
@@ -85,6 +94,7 @@ export function ClientDetail() {
         { count, error: countError },
         { data: inviteRows },
         { data: lastLoginData },
+        { data: goalRows },
       ] = await Promise.all([
         supabase.from('diary_entries').select('id, user_id, diary_id, date, created_at')
           .eq('user_id', id).order('date', { ascending: false }).limit(10),
@@ -93,6 +103,10 @@ export function ClientDetail() {
         supabase.from('client_invites').select('id, email, sent_at')
           .eq('client_id', id).order('sent_at', { ascending: false }),
         supabase.rpc('get_client_last_login', { p_client_id: id }),
+        supabase.from('client_goals')
+          .select('id, goal_text, created_at, entry_count_at_creation')
+          .eq('user_id', id)
+          .order('created_at', { ascending: false }),
       ]);
 
       let diaryRow: Diary | null = null;
@@ -109,6 +123,7 @@ export function ClientDetail() {
       setLinkedDiary(diaryRow);
       setInvites((inviteRows ?? []) as ClientInvite[]);
       setLastLogin((lastLoginData as string | null) ?? null);
+      setGoals((goalRows ?? []) as ClientGoal[]);
 
       const loadError = entriesError?.message || countError?.message;
       if (loadError) setError(loadError);
@@ -398,6 +413,37 @@ export function ClientDetail() {
                       Diário: {linkedDiary?.id === entry.diary_id ? linkedDiary.name : entry.diary_id}
                     </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Goals history */}
+      <Card className="mb-4">
+        <CardBody>
+          <div className="flex items-center gap-2 mb-4">
+            <Target size={16} className="text-gold-600" />
+            <h2 className="font-semibold text-dark font-serif text-base">Metas de Desbloqueio</h2>
+          </div>
+
+          {goals.length === 0 ? (
+            <div className="text-sm text-dark/40 border border-dashed border-beige-300 rounded-lg px-4 py-4 text-center">
+              Nenhuma meta definida ainda
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {goals.map((goal, idx) => (
+                <div key={goal.id} className={`rounded-lg p-3 border ${idx === 0 ? 'bg-gold-50 border-gold-200' : 'bg-beige-50 border-beige-200'}`}>
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    {idx === 0 && (
+                      <span className="text-[10px] font-medium bg-gold-200 text-gold-800 px-1.5 py-0.5 rounded-full">atual</span>
+                    )}
+                    <span className="text-xs text-dark/40 ml-auto">{formatDateTime(goal.created_at)}</span>
+                  </div>
+                  <p className="text-sm text-dark/80 leading-snug">{goal.goal_text}</p>
+                  <p className="text-xs text-dark/30 mt-1.5">Ao completar {goal.entry_count_at_creation} registros</p>
                 </div>
               ))}
             </div>
