@@ -127,7 +127,8 @@ export function ClientDetail() {
         supabase.from('whatsapp_sessions')
           .select('id, status, opted_in_at, last_reminder_at, invite_sent_at')
           .eq('client_id', id)
-          .maybeSingle(),
+          .order('invite_sent_at', { ascending: false })
+          .limit(1),
       ]);
 
       let diaryRow: Diary | null = null;
@@ -145,7 +146,8 @@ export function ClientDetail() {
       setInvites((inviteRows ?? []) as ClientInvite[]);
       setLastLogin((lastLoginData as string | null) ?? null);
       setGoals((goalRows ?? []) as ClientGoal[]);
-      setWaSession((waSessionRow as WaSession | null) ?? null);
+      const waRows = (waSessionRow as WaSession[] | null) ?? [];
+      setWaSession(waRows.length > 0 ? waRows[0] : null);
 
       const loadError = entriesError?.message || countError?.message;
       if (loadError) setError(loadError);

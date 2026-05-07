@@ -49,18 +49,24 @@ serve(async (req) => {
     // A terapeuta envia este link ao cliente pelo WhatsApp pessoal
     const waLink = `https://wa.me/${WA_DISPLAY_NUMBER}?text=Iniciar`;
 
-    // Cria ou atualiza sessão como "pending"
-    const { error: upsertError } = await supabase
+    // Remove qualquer sessão anterior deste cliente (evita duplicatas por troca de número)
+    await supabase
       .from("whatsapp_sessions")
-      .upsert({
+      .delete()
+      .eq("client_id", client_id);
+
+    // Insere nova sessão como "pending"
+    const { error: insertError } = await supabase
+      .from("whatsapp_sessions")
+      .insert({
         client_id,
         phone,
         status: "pending",
         invite_sent_at: new Date().toISOString(),
-      }, { onConflict: "phone" });
+      });
 
-    if (upsertError) {
-      console.error("[send-invite] Erro ao criar sessão:", upsertError);
+    if (insertError) {
+      console.error("[send-invite] Erro ao criar sessão:", insertError);
     }
 
     console.log("[send-invite] Sessão criada/atualizada para:", phone);
