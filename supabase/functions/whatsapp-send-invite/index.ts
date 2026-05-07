@@ -12,52 +12,81 @@ const supabase = createClient(
 );
 
 serve(async (req) => {
-  const { client_id } = await req.json();
+  try {
+    const { client_id } = await req.json();
+    console.log("[send-invite] client_id recebido:", client_id);
 
-  // Busca perfil do cliente
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name, whatsapp")
-    .eq("id", client_id)
-    .single();
+    // Busca perfil do cliente
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("name, whatsapp")
+      .eq("id", client_id)
+      .single();
 
-  if (!profile?.whatsapp) {
-    return new Response("Cliente sem número WhatsApp cadastrado", { status: 400 });
-  }
+    if (profileError) {
+      console.error("[send-invite] Erro ao buscar perfil:", profileError);
+      return new Response("Erro ao buscar perfil do cliente", { status: 500 });
+    }
 
-  // Normaliza número (remove não-dígitos, adiciona DDI se necessário)
-  const digits = profile.whatsapp.replace(/\D/g, "");
-  const phone = digits.length > 11 ? digits : `55${digits}`;
+    console.log("[send-invite] Perfil encontrado:", { name: profile?.name, whatsapp: profile?.whatsapp });
 
-  // Link de ativação com texto pré-digitado
-  const waLink = `https://wa.me/${WA_DISPLAY_NUMBER}?text=Iniciar`;
+    if (!profile?.whatsapp) {
+      console.warn("[send-invite] Cliente sem número WhatsApp:", client_id);
+      return new Response("Cliente sem número WhatsApp cadastrado", { status: 400 });
+    }
 
-  // Cria ou atualiza sessão
-  await supabase
-    .from("whatsapp_sessions")
-    .upsert({
-      client_id,
-      phone,
-      status: "pending",
-      invite_sent_at: new Date().toISOString(),
-    }, { onConflict: "phone" });
+    // Normaliza número (remove não-dígitos, adiciona DDI se necessário)
+    const digits = profile.whatsapp.replace(/\D/g, "");
+    const phone = digits.length > 11 ? digits : `55${digits}`;
+    console.log("[send-invite] Número normalizado:", { original: profile.whatsapp, digits, phone });
 
-  // Envia mensagem com o link via API Meta
-  await fetch(`https://graph.facebook.com/v19.0/${WA_PHONE_NUMBER_ID}/messages`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${WA_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to: phone,
-      type: "text",
-      text: {
-        body: MESSAGES.invite(profile.name, waLink),
+    // Link de ativação com texto pré-digitado
+    const waLink = `https://wa.me/${WA_DISPLAY_NUMBER}?text=Iniciar`;
+
+    // Cria ou atualiza sessão
+    await supabase
+      .from("whatsapp_sessions")
+      .upsert({
+        client_id,
+        phone,
+        status: "pending",
+        invite_sent_at: new Date().toISOString(),
+      }, { onConflict: "phone" });
+
+    // Envia mensagem com o link via API Meta
+    const metaRes = await fetch(`https://graph.facebook.com/v19.0/${WA_PHONE_NUMBER_ID}/messages`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${WA_TOKEN}`,
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "text",
+        text: {
+          body: MESSAGES.invite(profile.name, waLink),
+        },
+      }),
+    });
 
-  return new Response("Convite enviado", { status: 200 });
+    const metaBody = await metaRes.json();
+    console.log("[send-invite] Resposta Meta API:", { status: metaRes.status, body: metaBody });
+
+    if (!metaRes.ok) {
+      console.error("[send-invite] Meta API retornou erro:", metaBody);
+      return new Response(JSON.stringify({ error: "Falha ao enviar via Meta API", detail: metaBody }), {
+        status: 502,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response("Convite enviado", { status: 200 });
+  } catch (err) {
+    console.error("[send-invite] Erro inesperado:", err);
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 });
