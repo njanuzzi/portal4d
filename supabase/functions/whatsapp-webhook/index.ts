@@ -67,18 +67,27 @@ async function handleInbound(phone: string, text: string) {
   console.log("[webhook] sessão encontrada:", session ? { id: session.id, status: session.status, phone: session.phone } : null);
   if (sessionError) console.error("[webhook] erro ao buscar sessão:", sessionError);
 
-  // Se não achou por número exato, tenta sem o dígito 9 (normalização BR)
+  // Se não achou por número exato, tenta variante BR (com/sem dígito 9 após o DDD)
   let resolvedSession = session;
-  if (!session && phone.startsWith("55") && phone.length === 13) {
-    const phoneAlt = "55" + phone.slice(4); // remove o 9: 5548988652228 → 554888652228
-    const { data: sessionAlt } = await supabase
-      .from("whatsapp_sessions")
-      .select("*, client_id, profiles(name)")
-      .eq("phone", phoneAlt)
-      .maybeSingle();
-    if (sessionAlt) {
-      console.log("[webhook] sessão encontrada com número alternativo (sem 9):", phoneAlt);
-      resolvedSession = sessionAlt;
+  if (!session && phone.startsWith("55")) {
+    let phoneAlt: string | null = null;
+    if (phone.length === 12) {
+      // Meta envia sem 9 (554888652228) → tenta com 9 (5548988652228)
+      phoneAlt = phone.slice(0, 4) + "9" + phone.slice(4);
+    } else if (phone.length === 13) {
+      // Sessão salva sem 9 → tenta removendo (5548988652228 → 554888652228)
+      phoneAlt = phone.slice(0, 4) + phone.slice(5);
+    }
+    if (phoneAlt) {
+      const { data: sessionAlt } = await supabase
+        .from("whatsapp_sessions")
+        .select("*, client_id, profiles(name)")
+        .eq("phone", phoneAlt)
+        .maybeSingle();
+      if (sessionAlt) {
+        console.log("[webhook] sessão encontrada com número alternativo:", phoneAlt);
+        resolvedSession = sessionAlt;
+      }
     }
   }
 
