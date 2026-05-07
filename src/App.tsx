@@ -27,6 +27,7 @@ import { DiaryHistory } from './pages/client/DiaryHistory';
 import { ClientReports as ClientReportsPage } from './pages/client/ClientReports';
 import { ChangePassword } from './pages/client/ChangePassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 
 function AppRoutes() {
   const location = useLocation();
@@ -38,6 +39,15 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/reset-password" element={<ResetPassword />} />
+      </Routes>
+    );
+  }
+
+  // Privacy policy is always public
+  if (location.pathname === '/privacy') {
+    return (
+      <Routes>
+        <Route path="/privacy" element={<PrivacyPolicy />} />
       </Routes>
     );
   }
