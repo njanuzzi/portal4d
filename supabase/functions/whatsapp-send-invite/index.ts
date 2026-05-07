@@ -11,7 +11,17 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   try {
     const { client_id } = await req.json();
     console.log("[send-invite] client_id recebido:", client_id);
@@ -25,14 +35,14 @@ serve(async (req) => {
 
     if (profileError) {
       console.error("[send-invite] Erro ao buscar perfil:", profileError);
-      return new Response("Erro ao buscar perfil do cliente", { status: 500 });
+      return new Response("Erro ao buscar perfil do cliente", { status: 500, headers: corsHeaders });
     }
 
     console.log("[send-invite] Perfil encontrado:", { name: profile?.name, whatsapp: profile?.whatsapp });
 
     if (!profile?.whatsapp) {
       console.warn("[send-invite] Cliente sem número WhatsApp:", client_id);
-      return new Response("Cliente sem número WhatsApp cadastrado", { status: 400 });
+      return new Response("Cliente sem número WhatsApp cadastrado", { status: 400, headers: corsHeaders });
     }
 
     // Normaliza número (remove não-dígitos, adiciona DDI se necessário)
@@ -77,16 +87,16 @@ serve(async (req) => {
       console.error("[send-invite] Meta API retornou erro:", metaBody);
       return new Response(JSON.stringify({ error: "Falha ao enviar via Meta API", detail: metaBody }), {
         status: 502,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response("Convite enviado", { status: 200 });
+    return new Response("Convite enviado", { status: 200, headers: corsHeaders });
   } catch (err) {
     console.error("[send-invite] Erro inesperado:", err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
