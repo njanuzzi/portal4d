@@ -40,10 +40,18 @@ serve(async (req) => {
       return new Response("Cliente sem número WhatsApp cadastrado", { status: 400, headers: corsHeaders });
     }
 
-    // Normaliza número (remove não-dígitos, adiciona DDI se necessário)
+    // Normaliza número para o formato interno do WhatsApp/Meta:
+    // - Remove não-dígitos
+    // - Adiciona DDI 55 se necessário
+    // - Remove o 9º dígito de números BR (WhatsApp usa formato antigo de 8 dígitos após DDD)
+    //   Ex: +55 48 98865-2228 → 5548988652228 → 554888652228
     const digits = profile.whatsapp.replace(/\D/g, "");
-    const phone = digits.length > 11 ? digits : `55${digits}`;
-    console.log("[send-invite] Número normalizado:", { original: profile.whatsapp, phone });
+    let phone = digits.length > 11 ? digits : `55${digits}`;
+    // Números BR com 13 dígitos (55 + DDD2 + 9 + número8) → remove o 9
+    if (phone.startsWith("55") && phone.length === 13) {
+      phone = phone.slice(0, 4) + phone.slice(5);
+    }
+    console.log("[send-invite] Número normalizado (formato Meta):", { original: profile.whatsapp, phone });
 
     // Link de ativação: ao clicar, abre o WhatsApp com "Iniciar" pré-digitado
     // A terapeuta envia este link ao cliente pelo WhatsApp pessoal
