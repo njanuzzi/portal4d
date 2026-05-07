@@ -1,0 +1,63 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { MESSAGES } from "../_shared/messages.ts";
+
+const WA_PHONE_NUMBER_ID = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID")!;
+const WA_TOKEN = Deno.env.get("WHATSAPP_ACCESS_TOKEN")!;
+const WA_DISPLAY_NUMBER = Deno.env.get("WHATSAPP_DISPLAY_NUMBER")!;
+
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+);
+
+serve(async (req) => {
+  const { client_id } = await req.json();
+
+  // Busca perfil do cliente
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, whatsapp")
+    .eq("id", client_id)
+    .single();
+
+  if (!profile?.whatsapp) {
+    return new Response("Cliente sem número WhatsApp cadastrado", { status: 400 });
+  }
+
+  // Normaliza número (remove não-dígitos, adiciona DDI se necessário)
+  const digits = profile.whatsapp.replace(/\D/g, "");
+  const phone = digits.length > 11 ? digits : `55${digits}`;
+
+  // Link de ativação com texto pré-digitado
+  const waLink = `https://wa.me/${WA_DISPLAY_NUMBER}?text=Iniciar`;
+
+  // Cria ou atualiza sessão
+  await supabase
+    .from("whatsapp_sessions")
+    .upsert({
+      client_id,
+      phone,
+      status: "pending",
+      invite_sent_at: new Date().toISOString(),
+    }, { onConflict: "phone" });
+
+  // Envia mensagem com o link via API Meta
+  await fetch(`https://graph.facebook.com/v19.0/${WA_PHONE_NUMBER_ID}/messages`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${WA_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: phone,
+      type: "text",
+      text: {
+        body: MESSAGES.invite(profile.name, waLink),
+      },
+    }),
+  });
+
+  return new Response("Convite enviado", { status: 200 });
+});
