@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target, MessageCircle } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -22,6 +22,14 @@ interface ClientGoal {
   goal_text: string;
   created_at: string;
   entry_count_at_creation: number;
+}
+
+interface WaSession {
+  id: string;
+  status: 'pending' | 'active' | 'paused';
+  opted_in_at: string | null;
+  last_reminder_at: string | null;
+  invite_sent_at: string | null;
 }
 
 function lastSevenDaysStartISO() {
@@ -55,6 +63,10 @@ export function ClientDetail() {
   const [sendingInvite, setSendingInvite] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
   const [inviteError, setInviteError] = useState('');
+  const [waSession, setWaSession] = useState<WaSession | null>(null);
+  const [sendingWaInvite, setSendingWaInvite] = useState(false);
+  const [waInviteSent, setWaInviteSent] = useState(false);
+  const [waInviteError, setWaInviteError] = useState('');
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -73,6 +85,7 @@ export function ClientDetail() {
       setInvites([]);
       setLastLogin(null);
       setGoals([]);
+      setWaSession(null);
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles').select('*').eq('id', id).eq('role', 'client').maybeSingle();
@@ -95,6 +108,7 @@ export function ClientDetail() {
         { data: inviteRows },
         { data: lastLoginData },
         { data: goalRows },
+        { data: waSessionRow },
       ] = await Promise.all([
         supabase.from('diary_entries').select('id, user_id, diary_id, date, created_at')
           .eq('user_id', id).order('date', { ascending: false }).limit(10),
@@ -107,6 +121,10 @@ export function ClientDetail() {
           .select('id, goal_text, created_at, entry_count_at_creation')
           .eq('user_id', id)
           .order('created_at', { ascending: false }),
+        supabase.from('whatsapp_sessions')
+          .select('id, status, opted_in_at, last_reminder_at, invite_sent_at')
+          .eq('client_id', id)
+          .maybeSingle(),
       ]);
 
       let diaryRow: Diary | null = null;
@@ -124,6 +142,7 @@ export function ClientDetail() {
       setInvites((inviteRows ?? []) as ClientInvite[]);
       setLastLogin((lastLoginData as string | null) ?? null);
       setGoals((goalRows ?? []) as ClientGoal[]);
+      setWaSession((waSessionRow as WaSession | null) ?? null);
 
       const loadError = entriesError?.message || countError?.message;
       if (loadError) setError(loadError);
@@ -205,6 +224,45 @@ export function ClientDetail() {
     setInviteSent(true);
     setSendingInvite(false);
     setTimeout(() => setInviteSent(false), 4000);
+  };
+
+  const handleSendWhatsappInvite = async () => {
+    if (!client) return;
+    setSendingWaInvite(true);
+    setWaInviteError('');
+    setWaInviteSent(false);
+
+    const { error: fnError } = await supabase.functions.invoke('whatsapp-send-invite', {
+      body: { client_id: client.id },
+    });
+
+    if (fnError) {
+      setWaInviteError(fnError.message || 'Erro ao enviar ativação WhatsApp.');
+      setSendingWaInvite(false);
+      return;
+    }
+
+    setWaSession(prev => ({
+      id: prev?.id ?? '',
+      status: 'pending',
+      opted_in_at: prev?.opted_in_at ?? null,
+      last_reminder_at: prev?.last_reminder_at ?? null,
+      invite_sent_at: new Date().toISOString(),
+    }));
+    setWaInviteSent(true);
+    setSendingWaInvite(false);
+    setTimeout(() => setWaInviteSent(false), 4000);
+  };
+
+  const waStatusLabel: Record<string, string> = {
+    pending: 'Pendente',
+    active: 'Ativo',
+    paused: 'Pausado',
+  };
+  const waStatusVariant: Record<string, 'warning' | 'success' | 'error' | 'neutral'> = {
+    pending: 'warning',
+    active: 'success',
+    paused: 'error',
   };
 
   if (loading) return <PageSpinner />;
@@ -375,6 +433,70 @@ export function ClientDetail() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* WhatsApp activation */}
+      <Card className="mb-4">
+        <CardBody>
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <MessageCircle size={15} className="text-emerald-600" />
+                <h2 className="font-semibold text-dark font-serif text-base">Ativação WhatsApp</h2>
+                {waSession && (
+                  <Badge variant={waStatusVariant[waSession.status] ?? 'neutral'}>
+                    {waStatusLabel[waSession.status] ?? waSession.status}
+                  </Badge>
+                )}
+                {!waSession && (
+                  <Badge variant="neutral">Não ativado</Badge>
+                )}
+              </div>
+              <p className="text-xs text-dark/40 mt-0.5">
+                Envia o link de ativação do protocolo por WhatsApp
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant={waInviteSent ? 'ghost' : 'primary'}
+              loading={sendingWaInvite}
+              disabled={!client.whatsapp || waSession?.status === 'active'}
+              onClick={handleSendWhatsappInvite}
+              className="shrink-0"
+            >
+              {waInviteSent
+                ? <><CheckCircle size={14} className="text-emerald-500" /> Enviado!</>
+                : <><MessageCircle size={14} /> {waSession ? 'Reenviar ativação' : 'Enviar ativação WA'}</>
+              }
+            </Button>
+          </div>
+
+          {!client.whatsapp && (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Cadastre o número WhatsApp do cliente acima para habilitar esta ação.
+            </p>
+          )}
+
+          {waInviteError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {waInviteError}
+            </div>
+          )}
+
+          {waSession && (
+            <div className="space-y-1 text-xs text-dark/50 mt-2">
+              {waSession.invite_sent_at && (
+                <p>Convite enviado em: {formatDateTime(waSession.invite_sent_at)}</p>
+              )}
+              {waSession.opted_in_at && (
+                <p>Ativado em: {formatDateTime(waSession.opted_in_at)}</p>
+              )}
+              {waSession.last_reminder_at && (
+                <p>Último lembrete: {formatDateTime(waSession.last_reminder_at)}</p>
+              )}
             </div>
           )}
         </CardBody>
