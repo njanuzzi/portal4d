@@ -15,8 +15,8 @@ export function PrivacyPolicy() {
             <h2 className="text-lg font-semibold font-serif text-dark mb-3">1. Quem somos</h2>
             <p>
               O <strong>Portal D4 — Protocolo 4D</strong> é uma plataforma de acompanhamento terapêutico
-              operada por <strong>Núbia Januzzi Santucci</strong>, psicóloga e terapeuta comportamental.
-              Este sistema é utilizado exclusivamente para comunicação entre terapeuta e clientes no
+              operada por <strong>Núbia Januzzi Santucci</strong>, psicoterapeuta.
+              Este sistema é utilizado exclusivamente para comunicação entre psicoterapeuta e clientes no
               âmbito do protocolo de Desbloqueio Comportamental.
             </p>
             <p className="mt-2">Contato: <a href="mailto:nubiajanuzzicontato@gmail.com" className="text-petrol-700 hover:underline">nubiajanuzzicontato@gmail.com</a></p>
@@ -31,7 +31,7 @@ export function PrivacyPolicy() {
               <li>Número de telefone (WhatsApp)</li>
               <li>Respostas ao diário terapêutico diário</li>
               <li>Histórico de acesso ao sistema</li>
-              <li>Relatórios clínicos elaborados pela terapeuta</li>
+              <li>Relatórios clínicos elaborados pela psicoterapeuta</li>
             </ul>
           </section>
 
@@ -41,8 +41,8 @@ export function PrivacyPolicy() {
             <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
               <li>Envio de lembretes diários pelo WhatsApp para preenchimento do diário terapêutico</li>
               <li>Registro e acompanhamento das suas respostas ao protocolo</li>
-              <li>Elaboração de relatórios clínicos pela sua terapeuta</li>
-              <li>Comunicação direta entre você e sua terapeuta</li>
+              <li>Elaboração de relatórios clínicos pela sua psicoterapeuta</li>
+              <li>Comunicação direta entre você e sua psicoterapeuta</li>
             </ul>
             <p className="mt-2 text-sm">
               Seus dados <strong>não são compartilhados com terceiros</strong> nem utilizados para
@@ -60,7 +60,7 @@ export function PrivacyPolicy() {
             </p>
             <p className="mt-2 text-sm">
               Você pode cancelar o recebimento a qualquer momento respondendo "Não entendi" ou
-              entrando em contato diretamente com sua terapeuta.
+              entrando em contato diretamente com sua psicoterapeuta.
             </p>
           </section>
 
@@ -72,7 +72,7 @@ export function PrivacyPolicy() {
               protegido por autenticação e controles de permissão por perfil.
             </p>
             <p className="mt-2 text-sm">
-              Apenas a terapeuta responsável tem acesso aos seus dados. Nenhum outro usuário
+              Apenas a psicoterapeuta responsável tem acesso aos seus dados. Nenhum outro usuário
               pode visualizar suas informações.
             </p>
           </section>
@@ -109,7 +109,7 @@ export function PrivacyPolicy() {
             <h2 className="text-lg font-semibold font-serif text-dark mb-3">8. Alterações nesta política</h2>
             <p className="text-sm">
               Esta política pode ser atualizada periodicamente. Alterações relevantes serão comunicadas
-              diretamente pela terapeuta. O uso contínuo do sistema após as alterações implica
+              diretamente pela psicoterapeuta. O uso contínuo do sistema após as alterações implica
               aceitação da nova versão.
             </p>
           </section>
