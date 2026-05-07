@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target, MessageCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target, MessageCircle, Copy, ExternalLink } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -67,6 +67,8 @@ export function ClientDetail() {
   const [sendingWaInvite, setSendingWaInvite] = useState(false);
   const [waInviteSent, setWaInviteSent] = useState(false);
   const [waInviteError, setWaInviteError] = useState('');
+  const [waActivationLink, setWaActivationLink] = useState<string | null>(null);
+  const [waCopied, setWaCopied] = useState(false);
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -86,6 +88,7 @@ export function ClientDetail() {
       setLastLogin(null);
       setGoals([]);
       setWaSession(null);
+      setWaActivationLink(null);
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles').select('*').eq('id', id).eq('role', 'client').maybeSingle();
@@ -231,17 +234,19 @@ export function ClientDetail() {
     setSendingWaInvite(true);
     setWaInviteError('');
     setWaInviteSent(false);
+    setWaActivationLink(null);
 
-    const { error: fnError } = await supabase.functions.invoke('whatsapp-send-invite', {
+    const { data, error: fnError } = await supabase.functions.invoke('whatsapp-send-invite', {
       body: { client_id: client.id },
     });
 
     if (fnError) {
-      setWaInviteError(fnError.message || 'Erro ao enviar ativação WhatsApp.');
+      setWaInviteError(fnError.message || 'Erro ao gerar link de ativação.');
       setSendingWaInvite(false);
       return;
     }
 
+    setWaActivationLink(data?.link ?? null);
     setWaSession(prev => ({
       id: prev?.id ?? '',
       status: 'pending',
@@ -251,7 +256,13 @@ export function ClientDetail() {
     }));
     setWaInviteSent(true);
     setSendingWaInvite(false);
-    setTimeout(() => setWaInviteSent(false), 4000);
+  };
+
+  const copyWaLink = async () => {
+    if (!waActivationLink) return;
+    await navigator.clipboard.writeText(waActivationLink);
+    setWaCopied(true);
+    setTimeout(() => setWaCopied(false), 2500);
   };
 
   const waStatusLabel: Record<string, string> = {
@@ -456,21 +467,19 @@ export function ClientDetail() {
                 )}
               </div>
               <p className="text-xs text-dark/40 mt-0.5">
-                Envia o link de ativação do protocolo por WhatsApp
+                Gera o link de ativação para você enviar ao cliente pelo WhatsApp
               </p>
             </div>
             <Button
               size="sm"
-              variant={waInviteSent ? 'ghost' : 'primary'}
+              variant="primary"
               loading={sendingWaInvite}
               disabled={!client.whatsapp || waSession?.status === 'active'}
               onClick={handleSendWhatsappInvite}
               className="shrink-0"
             >
-              {waInviteSent
-                ? <><CheckCircle size={14} className="text-emerald-500" /> Enviado!</>
-                : <><MessageCircle size={14} /> {waSession ? 'Reenviar ativação' : 'Enviar ativação WA'}</>
-              }
+              <MessageCircle size={14} />
+              {waSession ? 'Gerar novo link' : 'Gerar link'}
             </Button>
           </div>
 
@@ -486,13 +495,48 @@ export function ClientDetail() {
             </div>
           )}
 
-          {waSession && (
+          {/* Link gerado — copiar e enviar ao cliente */}
+          {waActivationLink && (
+            <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-emerald-800 mb-2">
+                ✅ Link gerado! Copie e envie ao cliente pelo seu WhatsApp pessoal:
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs bg-white border border-emerald-200 rounded px-2 py-1.5 text-dark/70 truncate">
+                  {waActivationLink}
+                </code>
+                <button
+                  onClick={copyWaLink}
+                  className="shrink-0 flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-300 rounded px-2 py-1.5 transition-colors"
+                >
+                  {waCopied
+                    ? <><Check size={13} className="text-emerald-600" /> Copiado!</>
+                    : <><Copy size={13} /> Copiar</>
+                  }
+                </button>
+                <a
+                  href={waActivationLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 text-emerald-600 hover:text-emerald-800"
+                  title="Abrir link"
+                >
+                  <ExternalLink size={14} />
+                </a>
+              </div>
+              <p className="text-xs text-emerald-700/70 mt-2">
+                Quando o cliente clicar e enviar "Iniciar", a conversa será ativada automaticamente.
+              </p>
+            </div>
+          )}
+
+          {waSession && !waActivationLink && (
             <div className="space-y-1 text-xs text-dark/50 mt-2">
               {waSession.invite_sent_at && (
-                <p>Convite enviado em: {formatDateTime(waSession.invite_sent_at)}</p>
+                <p>Link gerado em: {formatDateTime(waSession.invite_sent_at)}</p>
               )}
               {waSession.opted_in_at && (
-                <p>Ativado em: {formatDateTime(waSession.opted_in_at)}</p>
+                <p>✅ Ativado em: {formatDateTime(waSession.opted_in_at)}</p>
               )}
               {waSession.last_reminder_at && (
                 <p>Último lembrete: {formatDateTime(waSession.last_reminder_at)}</p>
