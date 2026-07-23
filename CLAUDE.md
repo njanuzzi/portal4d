@@ -88,3 +88,11 @@ WHERE email = 'terapeuta@email.com';
 ### Deploying
 
 Build outputs to `dist/`. Deploy to Vercel (auto-detects Vite) with the two env vars configured in the Vercel dashboard.
+
+## Accounts
+
+| Service | Account | Notes |
+|---|---|---|
+| GitHub (código) | `njanuzzi` | Repositório `njanuzzi/portal4d` |
+| Supabase | `nubiascjanuzzi@gmail.com` via GitHub OAuth | Projeto `Portal4D` (ID: `ojmaxsskczukdbxpaull`). Fazer login no Supabase com "Continue with GitHub" usando essa conta. |
+| Terapeuta (app) | `nubiajanuzzicontato@gmail.com` | Acesso ao portal como terapeuta |

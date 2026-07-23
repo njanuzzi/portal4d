@@ -1,11 +1,11 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, UserCheck } from 'lucide-react';
+import { ArrowLeft, Copy, Check, UserCheck, MessageCircle } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { createClient } from '@supabase/supabase-js';
-import { supabase, resetPasswordUrl } from '../../lib/supabase';
+import { supabase, resetPasswordUrl, appUrl } from '../../lib/supabase';
 
 // Isolated client for creating user accounts — session is never persisted,
 // so it won't replace the therapist's active session.
@@ -188,11 +188,50 @@ export function NewClient() {
     }
   };
 
+  const [copiedWA, setCopiedWA] = useState(false);
+
   const handleCopy = async () => {
     if (!createdClient) return;
     await navigator.clipboard.writeText(createdClient.tempPassword);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const waMessage = (client: { name: string; email: string; tempPassword: string }) => {
+    const firstName = client.name.split(' ')[0];
+    return `Olá, ${firstName}! 👋
+
+Seu acesso ao Portal Desbloqueio Comportamental está pronto!
+
+🔗 Acesse: ${appUrl}
+📧 E-mail: ${client.email}
+🔑 Senha: ${client.tempPassword}
+
+Após entrar, você pode alterar a senha em "Alterar senha" no menu.
+
+─────────────────────
+📲 *Instale o app no celular:*
+
+*iPhone (Safari):*
+1. Toque no ícone de compartilhar ↑
+2. Escolha "Adicionar à Tela de Início"
+3. Toque em "Adicionar"
+
+*Android (Chrome):*
+1. Toque nos três pontos ⋮
+2. Escolha "Adicionar à tela inicial"
+3. Toque em "Adicionar"
+
+🔔 Ao abrir o app, *permita as notificações* para receber seus lembretes diários.
+
+Qualquer dúvida, é só me chamar! 😊`;
+  };
+
+  const handleCopyWA = async () => {
+    if (!createdClient) return;
+    await navigator.clipboard.writeText(waMessage(createdClient));
+    setCopiedWA(true);
+    setTimeout(() => setCopiedWA(false), 2000);
   };
 
   if (createdClient) {
@@ -256,6 +295,37 @@ export function NewClient() {
               <p className="text-xs text-amber-700 leading-relaxed">
                 <strong>Atenção:</strong> A senha temporária acima é um backup caso o e-mail não chegue. Não será exibida novamente.
               </p>
+            </div>
+
+            <div className="border-t border-beige-200 pt-4">
+              <p className="text-xs font-medium text-dark/40 uppercase tracking-wide mb-3">
+                Mensagem para o cliente
+              </p>
+              <p className="text-xs text-dark/50 mb-2 leading-relaxed">
+                Envie essa mensagem pelo WhatsApp com as instruções de acesso e instalação do app:
+              </p>
+              <div className="bg-beige-50 border border-beige-200 rounded-lg px-3 py-2.5 text-xs text-dark/70 whitespace-pre-wrap leading-relaxed font-mono mb-2">
+                {waMessage(createdClient)}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyWA}
+                  className="flex items-center gap-1.5 text-xs text-petrol-700 border border-petrol-200 rounded-lg px-3 py-1.5 hover:bg-petrol-50 transition-colors"
+                >
+                  {copiedWA ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                  {copiedWA ? 'Copiado!' : 'Copiar mensagem'}
+                </button>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(waMessage(createdClient))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-emerald-700 border border-emerald-200 rounded-lg px-3 py-1.5 hover:bg-emerald-50 transition-colors"
+                >
+                  <MessageCircle size={13} />
+                  Abrir WhatsApp
+                </a>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-1">
