@@ -180,20 +180,10 @@ export function Clients() {
     setDeleteLoading(true);
     setDeleteError('');
 
-    const { data: deletedRows, error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', deleteClient.id)
-      .select('id');
+    const { error } = await supabase.rpc('delete_client', { client_id: deleteClient.id });
 
     if (error) {
       setDeleteError(error.message);
-      setDeleteLoading(false);
-      return;
-    }
-
-    if (!deletedRows || deletedRows.length === 0) {
-      setDeleteError('Não foi possível confirmar a exclusão no banco.');
       setDeleteLoading(false);
       return;
     }
