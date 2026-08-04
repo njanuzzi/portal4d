@@ -15,8 +15,13 @@ export function usePushNotifications(clientId: string | undefined) {
     if (!clientId || !VAPID_PUBLIC_KEY) return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
+    const resolvedClientId: string = clientId;
+
     async function subscribe() {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
         const reg = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
 
@@ -29,8 +34,9 @@ export function usePushNotifications(clientId: string | undefined) {
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
         });
 
-        await supabase.from('push_subscriptions').upsert({
-          client_id: clientId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('push_subscriptions') as any).upsert({
+          client_id: resolvedClientId,
           endpoint: subscription.endpoint,
           p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')!))),
           auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth')!))),
