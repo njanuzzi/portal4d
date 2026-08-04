@@ -1,5 +1,5 @@
-import { useState, useEffect, FormEvent } from 'react';
-import { MessageCircle, Plus, Trash2, Phone } from 'lucide-react';
+import { useState, useEffect, useRef, FormEvent } from 'react';
+import { MessageCircle, Plus, Trash2, Phone, Check } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -16,8 +16,18 @@ type Contact = {
   created_at: string;
 };
 
+const STORAGE_KEY = 'scheduling_message_template';
+
 const DEFAULT_MESSAGE =
-  'Olá, [nome]! 👋\n\nGostaria de agendar nossa próxima sessão. Acesse o link abaixo para escolher o melhor horário:\n\n[link]\n\nQualquer dúvida, é só me chamar! 😊';
+  'Olá, [nome]! 👋\n\nEstou enviando o link de agendamento do mês! Se possível já deixe seu horário reservado.\n\nCaso não tenha o horário disponível que melhor te atenda, me chama que conversamos.\n\nObs.: Se o seu horário já está reservado, pode ignorar a mensagem!\n\n[link]\n\nQualquer dúvida, é só me chamar! 😊';
+
+function loadSavedMessage(): string {
+  try {
+    return localStorage.getItem(STORAGE_KEY) ?? DEFAULT_MESSAGE;
+  } catch {
+    return DEFAULT_MESSAGE;
+  }
+}
 
 function buildMessage(template: string, name: string) {
   return template.replace('[nome]', name.split(' ')[0]);
@@ -31,7 +41,9 @@ export function Scheduling() {
   const { profile } = useAuth();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState(DEFAULT_MESSAGE);
+  const [message, setMessage] = useState(loadSavedMessage);
+  const [saved, setSaved] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [addOpen, setAddOpen] = useState(false);
   const [addName, setAddName] = useState('');
@@ -54,6 +66,26 @@ export function Scheduling() {
         setLoading(false);
       });
   }, [profile?.id]);
+
+  const handleMessageChange = (value: string) => {
+    setMessage(value);
+    setSaved(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, value);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } catch { /* ignore */ }
+    }, 800);
+  };
+
+  const handleResetMessage = () => {
+    setMessage(DEFAULT_MESSAGE);
+    try { localStorage.setItem(STORAGE_KEY, DEFAULT_MESSAGE); } catch { /* ignore */ }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
 
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault();
@@ -114,14 +146,31 @@ export function Scheduling() {
       {/* Message template */}
       <Card className="mb-6">
         <CardBody>
-          <p className="text-xs font-medium text-dark/40 uppercase tracking-wide mb-2">Mensagem</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-dark/40 uppercase tracking-wide">Mensagem</p>
+            <div className="flex items-center gap-3">
+              {saved && (
+                <span className="flex items-center gap-1 text-xs text-emerald-600">
+                  <Check size={12} />
+                  Salvo
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleResetMessage}
+                className="text-xs text-dark/40 hover:text-petrol-700 transition-colors"
+              >
+                Restaurar padrão
+              </button>
+            </div>
+          </div>
           <p className="text-xs text-dark/40 mb-2 leading-relaxed">
-            Use <code className="bg-beige-100 px-1 rounded">[nome]</code> para o primeiro nome do contato e <code className="bg-beige-100 px-1 rounded">[link]</code> para o link de agendamento.
+            Use <code className="bg-beige-100 px-1 rounded">[nome]</code> para o primeiro nome do contato e <code className="bg-beige-100 px-1 rounded">[link]</code> para o link de agendamento. A mensagem é salva automaticamente.
           </p>
           <textarea
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={7}
+            onChange={(e) => handleMessageChange(e.target.value)}
+            rows={9}
             className="w-full px-3 py-2.5 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 resize-none leading-relaxed"
           />
         </CardBody>
