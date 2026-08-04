@@ -122,7 +122,7 @@ export function Scheduling() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={7}
-            className="w-full px-3 py-2.5 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 resize-none font-mono leading-relaxed"
+            className="w-full px-3 py-2.5 rounded-lg border border-beige-300 text-sm text-dark bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 resize-none leading-relaxed"
           />
         </CardBody>
       </Card>
