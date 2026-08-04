@@ -14,7 +14,10 @@ export interface Profile {
   active: boolean;
   whatsapp?: string | null;
   address?: string | null;
+  diary_id?: string | null;
   created_at: string;
+  first_login_at?: string | null;
+  last_login_at?: string | null;
 }
 
 export interface Diary {
@@ -85,6 +88,9 @@ export interface ReportWithProfile extends Report {
 }
 
 export type Database = {
+  __InternalSupabase: {
+    PostgrestVersion: "12"
+  }
   public: {
     Tables: {
       profiles: {
@@ -116,6 +122,16 @@ export type Database = {
         Row: Report;
         Insert: Omit<Report, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<Report, 'id' | 'created_at'>>;
+      };
+      push_subscriptions: {
+        Row: { id: string; client_id: string; endpoint: string; p256dh: string; auth: string; created_at: string | null };
+        Insert: { client_id: string; endpoint: string; p256dh: string; auth: string; id?: string; created_at?: string | null };
+        Update: Partial<{ client_id: string; endpoint: string; p256dh: string; auth: string }>;
+      };
+      scheduling_contacts: {
+        Row: { id: string; therapist_id: string; name: string; phone: string; created_at: string };
+        Insert: { therapist_id: string; name: string; phone: string; id?: string; created_at?: string };
+        Update: Partial<{ name: string; phone: string }>;
       };
     };
   };

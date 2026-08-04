@@ -28,6 +28,7 @@ import { ClientReports as ClientReportsPage } from './pages/client/ClientReports
 import { ChangePassword } from './pages/client/ChangePassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { Scheduling } from './pages/therapist/Scheduling';
 
 function AppRoutes() {
   const location = useLocation();
@@ -96,6 +97,7 @@ function AppRoutes() {
           <Route path="/reports/:clientId" element={<ReportsByClient />} />
           <Route path="/reports/:clientId/new" element={<NewReport />} />
           <Route path="/reports/:clientId/edit/:reportId" element={<EditReport />} />
+          <Route path="/scheduling" element={<Scheduling />} />
           <Route path="/login" element={<Navigate to="/dashboard" replace />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
