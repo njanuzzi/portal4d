@@ -4,6 +4,7 @@ import { Home, BookOpen, Clock, FileText, LogOut, KeyRound } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
+import { ClientChatbot } from '../client/ClientChatbot';
 
 const navItems = [
   { to: '/home', label: 'Início', icon: Home, end: true },
@@ -114,6 +115,8 @@ export function ClientLayout({ children }: { children: ReactNode }) {
           ))}
         </div>
       </nav>
+
+      <ClientChatbot />
     </div>
   );
 }

@@ -29,6 +29,7 @@ import { ChangePassword } from './pages/client/ChangePassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { Scheduling } from './pages/therapist/Scheduling';
+import { MarketingHome } from './pages/MarketingHome';
 
 function AppRoutes() {
   const location = useLocation();
@@ -69,6 +70,7 @@ function AppRoutes() {
   if (!user) {
     return (
       <Routes>
+        <Route path="/" element={<MarketingHome />} />
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
