@@ -29,7 +29,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
+    navigate('/areamembros');
   };
 
   return (

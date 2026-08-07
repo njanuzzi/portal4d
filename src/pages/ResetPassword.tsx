@@ -55,7 +55,7 @@ export function ResetPassword() {
     setPageState('done');
     // Sign out so the user logs in fresh with the new password
     await supabase.auth.signOut();
-    setTimeout(() => navigate('/login'), 3000);
+    setTimeout(() => navigate('/areamembros'), 3000);
   };
 
   const inputStyle = {

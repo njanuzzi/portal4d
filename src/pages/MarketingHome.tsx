@@ -1,51 +1,17 @@
 import { Link } from 'react-router-dom';
-import { Compass, Pause, KeyRound, ArrowRight, Instagram } from 'lucide-react';
+import { Instagram, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { MarketingHeader } from '../components/marketing/MarketingHeader';
+import { MarketingFooter } from '../components/marketing/MarketingFooter';
+import { PILARES } from '../lib/protocolo4d';
 
 // TODO: substituir pelo @ real antes de publicar
 const INSTAGRAM_URL = 'https://instagram.com/';
 
-const pilares = [
-  {
-    icon: Compass,
-    titulo: 'Detectar',
-    texto: 'Reconhecer o padrão que se repete — no trabalho, nas relações, no corpo — antes de tentar mudá-lo.',
-  },
-  {
-    icon: Pause,
-    titulo: 'Desacelerar',
-    texto: 'Interromper a resposta automática o suficiente para olhar para o que está acontecendo de verdade.',
-  },
-  {
-    icon: KeyRound,
-    titulo: 'Decodificar',
-    texto: 'Entender de onde veio esse padrão e o que ele está tentando proteger ou conseguir.',
-  },
-  {
-    icon: ArrowRight,
-    titulo: 'Direcionar',
-    texto: 'Escolher, com essa clareza, um rumo diferente — na prática, não só na teoria.',
-  },
-] as const;
-
 export function MarketingHome() {
   return (
     <div className="min-h-screen bg-beige-100 text-dark font-sans">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-petrol-700 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logosistema.png" alt="Logo" className="w-9 h-9 rounded-lg object-cover shrink-0" />
-            <div>
-              <div className="font-serif text-sm leading-tight">Núbia Januzzi</div>
-              <div className="text-petrol-200 text-xs">Psicoterapeuta</div>
-            </div>
-          </div>
-          <Link to="/login">
-            <Button variant="secondary" size="sm">Área do Cliente</Button>
-          </Link>
-        </div>
-      </header>
+      <MarketingHeader />
 
       {/* Hero */}
       <section className="bg-petrol-700 text-white">
@@ -58,13 +24,14 @@ export function MarketingHome() {
           </h1>
           <p className="text-petrol-100 text-base md:text-lg max-w-xl mb-10 leading-relaxed">
             Trabalho com o Protocolo 4D — um método próprio para ir à raiz do que se repete no trabalho,
-            nas relações e no corpo, e mudar o rumo a partir daí. Atendimento 100% online.
+            nas relações e no corpo, e mudar o rumo a partir daí. Atendimento 100% online, através do
+            Portal 4D.
           </p>
           <div className="flex flex-wrap gap-3">
             <a href="#contato">
               <Button variant="secondary" size="lg">Agendar uma conversa</Button>
             </a>
-            <Link to="/login">
+            <Link to="/areamembros">
               <Button
                 variant="ghost"
                 size="lg"
@@ -77,28 +44,29 @@ export function MarketingHome() {
         </div>
       </section>
 
-      {/* Protocolo 4D */}
+      {/* Protocolo 4D — teaser */}
       <section className="max-w-5xl mx-auto px-4 py-20">
         <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">O método</p>
         <h2 className="font-serif text-3xl mb-4 text-balance">Isso tem um nome: Protocolo 4D</h2>
-        <p className="text-petrol-800/80 max-w-2xl mb-12 leading-relaxed">
+        <p className="text-petrol-800/80 max-w-2xl mb-10 leading-relaxed">
           Não é rótulo, não é fórmula pronta — é uma direção. Quatro etapas que se repetem em cada
           questão que aparece na terapia, até virarem um jeito de olhar para a própria vida.
         </p>
-        <div className="grid sm:grid-cols-2 gap-5">
-          {pilares.map((p, i) => (
-            <div key={p.titulo} className="bg-white border border-beige-300 rounded-xl p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="w-8 h-8 rounded-full bg-petrol-700 text-gold-300 flex items-center justify-center">
-                  <p.icon size={16} />
-                </span>
-                <span className="text-petrol-400 text-xs font-mono">0{i + 1}</span>
-              </div>
-              <h3 className="font-serif text-xl mb-2">{p.titulo}</h3>
-              <p className="text-petrol-800/70 text-sm leading-relaxed">{p.texto}</p>
+        <div className="grid sm:grid-cols-4 gap-4 mb-8">
+          {PILARES.map((p, i) => (
+            <div key={p.titulo} className="bg-white border border-beige-300 rounded-xl p-4">
+              <span className="text-petrol-400 text-xs font-mono">0{i + 1}</span>
+              <h3 className="font-serif text-lg mt-1">{p.titulo}</h3>
             </div>
           ))}
         </div>
+        <Link
+          to="/protocolo4d"
+          className="inline-flex items-center gap-2 text-petrol-700 font-medium text-sm hover:text-petrol-800"
+        >
+          Entender o Protocolo 4D em detalhe
+          <ArrowRight size={16} />
+        </Link>
       </section>
 
       {/* Sobre */}
@@ -160,14 +128,7 @@ export function MarketingHome() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="max-w-5xl mx-auto px-4 py-8 flex flex-wrap items-center justify-between gap-3 text-xs text-petrol-800/60">
-        <span>© {new Date().getFullYear()} Núbia Januzzi</span>
-        <div className="flex gap-4">
-          <Link to="/privacy" className="hover:text-petrol-800">Privacidade</Link>
-          <Link to="/login" className="hover:text-petrol-800">Área do Cliente</Link>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }

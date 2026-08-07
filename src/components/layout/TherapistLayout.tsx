@@ -33,7 +33,7 @@ export function TherapistLayout({ children }: { children: ReactNode }) {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
+    navigate('/areamembros');
   };
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (

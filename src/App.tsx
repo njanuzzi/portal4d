@@ -30,6 +30,7 @@ import { ResetPassword } from './pages/ResetPassword';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { Scheduling } from './pages/therapist/Scheduling';
 import { MarketingHome } from './pages/MarketingHome';
+import { Protocolo4D } from './pages/Protocolo4D';
 
 function AppRoutes() {
   const location = useLocation();
@@ -54,12 +55,21 @@ function AppRoutes() {
     );
   }
 
+  // Protocolo 4D explainer is always public
+  if (location.pathname === '/protocolo4d') {
+    return (
+      <Routes>
+        <Route path="/protocolo4d" element={<Protocolo4D />} />
+      </Routes>
+    );
+  }
+
   if (isClientTokenRoute) {
     return (
       <Routes>
         <Route path="/client/:token" element={<ClientAccess />} />
         <Route path="/client/:token/diary" element={<ClientDiaryForm />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/areamembros" replace />} />
       </Routes>
     );
   }
@@ -71,8 +81,10 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/" element={<MarketingHome />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/areamembros" element={<Login />} />
+        {/* Old path, kept working in case it's already bookmarked/shared */}
+        <Route path="/login" element={<Navigate to="/areamembros" replace />} />
+        <Route path="*" element={<Navigate to="/areamembros" replace />} />
       </Routes>
     );
   }
@@ -100,6 +112,7 @@ function AppRoutes() {
           <Route path="/reports/:clientId/new" element={<NewReport />} />
           <Route path="/reports/:clientId/edit/:reportId" element={<EditReport />} />
           <Route path="/scheduling" element={<Scheduling />} />
+          <Route path="/areamembros" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Navigate to="/dashboard" replace />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -118,6 +131,7 @@ function AppRoutes() {
           <Route path="/diary/history" element={<DiaryHistory />} />
           <Route path="/reports" element={<ClientReportsPage />} />
           <Route path="/change-password" element={<ChangePassword />} />
+          <Route path="/areamembros" element={<Navigate to="/home" replace />} />
           <Route path="/login" element={<Navigate to="/home" replace />} />
           <Route path="/" element={<Navigate to="/home" replace />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
@@ -129,7 +143,7 @@ function AppRoutes() {
   // Unknown role
   return (
     <Routes>
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/areamembros" replace />} />
     </Routes>
   );
 }

@@ -143,7 +143,7 @@ export function ClientAccess() {
             </div>
             <h1 className="text-xl font-semibold text-dark font-serif mb-2">Acesso não autorizado</h1>
             <p className="text-sm text-dark/50 mb-6">{error}</p>
-            <Link to="/login">
+            <Link to="/areamembros">
               <Button variant="ghost">Voltar ao login</Button>
             </Link>
           </CardBody>
