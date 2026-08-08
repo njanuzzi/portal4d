@@ -541,8 +541,6 @@
     if (answers.tema) nextParams.set("tema", answers.tema);
     var nextQs = nextParams.toString();
     nextLink.href = "/briefing-video" + (nextQs ? "?" + nextQs : "");
-    nextLink.target = "_blank";
-    nextLink.rel = "noopener noreferrer";
     var nextBody = el("div", null);
     nextBody.appendChild(el("b", null, "Briefing de Edição de Vídeo"));
     nextBody.appendChild(el("span", null, "Já gravou com base no roteiro? Especifique corte, legenda, cor e gráficos."));
