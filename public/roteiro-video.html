@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guia de Roteiro</title>
+<style>
+  :root {
+    --bg: #f7f3ea;
+    --bg-elevated: #fffefa;
+    --bg-sunken: #efeada;
+    --ink: #232017;
+    --ink-dim: #82795f;
+    --accent: #2b4c6f;
+    --accent-ink: #fffefa;
+    --line: #ddd5be;
+    --line-strong: #c7bc9c;
+    --focus: #2b4c6f;
+    --success: #3f6b4a;
+    --note-bg: #f2e9c9;
+    --note-line: #d8c98f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16140f;
+      --bg-elevated: #1e1b14;
+      --bg-sunken: #100e0a;
+      --ink: #ede6d6;
+      --ink-dim: #9c9480;
+      --accent: #6fa8d8;
+      --accent-ink: #0d1720;
+      --line: #332e22;
+      --line-strong: #47402e;
+      --focus: #6fa8d8;
+      --success: #6fb37e;
+      --note-bg: #2a2618;
+      --note-line: #4a4128;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16140f; --bg-elevated: #1e1b14; --bg-sunken: #100e0a;
+    --ink: #ede6d6; --ink-dim: #9c9480; --accent: #6fa8d8; --accent-ink: #0d1720;
+    --line: #332e22; --line-strong: #47402e; --focus: #6fa8d8; --success: #6fb37e;
+    --note-bg: #2a2618; --note-line: #4a4128;
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f3ea; --bg-elevated: #fffefa; --bg-sunken: #efeada;
+    --ink: #232017; --ink-dim: #82795f; --accent: #2b4c6f; --accent-ink: #fffefa;
+    --line: #ddd5be; --line-strong: #c7bc9c; --focus: #2b4c6f; --success: #3f6b4a;
+    --note-bg: #f2e9c9; --note-line: #d8c98f;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .serif { font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif; }
+  .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  .app { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  .transport { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+  .transport-label { font-size: 11px; letter-spacing: 0.08em; color: var(--ink-dim); white-space: nowrap; }
+  .scrub { position: relative; flex: 1; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .scrub-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 2px; transition: width 300ms ease; }
+  .step-count { font-size: 12px; color: var(--ink); white-space: nowrap; }
+  .step-count b { color: var(--accent); }
+
+  .brand-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .brand { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+  .brand b { color: var(--accent); }
+
+  h1.page-title { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 28px; text-wrap: balance; }
+  h1.page-title.serif { font-weight: 700; }
+
+  .panel { background: var(--bg-elevated); border: 1px solid var(--line); border-radius: 14px; padding: 28px 26px; }
+  .step-eyebrow { font-size: 11px; letter-spacing: 0.12em; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+  h2.step-title { font-size: 22px; font-weight: 700; margin: 0 0 4px; text-wrap: balance; }
+  p.step-sub { font-size: 14px; color: var(--ink-dim); margin: 0 0 22px; max-width: 60ch; line-height: 1.55; }
+
+  .field { margin-bottom: 24px; }
+  .field:last-child { margin-bottom: 0; }
+  label.field-label { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+
+  input[type="text"], textarea {
+    width: 100%; background: var(--bg-sunken); border: 1px solid var(--line); color: var(--ink);
+    border-radius: 8px; padding: 10px 12px; font-size: 14.5px; font-family: inherit; line-height: 1.55;
+  }
+  textarea { resize: vertical; min-height: 76px; }
+  input[type="text"]:focus, textarea:focus {
+    outline: none; border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 20%, transparent);
+  }
+  input::placeholder, textarea::placeholder { color: var(--ink-dim); opacity: 0.7; }
+
+  /* ---- Example / margin note ---- */
+  .example {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: var(--note-bg);
+    border: 1px solid var(--note-line);
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+  .example-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-dim); margin-bottom: 6px;
+  }
+  .example ul { margin: 0; padding-left: 18px; }
+  .example li { margin-bottom: 4px; }
+  .example li:last-child { margin-bottom: 0; }
+  .example .bad { text-decoration: line-through; opacity: 0.6; }
+
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-sunken);
+    color: var(--ink); font-size: 13.5px; cursor: pointer; user-select: none;
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .pill:hover { border-color: var(--line-strong); }
+  .pill.selected { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+  .card-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .opt-card {
+    display: flex; align-items: flex-start; gap: 12px; padding: 14px 14px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg-sunken); cursor: pointer; text-align: left;
+  }
+  .opt-card:hover { border-color: var(--line-strong); }
+  .opt-card.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--bg-sunken)); }
+  .opt-mark {
+    flex-shrink: 0; width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--line-strong);
+    margin-top: 2px; display: flex; align-items: center; justify-content: center;
+  }
+  .opt-card.selected .opt-mark { border-color: var(--accent); background: var(--accent); }
+  .opt-mark svg { width: 11px; height: 11px; display: none; }
+  .opt-card.selected .opt-mark svg { display: block; }
+  .opt-body b { display: block; font-size: 14px; margin-bottom: 2px; }
+  .opt-body span { display: block; font-size: 12.5px; color: var(--ink-dim); line-height: 1.45; }
+  .opt-body em { display: block; font-style: normal; font-size: 12px; color: var(--accent); margin-top: 5px; }
+
+  .nav-row { display: flex; justify-content: space-between; align-items: center; margin-top: 26px; }
+  button {
+    font-family: inherit; font-size: 14px; font-weight: 700; border-radius: 8px; padding: 11px 20px;
+    cursor: pointer; border: 1px solid transparent; transition: opacity 120ms ease, transform 120ms ease;
+  }
+  button:active { transform: scale(0.98); }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); border: none; }
+  .btn-primary:hover { opacity: 0.92; }
+  .btn-ghost { background: transparent; color: var(--ink-dim); border: 1px solid var(--line); }
+  .btn-ghost:hover { color: var(--ink); border-color: var(--line-strong); }
+  .btn-ghost:disabled { opacity: 0.35; cursor: default; }
+
+  .review-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .check-badge {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--success); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .check-badge svg { width: 12px; height: 12px; }
+
+  .output {
+    background: var(--bg-sunken); border: 1px solid var(--line); border-radius: 10px; padding: 16px 16px;
+    font-size: 12.5px; line-height: 1.65; white-space: pre-wrap; max-height: 480px; overflow-y: auto; margin-top: 18px;
+  }
+  .output-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+  .copied-msg { font-size: 13px; color: var(--success); font-weight: 600; display: none; align-items: center; gap: 6px; }
+  .copied-msg.show { display: inline-flex; }
+
+  .footer-note { text-align: center; font-size: 12px; color: var(--ink-dim); margin-top: 28px; line-height: 1.6; }
+
+  /* ---- Next-step card ---- */
+  .next-step {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .next-step-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-dim); margin-bottom: 10px;
+  }
+  .next-step-link {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 16px; border-radius: 10px; border: 1px solid var(--line-strong);
+    background: var(--bg-sunken); text-decoration: none; color: var(--ink);
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .next-step-link:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--bg-sunken)); }
+  .next-step-link b { display: block; font-size: 14.5px; margin-bottom: 2px; }
+  .next-step-link span { display: block; font-size: 12.5px; color: var(--ink-dim); }
+  .next-step-arrow { flex-shrink: 0; font-size: 18px; color: var(--accent); }
+
+  @media (max-width: 480px) {
+    .panel { padding: 22px 18px; }
+    h1.page-title { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand-row">
+    <div class="brand">Guia de <b>Criação de Roteiro</b></div>
+  </div>
+  <h1 class="page-title serif" id="pageTitle">Vamos organizar o que você quer dizer</h1>
+
+  <div class="transport">
+    <span class="transport-label mono" id="transportLabel">PÁGINA</span>
+    <div class="scrub"><div class="scrub-fill" id="scrubFill"></div></div>
+    <span class="step-count mono" id="stepCount"></span>
+  </div>
+
+  <div class="panel" id="panel"></div>
+
+  <div class="footer-note">No final, você recebe um texto pronto — cole numa conversa nova com o Claude pra ele escrever 3 versões do seu roteiro.</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var answers = {
+    nome: "", tema: "",
+    tipoVideo: "", publico: "", acaoDesejada: "",
+    ideiaCentral: "", porqueImporta: "",
+    ganchoTipo: [], ganchoRascunho: "",
+    pontosPrincipais: "", historiaExemplo: "", malEntendido: "",
+    virada: "",
+    fechamentoTipo: "", fraseAssinatura: "",
+    tomFala: [], expressoesProprias: "",
+    duracao: "", formatoFala: ""
+  };
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function textField(container, key, label, placeholder, multiline, exampleHtml) {
+    var f = el("div", "field");
+    f.appendChild(el("label", "field-label", label));
+    var input = el(multiline ? "textarea" : "input");
+    if (!multiline) input.type = "text";
+    input.placeholder = placeholder || "";
+    input.value = answers[key] || "";
+    input.addEventListener("input", function () { answers[key] = input.value; });
+    f.appendChild(input);
+    if (exampleHtml) {
+      var ex = el("div", "example");
+      ex.innerHTML = exampleHtml;
+      f.appendChild(ex);
+    }
+    container.appendChild(f);
+  }
+
+  function pillField(container, key, label, options, hint) {
+    var f = el("div", "field");
+    f.appendChild(el("label", "field-label", label));
+    var row = el("div", "pill-row");
+    options.forEach(function (opt) {
+      var p = el("div", "pill", opt);
+      if (answers[key] === opt) p.classList.add("selected");
+      p.addEventListener("click", function () {
+        answers[key] = (answers[key] === opt) ? "" : opt;
+        renderStep();
+      });
+      row.appendChild(p);
+    });
+    f.appendChild(row);
+    if (hint) { var h = el("div", "example"); h.textContent = hint; f.appendChild(h); }
+    container.appendChild(f);
+  }
+
+  function multiPillField(container, key, label, options) {
+    var f = el("div", "field");
+    f.appendChild(el("label", "field-label", label));
+    var row = el("div", "pill-row");
+    options.forEach(function (opt) {
+      var p = el("div", "pill", opt);
+      var arr = answers[key] || [];
+      if (arr.indexOf(opt) > -1) p.classList.add("selected");
+      p.addEventListener("click", function () {
+        var arr2 = answers[key] || [];
+        var idx = arr2.indexOf(opt);
+        if (idx > -1) arr2.splice(idx, 1); else arr2.push(opt);
+        answers[key] = arr2;
+        renderStep();
+      });
+      row.appendChild(p);
+    });
+    f.appendChild(row);
+    container.appendChild(f);
+  }
+
+  function checkSvg() {
+    return '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8.5L6.2 11.7L13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  function cardField(container, key, label, options, multi) {
+    var f = el("div", "field");
+    f.appendChild(el("label", "field-label", label));
+    var grid = el("div", "card-grid");
+    options.forEach(function (opt) {
+      var card = el("div", "opt-card");
+      var isSelected = multi ? (answers[key] || []).indexOf(opt.value) > -1 : answers[key] === opt.value;
+      if (isSelected) card.classList.add("selected");
+      var mark = document.createElement("div");
+      mark.className = "opt-mark";
+      mark.innerHTML = checkSvg();
+      var body = el("div", "opt-body");
+      body.appendChild(el("b", null, opt.title));
+      body.appendChild(el("span", null, opt.desc));
+      if (opt.example) body.appendChild(el("em", null, opt.example));
+      card.appendChild(mark);
+      card.appendChild(body);
+      card.addEventListener("click", function () {
+        if (multi) {
+          var arr = answers[key] || [];
+          var idx = arr.indexOf(opt.value);
+          if (idx > -1) arr.splice(idx, 1); else arr.push(opt.value);
+          answers[key] = arr;
+        } else {
+          answers[key] = (answers[key] === opt.value) ? "" : opt.value;
+        }
+        renderStep();
+      });
+      grid.appendChild(card);
+    });
+    f.appendChild(grid);
+    container.appendChild(f);
+  }
+
+  var steps = [
+    {
+      title: "Quem é você e sobre o que é o vídeo",
+      sub: "Só pra identificar o roteiro.",
+      render: function (c) {
+        textField(c, "nome", "Seu nome", "Ex: Carlos Mendes");
+        textField(c, "tema", "Tema/título do vídeo", "Ex: Como precificar meu trabalho sem medo");
+      }
+    },
+    {
+      title: "Sobre o vídeo",
+      sub: "O contexto antes de pensar no que falar.",
+      render: function (c) {
+        cardField(c, "tipoVideo", "Que tipo de vídeo é?", [
+          { value: "Palestra ou aula", title: "Palestra ou aula", desc: "Você explica algo pra ensinar ou informar." },
+          { value: "Depoimento pessoal", title: "Depoimento pessoal", desc: "Você conta uma experiência ou história sua." },
+          { value: "Vídeo de venda", title: "Vídeo de venda", desc: "Você quer que a pessoa compre ou contrate algo." },
+          { value: "Resposta a uma pergunta frequente", title: "Resposta a pergunta frequente", desc: "Alguém pergunta isso o tempo todo, e você quer responder de vez." },
+          { value: "Apresentação institucional", title: "Apresentação institucional", desc: "Sobre você, sua empresa ou seu trabalho." }
+        ], false);
+        textField(c, "publico", "Pra quem é esse vídeo?", "Ex: psicólogos recém-formados montando o primeiro consultório", false,
+          '<div class="example-label">Quanto mais específico, melhor</div><ul><li><span class="bad">vago:</span> "empreendedores"</li><li><b>específico:</b> "dona de salão de beleza que trabalha sozinha e não sabe cobrar pelo próprio tempo"</li></ul>');
+        textField(c, "acaoDesejada", "O que você quer que a pessoa faça depois de assistir?", "Ex: perceber que o problema dela tem nome, comprar, agendar uma conversa, se identificar e comentar...");
+      }
+    },
+    {
+      title: "A ideia central",
+      sub: "Um vídeo bom defende UMA ideia, não várias.",
+      render: function (c) {
+        textField(c, "ideiaCentral", "Se você tivesse só uma frase pra resumir o que quer dizer, qual seria?", "Ex: Você não cobra pouco por falta de confiança — cobra pouco porque nunca te ensinaram a colocar valor no seu tempo.", true,
+          '<div class="example-label">Um bom resumo é uma afirmação, não um tópico</div><ul><li><span class="bad">tópico vago:</span> "vou falar sobre precificação"</li><li><b>afirmação central:</b> "seu preço baixo não é falta de confiança, é falta de referência"</li></ul>');
+        textField(c, "porqueImporta", "Por que isso importa pro seu público, especificamente?", "O que eles perdem se continuarem sem saber disso?", true);
+      }
+    },
+    {
+      title: "O gancho — os primeiros segundos",
+      sub: "É o que decide se a pessoa continua assistindo ou não. Vale mais tempo pensando nisso do que em qualquer outra parte.",
+      render: function (c) {
+        cardField(c, "ganchoTipo", "Que tipo de abertura combina com o que você quer dizer?", [
+          { value: "Contradição", title: "Contradição", desc: "Afirma algo que parece errado à primeira vista.", example: 'Ex: "Cobrar mais barato não te traz mais cliente. Te traz o cliente errado."' },
+          { value: "Diagnóstico direto", title: "Diagnóstico direto", desc: "Descreve o comportamento da pessoa antes dela mesma perceber.", example: 'Ex: "Você abre a calculadora, faz a conta, e diminui o valor sem nem postar."' },
+          { value: "Nomear um comportamento desconfortável", title: "Nomear um comportamento desconfortável", desc: "Coloca em palavras algo que a pessoa faz mas nunca ouviu descrito.", example: 'Ex: "Você já perdeu venda por medo de responder \'quanto custa\'."' },
+          { value: "Afirmação contraintuitiva", title: "Afirmação contraintuitiva", desc: "O oposto do que todo mundo diz sobre o assunto.", example: 'Ex: "Preço baixo não vende mais. Vende pior."' },
+          { value: "Número ou dado específico", title: "Número ou dado específico", desc: "Uma estatística ou fato concreto que choca ou surpreende.", example: 'Ex: "9 em cada 10 pessoas que atendo cobravam menos da metade do que deveriam."' },
+          { value: "Pergunta direta", title: "Pergunta direta", desc: "Uma pergunta que a pessoa não consegue deixar de responder mentalmente.", example: 'Ex: "Quando foi a última vez que você aumentou seu preço?"' }
+        ], true);
+        textField(c, "ganchoRascunho", "Já tem alguma frase de abertura em mente? (mesmo que rascunho)", "Pode deixar em branco — a gente constrói em cima do tipo escolhido acima.", true);
+      }
+    },
+    {
+      title: "O conteúdo principal",
+      sub: "O que você realmente quer explicar ou contar.",
+      render: function (c) {
+        textField(c, "pontosPrincipais", "Quais são os pontos principais que você quer cobrir?", "Pode ser em tópicos soltos, sem se preocupar com ordem ainda", true);
+        textField(c, "historiaExemplo", "Tem uma história, caso real ou exemplo que ilustra isso?", "Histórias específicas prendem mais atenção do que explicações abstratas", true);
+        textField(c, "malEntendido", "Tem algo que as pessoas costumam entender errado sobre esse assunto?", "Desfazer um mal-entendido comum é um jeito forte de prender atenção", true);
+      }
+    },
+    {
+      title: "A virada",
+      sub: "O momento em que quem assiste muda de ideia sobre alguma coisa.",
+      render: function (c) {
+        textField(c, "virada", "Depois de explicar o contexto, o que muda no jeito de pensar de quem está assistindo?", "Ex: de \"eu sou ruim em vender\" pra \"eu nunca tive uma referência de preço, só isso\"", true,
+          '<div class="example-label">A virada é a troca de um rótulo pessoal por uma explicação</div><ul><li><span class="bad">antes:</span> "eu sou desorganizado"</li><li><b>depois:</b> "eu nunca tive um sistema, é diferente"</li></ul>');
+      }
+    },
+    {
+      title: "O fechamento",
+      sub: "Como o vídeo termina.",
+      render: function (c) {
+        pillField(c, "fechamentoTipo", "Como você quer terminar?", ["Resumo da ideia central", "Convite a uma ação (comprar, agendar, seguir)", "Frase de efeito / reflexão"]);
+        textField(c, "fraseAssinatura", "Tem uma frase de assinatura que você sempre usa ou quer criar?", "Opcional — tipo um bordão seu, algo que fecha todo vídeo do mesmo jeito");
+      }
+    },
+    {
+      title: "Tom e estilo",
+      sub: "Pra escrever com a SUA voz, não uma genérica.",
+      render: function (c) {
+        multiPillField(c, "tomFala", "Como você fala naturalmente?", ["Direto", "Descontraído", "Caloroso", "Formal", "Bem-humorado", "Sério/técnico"]);
+        textField(c, "expressoesProprias", "Tem palavras, gírias ou expressões que são \"a sua cara\"?", "Ex: você sempre fala 'olha só' ou 'sacou?' — inclua aqui");
+      }
+    },
+    {
+      title: "Duração e formato",
+      sub: "Últimos detalhes práticos.",
+      render: function (c) {
+        textField(c, "duracao", "Duração aproximada", "Ex: 60 segundos, 5 minutos, 20 minutos de palestra...");
+        pillField(c, "formatoFala", "Você vai...", ["Ler o roteiro pronto", "Decorar e falar", "Falar livre com base em tópicos"]);
+      }
+    }
+  ];
+
+  var current = 0;
+  var TOTAL = steps.length;
+  var panel = document.getElementById("panel");
+  var scrubFill = document.getElementById("scrubFill");
+  var stepCount = document.getElementById("stepCount");
+  var transportLabel = document.getElementById("transportLabel");
+  var pageTitle = document.getElementById("pageTitle");
+
+  function fmtList(arr) { return (arr && arr.length) ? arr.join(", ") : "—"; }
+  function fmt(v) { return (v && String(v).trim()) ? v : "—"; }
+
+  function buildOutput() {
+    var lines = [];
+    lines.push("PROMPT DE ROTEIRO");
+    lines.push("------------------");
+    lines.push("Preenchido por: " + fmt(answers.nome));
+    lines.push("Tema: " + fmt(answers.tema));
+    lines.push("");
+    lines.push("SOBRE O VÍDEO");
+    lines.push("Tipo: " + fmt(answers.tipoVideo));
+    lines.push("Público: " + fmt(answers.publico));
+    lines.push("Ação desejada após assistir: " + fmt(answers.acaoDesejada));
+    lines.push("");
+    lines.push("IDEIA CENTRAL");
+    lines.push("Frase-resumo: " + fmt(answers.ideiaCentral));
+    lines.push("Por que importa: " + fmt(answers.porqueImporta));
+    lines.push("");
+    lines.push("GANCHO");
+    lines.push("Tipos escolhidos: " + fmtList(answers.ganchoTipo));
+    lines.push("Rascunho de abertura: " + fmt(answers.ganchoRascunho));
+    lines.push("");
+    lines.push("CONTEÚDO PRINCIPAL");
+    lines.push("Pontos principais: " + fmt(answers.pontosPrincipais));
+    lines.push("História/exemplo: " + fmt(answers.historiaExemplo));
+    lines.push("Mal-entendido a desfazer: " + fmt(answers.malEntendido));
+    lines.push("");
+    lines.push("VIRADA");
+    lines.push(fmt(answers.virada));
+    lines.push("");
+    lines.push("FECHAMENTO");
+    lines.push("Tipo: " + fmt(answers.fechamentoTipo));
+    lines.push("Frase de assinatura: " + fmt(answers.fraseAssinatura));
+    lines.push("");
+    lines.push("TOM E ESTILO");
+    lines.push("Tom: " + fmtList(answers.tomFala));
+    lines.push("Expressões próprias: " + fmt(answers.expressoesProprias));
+    lines.push("");
+    lines.push("DURAÇÃO E FORMATO");
+    lines.push("Duração: " + fmt(answers.duracao));
+    lines.push("Vai: " + fmt(answers.formatoFala));
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+    lines.push("INSTRUÇÃO PRA QUEM FOR LER ISSO (Claude ou outro editor de roteiro):");
+    lines.push("Com base nas respostas acima, escreva 3 versões diferentes do roteiro completo desse vídeo — três ângulos distintos de abordar a mesma ideia central, não três variações da mesma frase. Cada versão deve ter: GANCHO (primeiros 3-5s, usando um dos tipos indicados acima ou o rascunho já escrito), CONTEXTO (por que isso importa, ligando à dor/desejo do público-alvo), DESENVOLVIMENTO (os pontos principais, incluindo a história/exemplo se houver), VIRADA (a mudança de perspectiva indicada acima) e FECHAMENTO (no formato escolhido, incluindo a frase de assinatura se houver). Escreva pra ser falado em voz alta — frases curtas, sem linguagem de texto escrito/formal, respeitando o tom e as expressões próprias indicadas. Não invente fatos, números ou histórias que não estejam nas respostas — se faltar informação pra algum ponto, sinalize em vez de inventar. Ao final, dê um título curto pra cada uma das 3 versões que descreva o ângulo escolhido.");
+    return lines.join("\n");
+  }
+
+  function renderReview() {
+    pageTitle.textContent = "Prontinho" + (answers.nome ? ", " + answers.nome.split(" ")[0] : "") + "!";
+    transportLabel.textContent = "FIM";
+    scrubFill.style.width = "100%";
+    stepCount.innerHTML = '<b>' + TOTAL + '</b> / ' + TOTAL;
+
+    panel.innerHTML = "";
+    var head = el("div", "review-head");
+    var badge = document.createElement("div");
+    badge.className = "check-badge";
+    badge.innerHTML = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8.5L6.2 11.7L13 4.5" stroke="' + getComputedStyle(document.documentElement).getPropertyValue('--accent-ink') + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    head.appendChild(badge);
+    head.appendChild(el("h2", "step-title", "Briefing de roteiro completo"));
+    panel.appendChild(head);
+    panel.appendChild(el("p", "step-sub", "Copie o texto abaixo e cole numa conversa nova com o Claude — ele vai escrever 3 versões do seu roteiro com base nisso."));
+
+    var out = el("pre", "output mono");
+    var text = buildOutput();
+    out.textContent = text;
+    panel.appendChild(out);
+
+    var actions = el("div", "output-actions");
+    var copyBtn = el("button", "btn-primary", "Copiar texto");
+    var copiedMsg = el("span", "copied-msg", "Copiado ✓");
+    copyBtn.addEventListener("click", function () {
+      var done = function () {
+        copiedMsg.classList.add("show");
+        setTimeout(function () { copiedMsg.classList.remove("show"); }, 2200);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text);
+        done();
+      }
+    });
+    actions.appendChild(copyBtn);
+    actions.appendChild(copiedMsg);
+    panel.appendChild(actions);
+
+    var backRow = el("div", "nav-row");
+    var editBtn = el("button", "btn-ghost", "← Editar respostas");
+    editBtn.addEventListener("click", function () { current = TOTAL - 1; renderStep(); });
+    backRow.appendChild(editBtn);
+    backRow.appendChild(el("span", null, ""));
+    panel.appendChild(backRow);
+
+    var nextStep = el("div", "next-step");
+    nextStep.appendChild(el("div", "next-step-label", "Depois de gravar"));
+    var nextLink = document.createElement("a");
+    nextLink.className = "next-step-link";
+    nextLink.href = "/briefing-video";
+    nextLink.target = "_blank";
+    nextLink.rel = "noopener noreferrer";
+    var nextBody = el("div", null);
+    nextBody.appendChild(el("b", null, "Briefing de Edição de Vídeo"));
+    nextBody.appendChild(el("span", null, "Já gravou com base no roteiro? Especifique corte, legenda, cor e gráficos."));
+    nextLink.appendChild(nextBody);
+    nextLink.appendChild(el("span", "next-step-arrow", "→"));
+    nextStep.appendChild(nextLink);
+    panel.appendChild(nextStep);
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  function renderStep() {
+    var step = steps[current];
+    pageTitle.textContent = current === 0 ? "Vamos organizar o que você quer dizer" : "Guia de Roteiro";
+    transportLabel.textContent = "PÁGINA";
+    scrubFill.style.width = (((current) / TOTAL) * 100) + "%";
+    stepCount.innerHTML = '<b>' + String(current + 1).padStart(2, "0") + '</b> / ' + String(TOTAL).padStart(2, "0");
+
+    panel.innerHTML = "";
+    panel.appendChild(el("div", "step-eyebrow", "PÁGINA " + String(current + 1).padStart(2, "0")));
+    panel.appendChild(el("h2", "step-title", step.title));
+    panel.appendChild(el("p", "step-sub", step.sub));
+
+    var body = el("div", "step-body");
+    step.render(body);
+    panel.appendChild(body);
+
+    var nav = el("div", "nav-row");
+    var backBtn = el("button", "btn-ghost", "← Voltar");
+    backBtn.disabled = current === 0;
+    backBtn.addEventListener("click", function () { if (current > 0) { current--; renderStep(); window.scrollTo({top:0, behavior:"smooth"}); } });
+    var nextBtn = el("button", "btn-primary", current === TOTAL - 1 ? "Gerar briefing de roteiro" : "Avançar →");
+    nextBtn.addEventListener("click", function () {
+      if (current < TOTAL - 1) { current++; renderStep(); window.scrollTo({top:0, behavior:"smooth"}); }
+      else { renderReview(); window.scrollTo({top:0, behavior:"smooth"}); }
+    });
+    nav.appendChild(backBtn);
+    nav.appendChild(nextBtn);
+    panel.appendChild(nav);
+  }
+
+  renderStep();
+})();
+</script>
+</body>
+</html>

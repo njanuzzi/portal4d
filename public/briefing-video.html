@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Briefing de Edição</title>
+<style>
+  :root {
+    --bg: #f4f3f1;
+    --bg-elevated: #ffffff;
+    --bg-sunken: #eae8e5;
+    --ink: #17181a;
+    --ink-dim: #6b6f76;
+    --accent: #d9560f;
+    --accent-ink: #ffffff;
+    --line: #d8d6d2;
+    --line-strong: #b8b5b0;
+    --focus: #d9560f;
+    --success: #2f7a4f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1013;
+      --bg-elevated: #16191d;
+      --bg-sunken: #0a0b0d;
+      --ink: #edeef0;
+      --ink-dim: #8b9098;
+      --accent: #ff6a1a;
+      --accent-ink: #14100b;
+      --line: #2a2e34;
+      --line-strong: #3c414a;
+      --focus: #ff6a1a;
+      --success: #4fae7c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1013;
+    --bg-elevated: #16191d;
+    --bg-sunken: #0a0b0d;
+    --ink: #edeef0;
+    --ink-dim: #8b9098;
+    --accent: #ff6a1a;
+    --accent-ink: #14100b;
+    --line: #2a2e34;
+    --line-strong: #3c414a;
+    --focus: #ff6a1a;
+    --success: #4fae7c;
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f3f1;
+    --bg-elevated: #ffffff;
+    --bg-sunken: #eae8e5;
+    --ink: #17181a;
+    --ink-dim: #6b6f76;
+    --accent: #d9560f;
+    --accent-ink: #ffffff;
+    --line: #d8d6d2;
+    --line-strong: #b8b5b0;
+    --focus: #d9560f;
+    --success: #2f7a4f;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .app {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  /* ---- Header / transport bar ---- */
+  .transport {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .transport-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    white-space: nowrap;
+  }
+  .scrub {
+    position: relative;
+    flex: 1;
+    height: 3px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .scrub-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 300ms ease;
+  }
+  .step-count {
+    font-size: 12px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .step-count b { color: var(--accent); }
+
+  .brand-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .brand {
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .brand b { color: var(--accent); }
+
+  h1.page-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 28px;
+    text-wrap: balance;
+  }
+
+  /* ---- Step panel ---- */
+  .panel {
+    background: var(--bg-elevated);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 26px;
+  }
+  .step-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  h2.step-title {
+    font-size: 21px;
+    font-weight: 800;
+    margin: 0 0 4px;
+    text-wrap: balance;
+  }
+  p.step-sub {
+    font-size: 14px;
+    color: var(--ink-dim);
+    margin: 0 0 22px;
+    max-width: 60ch;
+    line-height: 1.5;
+  }
+
+  .field { margin-bottom: 22px; }
+  .field:last-child { margin-bottom: 0; }
+  label.field-label {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+  .field-hint {
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  input[type="text"], textarea {
+    width: 100%;
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14.5px;
+    font-family: inherit;
+    line-height: 1.5;
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 22%, transparent);
+  }
+  input::placeholder, textarea::placeholder { color: var(--ink-dim); opacity: 0.7; }
+
+  /* ---- Choice pills (single row selects) ---- */
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--bg-sunken);
+    color: var(--ink);
+    font-size: 13.5px;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .pill:hover { border-color: var(--line-strong); }
+  .pill.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+
+  /* ---- Option cards (clip-style) ---- */
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .opt-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--bg-sunken);
+    cursor: pointer;
+    text-align: left;
+  }
+  .opt-card:hover { border-color: var(--line-strong); }
+  .opt-card.selected {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg-sunken));
+  }
+  .opt-mark {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    border: 1.5px solid var(--line-strong);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .opt-card.selected .opt-mark {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .opt-mark svg { width: 11px; height: 11px; display: none; }
+  .opt-card.selected .opt-mark svg { display: block; }
+  .opt-card.multi .opt-mark { border-radius: 5px; }
+  .opt-body b { display: block; font-size: 14px; margin-bottom: 2px; }
+  .opt-body span { display: block; font-size: 12.5px; color: var(--ink-dim); line-height: 1.45; }
+
+  /* ---- Sub-fields (conditional) ---- */
+  .subfields {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-left: 2px solid var(--accent);
+    background: var(--bg-sunken);
+    border-radius: 0 8px 8px 0;
+  }
+
+  /* ---- Nav buttons ---- */
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+  }
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 8px;
+    padding: 11px 20px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: opacity 120ms ease, transform 120ms ease;
+  }
+  button:active { transform: scale(0.98); }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+  }
+  .btn-primary:hover { opacity: 0.92; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-dim);
+    border: 1px solid var(--line);
+  }
+  .btn-ghost:hover { color: var(--ink); border-color: var(--line-strong); }
+  .btn-ghost:disabled { opacity: 0.35; cursor: default; }
+
+  /* ---- Review screen ---- */
+  .review-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .check-badge {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--success); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .check-badge svg { width: 12px; height: 12px; }
+
+  .output {
+    background: var(--bg-sunken);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 16px;
+    font-size: 12.5px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    max-height: 480px;
+    overflow-y: auto;
+    margin-top: 18px;
+  }
+  .output-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .copied-msg {
+    font-size: 13px;
+    color: var(--success);
+    font-weight: 600;
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+  .copied-msg.show { display: inline-flex; }
+
+  .footer-note {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-top: 28px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 480px) {
+    .panel { padding: 22px 18px; }
+    h1.page-title { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="brand-row">
+    <div class="brand">Briefing de <b>Edição de Vídeo</b></div>
+  </div>
+  <h1 class="page-title" id="pageTitle">Vamos preparar seu vídeo</h1>
+
+  <div class="transport">
+    <span class="transport-label mono" id="transportLabel">REC</span>
+    <div class="scrub"><div class="scrub-fill" id="scrubFill"></div></div>
+    <span class="step-count mono" id="stepCount"></span>
+  </div>
+
+  <div class="panel" id="panel"></div>
+
+  <div class="footer-note">As respostas viram um texto único no final — copie e envie por onde for melhor pra você.</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var answers = {
+    nome: "", projeto: "",
+    objetivo: "", tipoConteudo: "", publicacao: "", duracao: "", tom: "",
+    localVideo: "", multiClipes: "", roteiro: "", audioLimpo: "",
+    ritmo: "", momentoFicar: "", momentoCortar: "",
+    transicoes: [], transicoesObs: "",
+    legendaQuanto: "", legendaIdioma: "", legendaEstilo: "", legendaCor: "", legendaFonte: "", legendaPosicao: "",
+    graficos: [], identidadeVisual: "",
+    broll: "", brollDetalhe: "",
+    trilha: "", efeitosSonoros: "", volume: "",
+    cor: "", referenciaVisual: "",
+    versoes: "", formatos: [], prazo: "", requisitoTecnico: ""
+  };
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function textField(container, key, label, placeholder, hint, multiline) {
+    var f = el("div", "field");
+    var l = el("label", "field-label", label);
+    f.appendChild(l);
+    var input = el(multiline ? "textarea" : "input");
+    if (!multiline) input.type = "text";
+    input.placeholder = placeholder || "";
+    input.value = answers[key] || "";
+    input.addEventListener("input", function () { answers[key] = input.value; });
+    f.appendChild(input);
+    if (hint) f.appendChild(el("div", "field-hint", hint));
+    container.appendChild(f);
+  }
+
+  function pillField(container, key, label, options, hint) {
+    var f = el("div", "field");
+    f.appendChild(el("label", "field-label", label));
+    var row = el("div", "pill-row");
+    options.forEach(function (opt) {
+      var p = el("div", "pill", opt);
+      if (answers[key] === opt) p.classList.add("selected");
+      p.addEventListener("click", function () {
+        answers[key] = (answers[key] === opt) ? "" : opt;
+        renderStep();
+      });
+      row.appendChild(p);
+    });
+    f.appendChild(row);
+    if (hint) f.appendChild(el("div", "field-hint", hint));
+    container.appendChild(f);
+  }
+
+  function checkSvg() {
+    return '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8.5L6.2 11.7L13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
+  function cardField(container, key, label, options, multi, hint) {
+    var f = el("div", "field");
+    f.appendChild(el("label", "field-label", label));
+    var grid = el("div", "card-grid");
+    options.forEach(function (opt) {
+      var card = el("div", "opt-card" + (multi ? " multi" : ""));
+      var isSelected = multi ? (answers[key] || []).indexOf(opt.value) > -1 : answers[key] === opt.value;
+      if (isSelected) card.classList.add("selected");
+      var mark = document.createElement("div");
+      mark.className = "opt-mark";
+      mark.innerHTML = checkSvg();
+      var body = el("div", "opt-body");
+      body.appendChild(el("b", null, opt.title));
+      body.appendChild(el("span", null, opt.desc));
+      card.appendChild(mark);
+      card.appendChild(body);
+      card.addEventListener("click", function () {
+        if (multi) {
+          var arr = answers[key] || [];
+          var idx = arr.indexOf(opt.value);
+          if (idx > -1) arr.splice(idx, 1); else arr.push(opt.value);
+          answers[key] = arr;
+        } else {
+          answers[key] = (answers[key] === opt.value) ? "" : opt.value;
+        }
+        renderStep();
+      });
+      grid.appendChild(card);
+    });
+    f.appendChild(grid);
+    if (hint) f.appendChild(el("div", "field-hint", hint));
+    container.appendChild(f);
+  }
+
+  var steps = [
+    {
+      title: "Quem é você e o que vamos editar",
+      sub: "Só pra identificar o briefing.",
+      render: function (c) {
+        textField(c, "nome", "Seu nome", "Ex: Juliana Prado");
+        textField(c, "projeto", "Nome do vídeo / projeto", "Ex: Campanha de lançamento — Agosto");
+      }
+    },
+    {
+      title: "Contexto geral",
+      sub: "O panorama do vídeo antes de entrar nos detalhes técnicos.",
+      render: function (c) {
+        textField(c, "objetivo", "Qual é o objetivo do vídeo?", "Ex: vender um curso, ensinar algo, contar uma história de marca...");
+        textField(c, "tipoConteudo", "Que tipo de conteúdo é?", "Ex: tutorial, entrevista, lançamento de produto, depoimento, viagem/evento...");
+        pillField(c, "publicacao", "Onde vai ser publicado?", ["Instagram Reels", "TikTok", "YouTube", "Stories", "Apresentação", "Outro"], "Isso define o formato final do vídeo (vertical, horizontal ou quadrado).");
+        textField(c, "duracao", "Duração alvo", "Ex: até 60s, o mais curto possível, sem limite...");
+        textField(c, "tom", "Tom / energia desejada", "Ex: descontraído, sério, dinâmico, calmo, inspiracional...");
+      }
+    },
+    {
+      title: "Material bruto",
+      sub: "O que já existe pra trabalhar em cima.",
+      render: function (c) {
+        textField(c, "localVideo", "Onde está o vídeo original?", "Link, arquivo ou pasta");
+        pillField(c, "multiClipes", "É um arquivo só ou vários clipes pra juntar?", ["Um arquivo só", "Vários clipes"]);
+        pillField(c, "roteiro", "Já tem roteiro/fala definida, ou é gravação crua?", ["Roteiro definido", "Gravação crua"]);
+        pillField(c, "audioLimpo", "O áudio está limpo (bem gravado)?", ["Sim", "Precisa de tratamento", "Não sei"]);
+      }
+    },
+    {
+      title: "Ritmo e cortes",
+      sub: "Como o vídeo deve respirar entre uma fala e outra.",
+      render: function (c) {
+        pillField(c, "ritmo", "O corte deve ser...", ["Rápido / dinâmico", "Calmo / cinematográfico"]);
+        textField(c, "momentoFicar", "Tem algo que TEM que ficar no vídeo?", "Ex: uma piada, uma frase específica, um dado importante — ou deixe em branco");
+        textField(c, "momentoCortar", "Tem algo que TEM que ser cortado?", "Ex: um erro de fala, uma repetição — ou deixe em branco");
+      }
+    },
+    {
+      title: "Estilo de corte entre cenas",
+      sub: "O corte principal sempre respeita a fala (nunca corta no meio de uma palavra). Isso aqui é só sobre o efeito visual entre um corte e outro.",
+      render: function (c) {
+        cardField(c, "transicoes", "Escolha um ou mais estilos", [
+          { value: "Corte seco", title: "Corte seco (padrão)", desc: "Sem efeito nenhum, direto — ritmo mais rápido e moderno, o mais comum em Reels/TikTok." },
+          { value: "Crossfade suave", title: "Crossfade suave", desc: "Mistura suave entre duas cenas, tom mais calmo. Usado com moderação." },
+          { value: "Freeze frame", title: "Freeze frame", desc: "Congela um quadro por um instante, pra dar ênfase antes de mudar de assunto." },
+          { value: "Split-screen / picture-in-picture", title: "Split-screen / picture-in-picture", desc: "Duas cenas lado a lado ou uma dentro da outra — bom pra comparações ou reações." }
+        ], true);
+        textField(c, "transicoesObs", "Alguma observação sobre quando usar cada um?", "Opcional", null, true);
+      }
+    },
+    {
+      title: "Legenda",
+      sub: "Se e como o texto falado aparece na tela.",
+      render: function (c) {
+        pillField(c, "legendaQuanto", "Quer legenda...", ["Em todo o vídeo", "Só nos pontos-chave", "Sem legenda"]);
+        textField(c, "legendaIdioma", "Idioma da legenda", "Ex: português");
+        cardField(c, "legendaEstilo", "Estilo visual", [
+          { value: "Bold overlay", title: "Bold overlay", desc: "Texto curto (2 palavras por vez), CAIXA ALTA, branco com contorno preto, embaixo. Estilo social/Reels rápido e chamativo." },
+          { value: "Frase natural", title: "Frase natural", desc: "Trechos maiores, caixa normal, fonte maior, mais espaço da borda. Estilo narrativo/documental, fácil de ler com calma." },
+          { value: "Customizado", title: "Customizado", desc: "Com a cor e fonte da sua marca — preencha os campos abaixo." }
+        ], false);
+        if (answers.legendaEstilo === "Customizado") {
+          var sub = el("div", "subfields");
+          textField(sub, "legendaCor", "Cor (hex)", "Ex: #FF6A1A");
+          textField(sub, "legendaFonte", "Nome da fonte", "Ex: Poppins Bold");
+          c.appendChild(sub);
+        }
+        textField(c, "legendaPosicao", "Posição na tela", "Padrão: embaixo. Deixe em branco se não tiver preferência.");
+      }
+    },
+    {
+      title: "Gráficos e overlays",
+      sub: "Elementos visuais além do vídeo em si.",
+      render: function (c) {
+        cardField(c, "graficos", "Marque o que for necessário", [
+          { value: "Textos animados / call-outs", title: "Textos animados / call-outs", desc: "Chamar atenção pra um ponto específico — inclui contador numérico, texto tipo 'máquina de escrever'." },
+          { value: "Lower third", title: "Lower third", desc: "Nome/cargo aparecendo embaixo de quem fala, tipo entrevista de TV." },
+          { value: "Diagramas / gráficos de dados", title: "Diagramas / gráficos de dados", desc: "Explicações visuais mais elaboradas." },
+          { value: "Logotipo / marca d'água", title: "Logotipo / marca d'água", desc: "Fixo na tela durante o vídeo." }
+        ], true);
+        textField(c, "identidadeVisual", "Tem cores, fontes ou logo pra seguir?", "Cole um link ou descreva — se não tiver, uma paleta é proposta na edição", null, true);
+      }
+    },
+    {
+      title: "Imagens e B-roll extra",
+      sub: "Material visual além do que já foi gravado.",
+      render: function (c) {
+        pillField(c, "broll", "Precisa de imagens/vídeos extras?", ["Sim", "Não"]);
+        if (answers.broll === "Sim") {
+          textField(c, "brollDetalhe", "Você já tem esse material, ou precisa ser buscado/gerado?", "Descreva", null, true);
+        }
+      }
+    },
+    {
+      title: "Música e áudio",
+      sub: "A trilha sonora por baixo do vídeo.",
+      render: function (c) {
+        textField(c, "trilha", "Quer trilha sonora de fundo? Estilo/mood ou referência?", "Ex: instrumental leve, ou 'igual ao vídeo tal'", null, true);
+        pillField(c, "efeitosSonoros", "Precisa de efeitos sonoros? (ex: whoosh, clique)", ["Sim", "Não"]);
+        pillField(c, "volume", "Equilíbrio de volume", ["Narração em primeiro plano, música baixa", "Mais equilibrado entre os dois"]);
+      }
+    },
+    {
+      title: "Cor e estética",
+      sub: "O tratamento visual da imagem.",
+      render: function (c) {
+        cardField(c, "cor", "Escolha um tratamento", [
+          { value: "Sem tratamento", title: "Sem tratamento", desc: "Mantém a cor original do material bruto." },
+          { value: "Correção neutra", title: "Correção neutra", desc: "Ajuste de contraste/nitidez, sem mudar o tom — deixa mais limpo sem parecer editado." },
+          { value: "Cinematográfico quente", title: "Cinematográfico quente", desc: "Leve separação de tons (sombra azulada, luz alaranjada), efeito sutil — seguro até pra vídeo de pessoa falando." }
+        ], false);
+        textField(c, "referenciaVisual", "Alguma referência visual? (vídeo, conta do Instagram, filme)", "Opcional");
+      }
+    },
+    {
+      title: "Entregáveis",
+      sub: "Como o vídeo final deve ser entregue.",
+      render: function (c) {
+        textField(c, "versoes", "Quantas versões/cortes são necessários?", "Ex: 1 versão vertical + 1 horizontal");
+        cardField(c, "formatos", "Formato final", [
+          { value: "Vertical 1080×1920 (Reels/Stories/TikTok)", title: "Vertical", desc: "1080×1920 — Reels, Stories, TikTok." },
+          { value: "Horizontal 1920×1080 (YouTube/apresentação)", title: "Horizontal", desc: "1920×1080 — YouTube, apresentações." },
+          { value: "Quadrado 1080×1080", title: "Quadrado", desc: "1080×1080." }
+        ], true);
+        textField(c, "prazo", "Prazo", "Ex: até sexta-feira");
+        textField(c, "requisitoTecnico", "Outro requisito técnico?", "Ex: tamanho de arquivo — ou deixe em branco");
+      }
+    }
+  ];
+
+  var current = 0;
+  var TOTAL = steps.length;
+  var panel = document.getElementById("panel");
+  var scrubFill = document.getElementById("scrubFill");
+  var stepCount = document.getElementById("stepCount");
+  var transportLabel = document.getElementById("transportLabel");
+  var pageTitle = document.getElementById("pageTitle");
+
+  function fmtList(arr) { return (arr && arr.length) ? arr.join(", ") : "—"; }
+  function fmt(v) { return (v && String(v).trim()) ? v : "—"; }
+
+  function buildOutput() {
+    var lines = [];
+    lines.push("PROMPT DE EDIÇÃO");
+    lines.push("-----------------");
+    lines.push("Preenchido por: " + fmt(answers.nome));
+    lines.push("Projeto: " + fmt(answers.projeto));
+    lines.push("");
+    lines.push("1. CONTEXTO GERAL");
+    lines.push("Objetivo: " + fmt(answers.objetivo));
+    lines.push("Tipo de conteúdo: " + fmt(answers.tipoConteudo));
+    lines.push("Publicação: " + fmt(answers.publicacao));
+    lines.push("Duração alvo: " + fmt(answers.duracao));
+    lines.push("Tom/energia: " + fmt(answers.tom));
+    lines.push("");
+    lines.push("2. MATERIAL BRUTO");
+    lines.push("Local do vídeo: " + fmt(answers.localVideo));
+    lines.push("Arquivos: " + fmt(answers.multiClipes));
+    lines.push("Roteiro: " + fmt(answers.roteiro));
+    lines.push("Áudio: " + fmt(answers.audioLimpo));
+    lines.push("");
+    lines.push("3. RITMO E CORTES");
+    lines.push("Ritmo: " + fmt(answers.ritmo));
+    lines.push("Precisa ficar: " + fmt(answers.momentoFicar));
+    lines.push("Precisa ser cortado: " + fmt(answers.momentoCortar));
+    lines.push("");
+    lines.push("4. ESTILO DE CORTE / TRANSIÇÕES");
+    lines.push("Estilos escolhidos: " + fmtList(answers.transicoes));
+    lines.push("Observação: " + fmt(answers.transicoesObs));
+    lines.push("");
+    lines.push("5. LEGENDA");
+    lines.push("Cobertura: " + fmt(answers.legendaQuanto));
+    lines.push("Idioma: " + fmt(answers.legendaIdioma));
+    lines.push("Estilo: " + fmt(answers.legendaEstilo));
+    if (answers.legendaEstilo === "Customizado") {
+      lines.push("Cor: " + fmt(answers.legendaCor));
+      lines.push("Fonte: " + fmt(answers.legendaFonte));
+    }
+    lines.push("Posição: " + fmt(answers.legendaPosicao));
+    lines.push("");
+    lines.push("6. GRÁFICOS E OVERLAYS");
+    lines.push("Itens: " + fmtList(answers.graficos));
+    lines.push("Identidade visual: " + fmt(answers.identidadeVisual));
+    lines.push("");
+    lines.push("7. IMAGENS E B-ROLL EXTRA");
+    lines.push("Precisa: " + fmt(answers.broll));
+    if (answers.broll === "Sim") lines.push("Detalhe: " + fmt(answers.brollDetalhe));
+    lines.push("");
+    lines.push("8. MÚSICA E ÁUDIO");
+    lines.push("Trilha: " + fmt(answers.trilha));
+    lines.push("Efeitos sonoros: " + fmt(answers.efeitosSonoros));
+    lines.push("Equilíbrio de volume: " + fmt(answers.volume));
+    lines.push("");
+    lines.push("9. COR E ESTÉTICA");
+    lines.push("Tratamento: " + fmt(answers.cor));
+    lines.push("Referência visual: " + fmt(answers.referenciaVisual));
+    lines.push("");
+    lines.push("10. ENTREGÁVEIS");
+    lines.push("Versões: " + fmt(answers.versoes));
+    lines.push("Formato final: " + fmtList(answers.formatos));
+    lines.push("Prazo: " + fmt(answers.prazo));
+    lines.push("Outro requisito: " + fmt(answers.requisitoTecnico));
+    return lines.join("\n");
+  }
+
+  function renderReview() {
+    pageTitle.textContent = "Prontinho, " + (answers.nome ? answers.nome.split(" ")[0] : "tudo") + "!";
+    transportLabel.textContent = "DONE";
+    scrubFill.style.width = "100%";
+    stepCount.innerHTML = '<b>' + TOTAL + '</b> / ' + TOTAL;
+
+    panel.innerHTML = "";
+    var head = el("div", "review-head");
+    var badge = document.createElement("div");
+    badge.className = "check-badge";
+    badge.innerHTML = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8.5L6.2 11.7L13 4.5" stroke="' + getComputedStyle(document.documentElement).getPropertyValue('--accent-ink') + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    head.appendChild(badge);
+    head.appendChild(el("h2", "step-title", "Briefing completo"));
+    panel.appendChild(head);
+    panel.appendChild(el("p", "step-sub", "Copie o texto abaixo e envie por onde preferir — WhatsApp, e-mail, o que for melhor."));
+
+    var out = el("pre", "output mono");
+    var text = buildOutput();
+    out.textContent = text;
+    panel.appendChild(out);
+
+    var actions = el("div", "output-actions");
+    var copyBtn = el("button", "btn-primary", "Copiar texto");
+    var copiedMsg = el("span", "copied-msg", "Copiado ✓");
+    copyBtn.addEventListener("click", function () {
+      var done = function () {
+        copiedMsg.classList.add("show");
+        setTimeout(function () { copiedMsg.classList.remove("show"); }, 2200);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text); done(); });
+      } else {
+        fallbackCopy(text);
+        done();
+      }
+    });
+    actions.appendChild(copyBtn);
+    actions.appendChild(copiedMsg);
+    panel.appendChild(actions);
+
+    var backRow = el("div", "nav-row");
+    var editBtn = el("button", "btn-ghost", "← Editar respostas");
+    editBtn.addEventListener("click", function () { current = TOTAL - 1; renderStep(); });
+    backRow.appendChild(editBtn);
+    backRow.appendChild(el("span", null, ""));
+    panel.appendChild(backRow);
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  function renderStep() {
+    var step = steps[current];
+    pageTitle.textContent = current === 0 ? "Vamos preparar seu vídeo" : "Briefing de edição";
+    transportLabel.textContent = "REC";
+    scrubFill.style.width = (((current) / TOTAL) * 100) + "%";
+    stepCount.innerHTML = '<b>' + String(current + 1).padStart(2, "0") + '</b> / ' + String(TOTAL).padStart(2, "0");
+
+    panel.innerHTML = "";
+    panel.appendChild(el("div", "step-eyebrow", "ETAPA " + String(current + 1).padStart(2, "0")));
+    panel.appendChild(el("h2", "step-title", step.title));
+    panel.appendChild(el("p", "step-sub", step.sub));
+
+    var body = el("div", "step-body");
+    step.render(body);
+    panel.appendChild(body);
+
+    var nav = el("div", "nav-row");
+    var backBtn = el("button", "btn-ghost", "← Voltar");
+    backBtn.disabled = current === 0;
+    backBtn.addEventListener("click", function () { if (current > 0) { current--; renderStep(); window.scrollTo({top:0, behavior:"smooth"}); } });
+    var nextBtn = el("button", "btn-primary", current === TOTAL - 1 ? "Gerar briefing" : "Avançar →");
+    nextBtn.addEventListener("click", function () {
+      if (current < TOTAL - 1) { current++; renderStep(); window.scrollTo({top:0, behavior:"smooth"}); }
+      else { renderReview(); window.scrollTo({top:0, behavior:"smooth"}); }
+    });
+    nav.appendChild(backBtn);
+    nav.appendChild(nextBtn);
+    panel.appendChild(nav);
+  }
+
+  renderStep();
+})();
+</script>
+</body>
+</html>
