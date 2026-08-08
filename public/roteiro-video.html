@@ -536,7 +536,11 @@
     nextStep.appendChild(el("div", "next-step-label", "Depois de gravar"));
     var nextLink = document.createElement("a");
     nextLink.className = "next-step-link";
-    nextLink.href = "/briefing-video";
+    var nextParams = new URLSearchParams();
+    if (answers.nome) nextParams.set("nome", answers.nome);
+    if (answers.tema) nextParams.set("tema", answers.tema);
+    var nextQs = nextParams.toString();
+    nextLink.href = "/briefing-video" + (nextQs ? "?" + nextQs : "");
     nextLink.target = "_blank";
     nextLink.rel = "noopener noreferrer";
     var nextBody = el("div", null);

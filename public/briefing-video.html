@@ -377,7 +377,7 @@
   var answers = {
     nome: "", projeto: "",
     objetivo: "", tipoConteudo: "", publicacao: "", duracao: "", tom: "",
-    localVideo: "", multiClipes: "", roteiro: "", audioLimpo: "",
+    localVideo: "", multiClipes: "", roteiro: "", roteiroTexto: "", audioLimpo: "",
     ritmo: "", momentoFicar: "", momentoCortar: "",
     transicoes: [], transicoesObs: "",
     legendaQuanto: "", legendaIdioma: "", legendaEstilo: "", legendaCor: "", legendaFonte: "", legendaPosicao: "",
@@ -387,6 +387,12 @@
     cor: "", referenciaVisual: "",
     versoes: "", formatos: [], prazo: "", requisitoTecnico: ""
   };
+
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("nome")) answers.nome = params.get("nome");
+    if (params.get("tema")) answers.projeto = params.get("tema");
+  })();
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -492,6 +498,7 @@
         textField(c, "localVideo", "Onde está o vídeo original?", "Link, arquivo ou pasta");
         pillField(c, "multiClipes", "É um arquivo só ou vários clipes pra juntar?", ["Um arquivo só", "Vários clipes"]);
         pillField(c, "roteiro", "Já tem roteiro/fala definida, ou é gravação crua?", ["Roteiro definido", "Gravação crua"]);
+        textField(c, "roteiroTexto", "Se já tiver o roteiro pronto, cole o texto aqui", "Cole o texto completo do roteiro — ajuda quem edita a saber exatamente o que foi dito, o timing da virada e do fechamento", null, true);
         pillField(c, "audioLimpo", "O áudio está limpo (bem gravado)?", ["Sim", "Precisa de tratamento", "Não sei"]);
       }
     },
@@ -626,6 +633,10 @@
     lines.push("Local do vídeo: " + fmt(answers.localVideo));
     lines.push("Arquivos: " + fmt(answers.multiClipes));
     lines.push("Roteiro: " + fmt(answers.roteiro));
+    if (answers.roteiroTexto) {
+      lines.push("Texto do roteiro:");
+      lines.push(answers.roteiroTexto);
+    }
     lines.push("Áudio: " + fmt(answers.audioLimpo));
     lines.push("");
     lines.push("3. RITMO E CORTES");
