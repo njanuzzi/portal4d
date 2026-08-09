@@ -224,10 +224,10 @@
 
   var answers = {
     nome: "", tema: "",
-    tipoVideo: "", publico: "", acaoDesejada: "",
-    ideiaCentral: "", porqueImporta: "",
-    ganchoTipo: [], ganchoRascunho: "",
-    pontosPrincipais: "", historiaExemplo: "", malEntendido: "",
+    plataforma: "", tipoVideo: "", publico: "", acaoDesejada: "",
+    ideiaCentral: "", porqueImporta: "", crencaAtual: "", objecao: "",
+    ganchoTipo: [], ganchoRascunho: "", tensaoStakes: "",
+    pontosPrincipais: "", historiaExemplo: "", provaReal: "", malEntendido: "",
     virada: "",
     fechamentoTipo: "", fraseAssinatura: "",
     tomFala: [], expressoesProprias: "",
@@ -348,6 +348,8 @@
       title: "Sobre o vídeo",
       sub: "O contexto antes de pensar no que falar.",
       render: function (c) {
+        pillField(c, "plataforma", "Onde vai ser publicado?", ["Instagram Reels", "TikTok", "YouTube Shorts", "YouTube (vídeo longo)", "LinkedIn", "Outro"],
+          "Isso muda o ritmo do gancho: Reels/TikTok/Shorts perdem metade da audiência no 1º segundo — o gancho precisa ser imediato. YouTube longo e LinkedIn toleram mais contexto antes de entregar a promessa.");
         cardField(c, "tipoVideo", "Que tipo de vídeo é?", [
           { value: "Palestra ou aula", title: "Palestra ou aula", desc: "Você explica algo pra ensinar ou informar." },
           { value: "Depoimento pessoal", title: "Depoimento pessoal", desc: "Você conta uma experiência ou história sua." },
@@ -367,6 +369,9 @@
         textField(c, "ideiaCentral", "Se você tivesse só uma frase pra resumir o que quer dizer, qual seria?", "Ex: Você não cobra pouco por falta de confiança — cobra pouco porque nunca te ensinaram a colocar valor no seu tempo.", true,
           '<div class="example-label">Um bom resumo é uma afirmação, não um tópico</div><ul><li><span class="bad">tópico vago:</span> "vou falar sobre precificação"</li><li><b>afirmação central:</b> "seu preço baixo não é falta de confiança, é falta de referência"</li></ul>');
         textField(c, "porqueImporta", "Por que isso importa pro seu público, especificamente?", "O que eles perdem se continuarem sem saber disso?", true);
+        textField(c, "crencaAtual", "O que essa pessoa acredita ser verdade sobre esse problema, ANTES de assistir?", "Ex: \"eu sou desorganizada\", \"não nasci pra vender\", \"preciso de mais disciplina\"", true,
+          '<div class="example-label">É a crença que o vídeo vai desmontar — não confunda com a ideia central</div>');
+        textField(c, "objecao", "Qual é a objeção ou resistência mais comum que ela tem sobre isso?", "Ex: \"já tentei e não funcionou\", \"isso é mindset, não resolve de verdade\", \"não é pra mim\"", true);
       }
     },
     {
@@ -379,9 +384,13 @@
           { value: "Nomear um comportamento desconfortável", title: "Nomear um comportamento desconfortável", desc: "Coloca em palavras algo que a pessoa faz mas nunca ouviu descrito.", example: 'Ex: "Você já perdeu venda por medo de responder \'quanto custa\'."' },
           { value: "Afirmação contraintuitiva", title: "Afirmação contraintuitiva", desc: "O oposto do que todo mundo diz sobre o assunto.", example: 'Ex: "Preço baixo não vende mais. Vende pior."' },
           { value: "Número ou dado específico", title: "Número ou dado específico", desc: "Uma estatística ou fato concreto que choca ou surpreende.", example: 'Ex: "9 em cada 10 pessoas que atendo cobravam menos da metade do que deveriam."' },
-          { value: "Pergunta direta", title: "Pergunta direta", desc: "Uma pergunta que a pessoa não consegue deixar de responder mentalmente.", example: 'Ex: "Quando foi a última vez que você aumentou seu preço?"' }
+          { value: "Pergunta direta", title: "Pergunta direta", desc: "Uma pergunta que a pessoa não consegue deixar de responder mentalmente.", example: 'Ex: "Quando foi a última vez que você aumentou seu preço?"' },
+          { value: "Cold open", title: "Cold open", desc: "Começa no meio de um evento, resultado ou conflito — sem explicar tudo de cara.", example: 'Ex: "Ela tinha o contrato, o público e o prazo. Faltava só apertar publicar."' },
+          { value: "Prova ou demonstração", title: "Prova ou demonstração", desc: "Mostra o resultado, antes/depois ou evidência logo no início.", example: 'Ex: "Observe o padrão: o projeto avança até receber elogio — aí ela cria uma exigência nova pra não publicar."' },
+          { value: "Convite de identidade", title: "Convite de identidade", desc: "Fala direto com quem se reconhece num tipo específico de pessoa.", example: 'Ex: "Se você é do tipo que termina tudo menos o último passo, isso é pra você."' }
         ], true);
         textField(c, "ganchoRascunho", "Já tem alguma frase de abertura em mente? (mesmo que rascunho)", "Pode deixar em branco — a gente constrói em cima do tipo escolhido acima.", true);
+        textField(c, "tensaoStakes", "Tem algum prazo, risco, custo ou obstáculo que dá tensão a isso?", "Opcional — útil principalmente pra cold open e histórias com stakes. Deixe em branco se não tiver.", true);
       }
     },
     {
@@ -390,6 +399,8 @@
       render: function (c) {
         textField(c, "pontosPrincipais", "Quais são os pontos principais que você quer cobrir?", "Pode ser em tópicos soltos, sem se preocupar com ordem ainda", true);
         textField(c, "historiaExemplo", "Tem uma história, caso real ou exemplo que ilustra isso?", "Histórias específicas prendem mais atenção do que explicações abstratas", true);
+        textField(c, "provaReal", "Que prova, dado ou resultado real sustenta o que você está dizendo?", "Ex: um número, um caso de cliente, um teste que você fez — algo que mostra que não é só opinião", true,
+          '<div class="example-label">Sem prova, o roteiro vira afirmação vazia — se não tiver nada concreto ainda, deixe em branco e o roteiro sinaliza isso em vez de inventar</div>');
         textField(c, "malEntendido", "Tem algo que as pessoas costumam entender errado sobre esse assunto?", "Desfazer um mal-entendido comum é um jeito forte de prender atenção", true);
       }
     },
@@ -446,6 +457,7 @@
     lines.push("Tema: " + fmt(answers.tema));
     lines.push("");
     lines.push("SOBRE O VÍDEO");
+    lines.push("Plataforma: " + fmt(answers.plataforma));
     lines.push("Tipo: " + fmt(answers.tipoVideo));
     lines.push("Público: " + fmt(answers.publico));
     lines.push("Ação desejada após assistir: " + fmt(answers.acaoDesejada));
@@ -453,14 +465,18 @@
     lines.push("IDEIA CENTRAL");
     lines.push("Frase-resumo: " + fmt(answers.ideiaCentral));
     lines.push("Por que importa: " + fmt(answers.porqueImporta));
+    lines.push("Crença atual do público (antes do vídeo): " + fmt(answers.crencaAtual));
+    lines.push("Objeção/resistência mais comum: " + fmt(answers.objecao));
     lines.push("");
     lines.push("GANCHO");
     lines.push("Tipos escolhidos: " + fmtList(answers.ganchoTipo));
     lines.push("Rascunho de abertura: " + fmt(answers.ganchoRascunho));
+    lines.push("Tensão/stakes disponível: " + fmt(answers.tensaoStakes));
     lines.push("");
     lines.push("CONTEÚDO PRINCIPAL");
     lines.push("Pontos principais: " + fmt(answers.pontosPrincipais));
     lines.push("História/exemplo: " + fmt(answers.historiaExemplo));
+    lines.push("Prova/dado real: " + fmt(answers.provaReal));
     lines.push("Mal-entendido a desfazer: " + fmt(answers.malEntendido));
     lines.push("");
     lines.push("VIRADA");
@@ -481,7 +497,13 @@
     lines.push("---");
     lines.push("");
     lines.push("INSTRUÇÃO PRA QUEM FOR LER ISSO (Claude ou outro editor de roteiro):");
-    lines.push("Com base nas respostas acima, escreva 3 versões diferentes do roteiro completo desse vídeo — três ângulos distintos de abordar a mesma ideia central, não três variações da mesma frase. Cada versão deve ter: GANCHO (primeiros 3-5s, usando um dos tipos indicados acima ou o rascunho já escrito), CONTEXTO (por que isso importa, ligando à dor/desejo do público-alvo), DESENVOLVIMENTO (os pontos principais, incluindo a história/exemplo se houver), VIRADA (a mudança de perspectiva indicada acima) e FECHAMENTO (no formato escolhido, incluindo a frase de assinatura se houver). Escreva pra ser falado em voz alta — frases curtas, sem linguagem de texto escrito/formal, respeitando o tom e as expressões próprias indicadas. Não invente fatos, números ou histórias que não estejam nas respostas — se faltar informação pra algum ponto, sinalize em vez de inventar. Ao final, dê um título curto pra cada uma das 3 versões que descreva o ângulo escolhido.");
+    lines.push("Com base nas respostas acima, escreva 3 versões diferentes do roteiro completo desse vídeo — três ângulos distintos de abordar a mesma ideia central, não três variações da mesma frase. Cada versão deve ter: GANCHO (primeiros 1-3s — ver calibração abaixo), CONTEXTO (por que isso importa, ligando à dor/desejo do público-alvo e à crença atual que ele precisa desmontar), DESENVOLVIMENTO (os pontos principais, incluindo história/exemplo e prova real se houver, e desarmando a objeção comum indicada), VIRADA (a mudança de perspectiva indicada acima) e FECHAMENTO (no formato escolhido, incluindo a frase de assinatura se houver). Escreva pra ser falado em voz alta — frases curtas, sem linguagem de texto escrito/formal, respeitando o tom e as expressões próprias indicadas.");
+    lines.push("");
+    lines.push("Calibre o gancho pela plataforma informada: em Reels/TikTok/Shorts a promessa precisa aparecer em 1-3s, sem contexto institucional antes; em YouTube longo/LinkedIn o gancho pode usar mais 1-2 frases de contexto antes da promessa. Cada gancho gerado deve ser da família escolhida acima (ex: cold open começa no meio de um evento/resultado sem explicar tudo de cara; prova/demonstração mostra o resultado real logo no início; convite de identidade nomeia o tipo de pessoa antes de generalizar). Se houver tensão/stakes informado, use nas famílias cold open ou história com stakes.");
+    lines.push("");
+    lines.push("Não invente fatos, números, dados ou histórias que não estejam nas respostas. Se a resposta de prova/dado real estiver em branco, NÃO crie uma estatística ou caso fictício — escreva a frase sem prova numérica, ou sinalize entre colchetes que falta uma evidência concreta ali. Evite linguagem de diagnóstico clínico não solicitado (ex: nomear transtornos, traços de personalidade como fato) — descreva o padrão de comportamento, não rotule a pessoa.");
+    lines.push("");
+    lines.push("Antes de entregar, verifique cada versão contra este checklist (não precisa mostrar o checklist, só aplicar): (1) a primeira frase comunica do que se trata sem depender de contexto que ainda não foi dado; (2) o gancho tem uma lacuna/pergunta que o resto do vídeo realmente resolve — não deixe abertura sem resposta; (3) a objeção comum é endereçada em algum ponto, não ignorada; (4) o fechamento é consequência natural do que veio antes, não um pulo brusco pro CTA. Ao final, dê um título curto pra cada uma das 3 versões que descreva o ângulo escolhido.");
     return lines.join("\n");
   }
 
