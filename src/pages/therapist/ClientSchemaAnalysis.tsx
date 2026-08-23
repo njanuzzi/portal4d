@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Brain, Sparkles, Eye } from 'lucide-react';
+import { ArrowLeft, Brain, Sparkles, Eye, Heart } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -20,6 +20,7 @@ interface ReportRow {
   id: string;
   assessment_id: string;
   status: 'draft' | 'reviewed' | 'published';
+  client_content: unknown;
 }
 
 const reportStatusLabel: Record<string, string> = {
@@ -40,6 +41,7 @@ export function ClientSchemaAnalysis() {
   const [reportsByAssessment, setReportsByAssessment] = useState<Record<string, ReportRow>>({});
   const [loading, setLoading] = useState(true);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [generatingClientId, setGeneratingClientId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const load = async () => {
@@ -63,7 +65,7 @@ export function ClientSchemaAnalysis() {
     if (rows.length > 0) {
       const { data: reportRows } = await supabase
         .from('client_schema_reports')
-        .select('id, assessment_id, status')
+        .select('id, assessment_id, status, client_content')
         .in('assessment_id', rows.map((r) => r.id));
       const map: Record<string, ReportRow> = {};
       ((reportRows ?? []) as ReportRow[]).forEach((r) => { map[r.assessment_id] = r; });
@@ -89,6 +91,21 @@ export function ClientSchemaAnalysis() {
     }
     await load();
     setGeneratingId(null);
+  };
+
+  const handleGenerateClientReport = async (assessmentId: string) => {
+    setGeneratingClientId(assessmentId);
+    setError('');
+    const { error: fnError } = await supabase.functions.invoke('generate-client-report', {
+      body: { assessment_id: assessmentId },
+    });
+    if (fnError) {
+      setError(fnError.message || 'Erro ao gerar o relatório do cliente.');
+      setGeneratingClientId(null);
+      return;
+    }
+    await load();
+    setGeneratingClientId(null);
   };
 
   const formatDateTime = (iso: string) =>
@@ -128,6 +145,7 @@ export function ClientSchemaAnalysis() {
           {assessments.map((assessment) => {
             const report = reportsByAssessment[assessment.id];
             const isGenerating = generatingId === assessment.id;
+            const isGeneratingClient = generatingClientId === assessment.id;
             return (
               <Card key={assessment.id}>
                 <CardBody className="flex items-center justify-between gap-4">
@@ -145,19 +163,42 @@ export function ClientSchemaAnalysis() {
                     </div>
                   </div>
 
-                  {report ? (
-                    <Link to={`/clients/${id}/schema-analysis/report/${report.id}`}>
-                      <Button size="sm" variant="secondary">
-                        <Eye size={14} />
-                        Ver Relatório
+                  <div className="flex items-center gap-2">
+                    {report ? (
+                      <Link to={`/clients/${id}/schema-analysis/report/${report.id}`}>
+                        <Button size="sm" variant="secondary">
+                          <Eye size={14} />
+                          Ver Relatório
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button size="sm" loading={isGenerating} onClick={() => handleGenerate(assessment.id)}>
+                        <Sparkles size={14} />
+                        Gerar Relatório Técnico
                       </Button>
-                    </Link>
-                  ) : (
-                    <Button size="sm" loading={isGenerating} onClick={() => handleGenerate(assessment.id)}>
-                      <Sparkles size={14} />
-                      Gerar Relatório Técnico
-                    </Button>
-                  )}
+                    )}
+
+                    {report && (
+                      report.client_content ? (
+                        <Link to={`/clients/${id}/schema-analysis/report/${report.id}/cliente`}>
+                          <Button size="sm" variant="secondary">
+                            <Heart size={14} />
+                            Ver Relatório do Cliente
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          loading={isGeneratingClient}
+                          onClick={() => handleGenerateClientReport(assessment.id)}
+                        >
+                          <Heart size={14} />
+                          Gerar Relatório do Cliente
+                        </Button>
+                      )
+                    )}
+                  </div>
                 </CardBody>
               </Card>
             );
