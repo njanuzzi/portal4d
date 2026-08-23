@@ -259,7 +259,7 @@ export function ClientFacingReportPreview() {
           </Badge>
         </div>
         <p className="text-xs text-dark/40 mt-2">
-          Última atualização em {formatDateTime(report.updated_at)} · pré-visualização — formatação final da página do cliente ainda será desenhada.
+          Última atualização em {formatDateTime(report.updated_at)}
         </p>
         {report.client_content_status === 'published' && (
           <p className="text-xs mt-1 flex items-center gap-1.5">
