@@ -7,6 +7,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Textarea } from '../../components/ui/Textarea';
 import { Input } from '../../components/ui/Input';
 import { PageSpinner } from '../../components/ui/Spinner';
+import { EsquemasBarChart } from '../../components/EsquemasBarChart';
+import { ReportObservations } from '../../components/ReportObservations';
 import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../lib/database.types';
 import { diffWords } from '../../lib/diff';
@@ -20,6 +22,13 @@ interface ClientEsquema {
 interface ClientContent {
   esquemas: ClientEsquema[];
   conclusao: string;
+  todos?: { domain_id: string; percentual: number }[];
+}
+
+interface SchemaDomain {
+  id: string;
+  friendly_name: string | null;
+  wiki_description: string | null;
 }
 
 type ContentStatus = 'draft' | 'reviewed' | 'published';
@@ -49,6 +58,7 @@ export function ClientFacingReportPreview() {
   const { id: clientId, reportId } = useParams<{ id: string; reportId: string }>();
   const [client, setClient] = useState<Profile | null>(null);
   const [report, setReport] = useState<ReportRow | null>(null);
+  const [domains, setDomains] = useState<SchemaDomain[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -70,17 +80,19 @@ export function ClientFacingReportPreview() {
     setLoading(true);
     setError('');
 
-    const [{ data: clientRow }, { data: reportRow, error: reportError }] = await Promise.all([
+    const [{ data: clientRow }, { data: reportRow, error: reportError }, { data: domainRows }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', clientId).eq('role', 'client').maybeSingle(),
       supabase
         .from('client_schema_reports')
         .select('id, assessment_id, client_id, client_content, previous_client_content, client_content_status, updated_at')
         .eq('id', reportId)
         .maybeSingle(),
+      supabase.from('schema_domains').select('id, friendly_name, wiki_description'),
     ]);
 
     setClient((clientRow ?? null) as Profile | null);
     setReport((reportRow ?? null) as ReportRow | null);
+    setDomains((domainRows ?? []) as SchemaDomain[]);
     if (reportError) setError(reportError.message);
     setLoading(false);
   };
@@ -363,6 +375,44 @@ export function ClientFacingReportPreview() {
               )}
             </CardBody>
           </Card>
+        </div>
+      )}
+
+      {/* Visão geral dos 16 padrões + wiki */}
+      {!editing && report.client_content.todos && report.client_content.todos.length > 0 && (
+        <Card className="mb-4">
+          <CardBody>
+            <h3 className="font-semibold text-dark font-serif mb-3">Visão geral dos 16 padrões</h3>
+            <EsquemasBarChart
+              items={report.client_content.todos.map((t) => {
+                const domain = domains.find((d) => d.id === t.domain_id);
+                return { name: domain?.friendly_name ?? '—', percentual: t.percentual };
+              })}
+            />
+            <div className="mt-5 space-y-3">
+              {[...report.client_content.todos]
+                .sort((a, b) => b.percentual - a.percentual)
+                .map((t) => {
+                  const domain = domains.find((d) => d.id === t.domain_id);
+                  if (!domain) return null;
+                  return (
+                    <details key={t.domain_id} className="group">
+                      <summary className="cursor-pointer text-sm text-dark/80 font-medium marker:text-dark/30">
+                        {domain.friendly_name} <span className="text-dark/40 font-normal">— {t.percentual.toFixed(0)}%</span>
+                      </summary>
+                      <p className="text-sm text-dark/60 leading-relaxed mt-2 pl-4">{domain.wiki_description}</p>
+                    </details>
+                  );
+                })}
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Observações — comunicação com o cliente sobre esse relatório */}
+      {!editing && (
+        <div className="mb-4">
+          <ReportObservations assessmentId={report.assessment_id} clientId={report.client_id} viewerRole="therapist" />
         </div>
       )}
 
