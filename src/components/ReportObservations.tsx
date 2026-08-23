@@ -219,17 +219,15 @@ export function ReportObservations({ assessmentId, clientId, viewerRole }: Repor
                             <Trash2 size={12} />
                             Excluir
                           </button>
-                          {item.status === 'draft' && (
-                            <button
-                              type="button"
-                              onClick={() => handleSendDraft(item)}
-                              disabled={sendingId === item.id}
-                              className="text-xs text-gold-700 hover:text-gold-800 flex items-center gap-1 disabled:opacity-50"
-                            >
-                              <SendHorizontal size={12} />
-                              Enviar {viewerRole === 'client' ? 'para a terapeuta' : 'para o cliente'}
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleSendDraft(item)}
+                            disabled={sendingId === item.id}
+                            className="text-xs text-gold-700 hover:text-gold-800 flex items-center gap-1 disabled:opacity-50"
+                          >
+                            <SendHorizontal size={12} />
+                            {item.status === 'draft' ? 'Enviar' : 'Reenviar'} {viewerRole === 'client' ? 'para a terapeuta' : 'para o cliente'}
+                          </button>
                         </div>
                       )}
                     </>
