@@ -26,6 +26,7 @@ type ContentStatus = 'draft' | 'reviewed' | 'published';
 
 interface ReportRow {
   id: string;
+  assessment_id: string;
   client_id: string;
   client_content: ClientContent | null;
   previous_client_content: ClientContent | null;
@@ -73,7 +74,7 @@ export function ClientFacingReportPreview() {
       supabase.from('profiles').select('*').eq('id', clientId).eq('role', 'client').maybeSingle(),
       supabase
         .from('client_schema_reports')
-        .select('id, client_id, client_content, previous_client_content, client_content_status, updated_at')
+        .select('id, assessment_id, client_id, client_content, previous_client_content, client_content_status, updated_at')
         .eq('id', reportId)
         .maybeSingle(),
     ]);
@@ -147,8 +148,32 @@ export function ClientFacingReportPreview() {
   };
 
   const handlePublish = async () => {
-    if (!report) return;
+    if (!report || !report.client_content) return;
     setPublishing(true);
+
+    // Publica um snapshot isolado na tabela que o cliente pode ler — nunca
+    // expor client_schema_reports diretamente a ele (mesma linha guarda o
+    // texto técnico da terapeuta, e RLS filtra linha, não coluna).
+    const { error: publishError } = await (supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .from('client_published_reports') as any)
+      .upsert(
+        {
+          assessment_id: report.assessment_id,
+          client_id: report.client_id,
+          content: report.client_content,
+          published_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'assessment_id' }
+      );
+
+    if (publishError) {
+      setError(publishError.message);
+      setPublishing(false);
+      return;
+    }
+
     const { error: updateError } = await (supabase
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('client_schema_reports') as any)
