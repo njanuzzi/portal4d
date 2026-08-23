@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Send, Sparkles } from 'lucide-react';
+import { ArrowLeft, Send, Sparkles, History } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -8,11 +8,13 @@ import { Textarea } from '../../components/ui/Textarea';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../lib/database.types';
+import { diffWords } from '../../lib/diff';
 
 interface ReportRow {
   id: string;
   client_id: string;
   technical_content: string | null;
+  previous_content: string | null;
   status: 'draft' | 'reviewed' | 'published';
   generated_with: string | null;
   updated_at: string;
@@ -39,6 +41,7 @@ export function SchemaReportDetail() {
   const [instruction, setInstruction] = useState('');
   const [revising, setRevising] = useState(false);
   const [revisionError, setRevisionError] = useState('');
+  const [showDiff, setShowDiff] = useState(false);
 
   const load = async () => {
     if (!clientId || !reportId) { setLoading(false); return; }
@@ -49,7 +52,7 @@ export function SchemaReportDetail() {
       supabase.from('profiles').select('*').eq('id', clientId).eq('role', 'client').maybeSingle(),
       supabase
         .from('client_schema_reports')
-        .select('id, client_id, technical_content, status, generated_with, updated_at')
+        .select('id, client_id, technical_content, previous_content, status, generated_with, updated_at')
         .eq('id', reportId)
         .maybeSingle(),
     ]);
@@ -80,6 +83,7 @@ export function SchemaReportDetail() {
     }
 
     setInstruction('');
+    setShowDiff(false);
     await load();
     setRevising(false);
   };
@@ -128,9 +132,42 @@ export function SchemaReportDetail() {
       {/* Conteúdo do relatório */}
       <Card className="mb-4">
         <CardBody>
-          <div className="text-sm text-dark/80 whitespace-pre-wrap leading-relaxed">
-            {report.technical_content || 'Relatório ainda não foi gerado.'}
-          </div>
+          {report.previous_content && (
+            <div className="flex justify-end mb-2">
+              <button
+                type="button"
+                onClick={() => setShowDiff((v) => !v)}
+                className="flex items-center gap-1.5 text-xs text-petrol-700 hover:text-petrol-800 transition-colors"
+              >
+                <History size={13} />
+                {showDiff ? 'Ver texto final' : 'Ver o que mudou na última revisão'}
+              </button>
+            </div>
+          )}
+
+          {showDiff && report.previous_content ? (
+            <div className="text-sm text-dark/80 whitespace-pre-wrap leading-relaxed">
+              {diffWords(report.previous_content, report.technical_content || '').map((op, i) => {
+                if (op.type === 'equal') return <span key={i}>{op.value}</span>;
+                if (op.type === 'insert') {
+                  return (
+                    <span key={i} className="bg-green-100 text-green-800 rounded-sm">
+                      {op.value}
+                    </span>
+                  );
+                }
+                return (
+                  <span key={i} className="bg-red-100 text-red-700 line-through rounded-sm">
+                    {op.value}
+                  </span>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-sm text-dark/80 whitespace-pre-wrap leading-relaxed">
+              {report.technical_content || 'Relatório ainda não foi gerado.'}
+            </div>
+          )}
         </CardBody>
       </Card>
 
