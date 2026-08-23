@@ -189,29 +189,14 @@ export function ClientReports() {
 
             {previewPadrao.content.todos && previewPadrao.content.todos.length > 0 && (
               <div className="border-t border-beige-300 pt-4">
-                <h3 className="font-semibold text-dark font-serif mb-3">Visão geral dos 16 padrões</h3>
+                <h3 className="font-semibold text-dark font-serif mb-1">Visão geral dos 16 padrões</h3>
+                <p className="text-xs text-dark/40 mb-3">Toque em um padrão para ler a explicação.</p>
                 <EsquemasBarChart
                   items={previewPadrao.content.todos.map((t) => {
                     const domain = domains.find((d) => d.id === t.domain_id);
-                    return { name: domain?.friendly_name ?? '—', percentual: t.percentual };
+                    return { name: domain?.friendly_name ?? '—', percentual: t.percentual, description: domain?.wiki_description ?? undefined };
                   })}
                 />
-                <div className="mt-4 space-y-2">
-                  {[...previewPadrao.content.todos]
-                    .sort((a, b) => b.percentual - a.percentual)
-                    .map((t) => {
-                      const domain = domains.find((d) => d.id === t.domain_id);
-                      if (!domain) return null;
-                      return (
-                        <details key={t.domain_id} className="group">
-                          <summary className="cursor-pointer text-sm text-dark/80 font-medium marker:text-dark/30">
-                            {domain.friendly_name} <span className="text-dark/40 font-normal">— {t.percentual.toFixed(0)}%</span>
-                          </summary>
-                          <p className="text-sm text-dark/60 leading-relaxed mt-2 pl-4">{domain.wiki_description}</p>
-                        </details>
-                      );
-                    })}
-                </div>
               </div>
             )}
 
