@@ -47,6 +47,7 @@ export function ClientHome() {
       const [
         { data: entries },
         { count: reportCount },
+        { count: padraoCount },
         { data: goalRows },
       ] = await Promise.all([
         supabase
@@ -59,6 +60,10 @@ export function ClientHome() {
           .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
           .eq('published', true),
+        supabase
+          .from('client_published_reports')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', user.id),
         supabase
           .from('client_goals')
           .select('id, goal_text')
@@ -90,7 +95,7 @@ export function ClientHome() {
         todayFilled,
         totalEntries: dates.length,
         streak,
-        pendingReports: reportCount ?? 0,
+        pendingReports: (reportCount ?? 0) + (padraoCount ?? 0),
         pastPendingCount,
       });
       setLoading(false);
