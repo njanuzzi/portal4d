@@ -8,7 +8,7 @@ type View = 'login' | 'forgot' | 'forgot_sent';
 
 export function Login() {
   const { signIn } = useAuth();
-  const [tab, setTab] = useState<Tab>('therapist');
+  const [tab, setTab] = useState<Tab>('client');
   const [view, setView] = useState<View>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -74,46 +74,30 @@ export function Login() {
     display: 'block',
   };
 
-  const features = [
-    'Diário diário com perguntas estruturadas',
-    'Painel clínico para o terapeuta',
-    'Relatórios semanais com apoio de IA',
-    'Dados isolados por cliente',
-  ];
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#1B4B5A' }}>
       <div className="w-full max-w-4xl rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row" style={{ minHeight: '520px' }}>
 
         {/* Left column */}
-        <div className="md:w-5/12 flex flex-col justify-center px-10 py-12" style={{ background: '#153d49' }}>
+        <div className="md:w-5/12 flex flex-col justify-center px-10 py-12" style={{ background: '#032a3c' }}>
           <img
             src="/logosistema.png"
-            alt="Logo Desbloqueio Comportamental"
+            alt="Logo Portal Núbia Januzzi"
             className="mb-8 self-start"
-            style={{ width: 160, height: 160, objectFit: 'contain', borderRadius: 8 }}
+            style={{ width: 140, height: 140, objectFit: 'cover', borderRadius: '50%' }}
           />
 
           <p style={{ fontFamily: "'Playfair Display', serif", color: '#E8DCC8', fontSize: 20, fontWeight: 400, margin: '0 0 4px' }}>
             Núbia Januzzi
           </p>
           <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#8aacb5', fontSize: 14, fontWeight: 400, margin: '0 0 2px' }}>
-            Psicoterapeuta
+            Portal Núbia Januzzi
           </p>
           <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#8aacb5', fontSize: 13, fontWeight: 300, margin: 0 }}>
             Especialista em Desbloqueio Comportamental
           </p>
 
           <div style={{ width: 32, height: 1, background: '#C9A84C', opacity: 0.6, margin: '28px 0' }} />
-
-          <ul className="space-y-4" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {features.map((f) => (
-              <li key={f} className="flex items-start gap-2.5">
-                <span style={{ width: 6, height: 6, background: '#C9A84C', borderRadius: '50%', marginTop: 6, flexShrink: 0, display: 'block' }} />
-                <span style={{ fontFamily: "'DM Sans', sans-serif", color: '#8aacb5', fontSize: 12, lineHeight: 1.5 }}>{f}</span>
-              </li>
-            ))}
-          </ul>
         </div>
 
         {/* Right column */}
@@ -156,7 +140,6 @@ export function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  autoFocus
                   style={inputStyle}
                   onFocus={(e) => { e.target.style.borderColor = '#1B4B5A'; e.target.style.background = '#fff'; }}
                   onBlur={(e) => { e.target.style.borderColor = '#c8bca8'; e.target.style.background = '#f5ede0'; }}
@@ -196,7 +179,7 @@ export function Login() {
 
               {/* Tabs */}
               <div className="flex" style={{ borderBottom: '1.5px solid #c8bca8', marginBottom: 28 }}>
-                {(['therapist', 'client'] as Tab[]).map((t) => (
+                {(['client', 'therapist'] as Tab[]).map((t) => (
                   <button
                     key={t}
                     type="button"
@@ -230,7 +213,6 @@ export function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  autoFocus
                   style={inputStyle}
                   onFocus={(e) => { e.target.style.borderColor = '#1B4B5A'; e.target.style.background = '#fff'; }}
                   onBlur={(e) => { e.target.style.borderColor = '#c8bca8'; e.target.style.background = '#f5ede0'; }}

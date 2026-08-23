@@ -40,10 +40,10 @@ export function ClientSignup() {
   };
 
   return (
-    <div className="min-h-screen bg-petrol-900 text-white font-sans">
+    <div className="min-h-screen bg-[#032a3c] text-white font-sans">
       {/* Cover */}
       <div
-        className={`h-56 sm:h-72 w-full ${coverBroken ? 'bg-gradient-to-br from-petrol-700 via-petrol-800 to-petrol-900' : 'bg-petrol-800'}`}
+        className={`h-56 sm:h-72 w-full ${coverBroken ? 'bg-gradient-to-br from-petrol-700 via-petrol-800 to-[#032a3c]' : 'bg-petrol-800'}`}
       >
         {!coverBroken && (
           <img
@@ -61,7 +61,7 @@ export function ClientSignup() {
           <img
             src="/logosistema.png"
             alt="Núbia Januzzi"
-            className="w-28 h-28 rounded-full object-cover border-4 border-petrol-900 shadow-lg"
+            className="w-28 h-28 rounded-full object-cover border-4 border-[#032a3c] shadow-lg"
           />
         </div>
 
@@ -94,7 +94,6 @@ export function ClientSignup() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  autoFocus
                 />
               </div>
 
