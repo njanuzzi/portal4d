@@ -43,6 +43,12 @@ interface ReportRow {
   updated_at: string;
 }
 
+interface ViewStatus {
+  first_viewed_at: string | null;
+  last_viewed_at: string | null;
+  acknowledged_at: string | null;
+}
+
 const statusLabel: Record<ContentStatus, string> = {
   draft: 'Rascunho',
   reviewed: 'Revisado',
@@ -58,6 +64,7 @@ export function ClientFacingReportPreview() {
   const { id: clientId, reportId } = useParams<{ id: string; reportId: string }>();
   const [client, setClient] = useState<Profile | null>(null);
   const [report, setReport] = useState<ReportRow | null>(null);
+  const [viewStatus, setViewStatus] = useState<ViewStatus | null>(null);
   const [domains, setDomains] = useState<SchemaDomain[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -94,6 +101,18 @@ export function ClientFacingReportPreview() {
     setReport((reportRow ?? null) as ReportRow | null);
     setDomains((domainRows ?? []) as SchemaDomain[]);
     if (reportError) setError(reportError.message);
+
+    if (reportRow?.assessment_id) {
+      const { data: viewRow } = await supabase
+        .from('client_published_reports')
+        .select('first_viewed_at, last_viewed_at, acknowledged_at')
+        .eq('assessment_id', reportRow.assessment_id)
+        .maybeSingle();
+      setViewStatus((viewRow ?? null) as ViewStatus | null);
+    } else {
+      setViewStatus(null);
+    }
+
     setLoading(false);
   };
 
@@ -242,6 +261,20 @@ export function ClientFacingReportPreview() {
         <p className="text-xs text-dark/40 mt-2">
           Última atualização em {formatDateTime(report.updated_at)} · pré-visualização — formatação final da página do cliente ainda será desenhada.
         </p>
+        {report.client_content_status === 'published' && (
+          <p className="text-xs mt-1 flex items-center gap-1.5">
+            {viewStatus?.acknowledged_at ? (
+              <span className="flex items-center gap-1 text-green-700">
+                <CheckCircle2 size={12} />
+                Cliente confirmou a leitura em {formatDateTime(viewStatus.acknowledged_at)}
+              </span>
+            ) : viewStatus?.last_viewed_at ? (
+              <span className="text-dark/50">Cliente visualizou em {formatDateTime(viewStatus.last_viewed_at)}, mas ainda não confirmou a leitura</span>
+            ) : (
+              <span className="text-dark/40">Cliente ainda não visualizou este relatório</span>
+            )}
+          </p>
+        )}
       </div>
 
       {error && (
