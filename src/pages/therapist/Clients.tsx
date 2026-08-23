@@ -142,6 +142,9 @@ export function Clients() {
       return;
     }
 
+    // Registra no histórico (mesma tabela que a tela de detalhe do cliente lê)
+    await supabase.from('client_invites').insert({ client_id: client.id, email: client.email });
+
     setActionSuccess(`E-mail de acesso enviado para ${client.email}`);
     setInvitingClientId(null);
   };
