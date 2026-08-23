@@ -34,6 +34,7 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { Scheduling } from './pages/therapist/Scheduling';
 import { MarketingHome } from './pages/MarketingHome';
 import { Protocolo4D } from './pages/Protocolo4D';
+import { ClientSignup } from './pages/ClientSignup';
 
 function AppRoutes() {
   const location = useLocation();
@@ -63,6 +64,15 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/protocolo4d" element={<Protocolo4D />} />
+      </Routes>
+    );
+  }
+
+  // Client self-signup form is always public
+  if (location.pathname === '/cadastrocliente') {
+    return (
+      <Routes>
+        <Route path="/cadastrocliente" element={<ClientSignup />} />
       </Routes>
     );
   }
