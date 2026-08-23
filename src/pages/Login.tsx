@@ -20,6 +20,31 @@ export function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // Confere o e-mail contra a aba escolhida antes de autenticar — evita
+    // deixar uma conta de terapeuta entrar pela aba de cliente (ou vice
+    // versa) só porque o redirecionamento depois olha o role de qualquer jeito.
+    const { data: accountRole, error: roleError } = await supabase.rpc('check_account_role', {
+      p_email: email.trim(),
+    });
+
+    if (!roleError) {
+      if (!accountRole) {
+        setError('Não encontramos uma conta com esse e-mail.');
+        setLoading(false);
+        return;
+      }
+      if (accountRole !== tab) {
+        setError(
+          accountRole === 'therapist'
+            ? 'Esse e-mail é de uma conta de terapeuta. Selecione a aba "Terapeuta" para entrar.'
+            : 'Esse e-mail é de uma conta de cliente. Selecione a aba "Cliente" para entrar.'
+        );
+        setLoading(false);
+        return;
+      }
+    }
+
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
