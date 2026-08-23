@@ -119,14 +119,20 @@ export function ReportObservations({ assessmentId, clientId, viewerRole }: Repor
   };
 
   const handleDelete = async (item: ObservationRow) => {
-    if (!window.confirm('Excluir essa observação? Respostas dentro dela também serão excluídas.')) return;
+    if (!window.confirm('Excluir essa observação?')) return;
     setDeletingId(item.id);
     const { error: deleteError } = await (supabase
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from('report_observations') as any)
       .delete()
       .eq('id', item.id);
-    if (deleteError) setError(deleteError.message);
+    if (deleteError) {
+      setError(
+        deleteError.code === '23503'
+          ? 'Essa observação já tem uma resposta e não pode ser excluída.'
+          : deleteError.message
+      );
+    }
     await load();
     setDeletingId(null);
   };
@@ -235,15 +241,17 @@ export function ReportObservations({ assessmentId, clientId, viewerRole }: Repor
                       <Pencil size={12} />
                       Editar
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(item)}
-                      disabled={deletingId === item.id}
-                      className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1 disabled:opacity-50"
-                    >
-                      <Trash2 size={12} />
-                      Excluir
-                    </button>
+                    {kids.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item)}
+                        disabled={deletingId === item.id}
+                        className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1 disabled:opacity-50"
+                      >
+                        <Trash2 size={12} />
+                        Excluir
+                      </button>
+                    )}
                     {item.status === 'draft' && (
                       <button
                         type="button"

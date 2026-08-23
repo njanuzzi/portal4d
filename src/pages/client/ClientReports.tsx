@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FileText, Eye, Sparkles } from 'lucide-react';
+import { FileText, Eye, Sparkles, CheckCircle2 } from 'lucide-react';
 
 function stripHtml(html: string) {
   const div = document.createElement('div');
@@ -36,6 +36,8 @@ interface PadraoRow {
   assessment_id: string;
   content: PadraoContent;
   published_at: string;
+  first_viewed_at: string | null;
+  acknowledged_at: string | null;
 }
 
 interface SchemaDomain {
@@ -52,6 +54,7 @@ export function ClientReports() {
   const [loading, setLoading] = useState(true);
   const [previewReport, setPreviewReport] = useState<Report | null>(null);
   const [previewPadrao, setPreviewPadrao] = useState<PadraoRow | null>(null);
+  const [acknowledging, setAcknowledging] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -63,7 +66,7 @@ export function ClientReports() {
         .order('created_at', { ascending: false }),
       supabase
         .from('client_published_reports')
-        .select('id, assessment_id, content, published_at')
+        .select('id, assessment_id, content, published_at, first_viewed_at, acknowledged_at')
         .eq('client_id', user!.id)
         .order('published_at', { ascending: false }),
       supabase.from('schema_domains').select('id, friendly_name, wiki_description'),
@@ -74,6 +77,31 @@ export function ClientReports() {
       setLoading(false);
     });
   }, [user]);
+
+  // Marca a visualização assim que a devolutiva é aberta — sinal passivo,
+  // distinto da confirmação explícita que o cliente dá com o botão abaixo.
+  useEffect(() => {
+    if (!previewPadrao) return;
+    void supabase
+      .rpc('record_report_view', { p_assessment_id: previewPadrao.assessment_id })
+      .then(() => {}, () => {});
+  }, [previewPadrao]);
+
+  const handleAcknowledge = async () => {
+    if (!previewPadrao) return;
+    setAcknowledging(true);
+    const { error } = await supabase.rpc('record_report_acknowledgment', {
+      p_assessment_id: previewPadrao.assessment_id,
+    });
+    if (!error) {
+      const acknowledgedAt = new Date().toISOString();
+      setPadroes((prev) =>
+        prev.map((p) => (p.id === previewPadrao.id && !p.acknowledged_at ? { ...p, acknowledged_at: acknowledgedAt } : p))
+      );
+      setPreviewPadrao((prev) => (prev && !prev.acknowledged_at ? { ...prev, acknowledged_at: acknowledgedAt } : prev));
+    }
+    setAcknowledging(false);
+  };
 
   if (loading) return <PageSpinner />;
 
@@ -199,6 +227,20 @@ export function ClientReports() {
                 />
               </div>
             )}
+
+            <div className="border-t border-beige-300 pt-4">
+              {previewPadrao.acknowledged_at ? (
+                <div className="flex items-center gap-1.5 text-sm text-green-700">
+                  <CheckCircle2 size={15} />
+                  Você confirmou a leitura em {formatDate(previewPadrao.acknowledged_at)}
+                </div>
+              ) : (
+                <Button size="sm" variant="ghost" loading={acknowledging} onClick={handleAcknowledge}>
+                  <CheckCircle2 size={14} />
+                  Confirmar que li o relatório
+                </Button>
+              )}
+            </div>
 
             <div className="border-t border-beige-300 pt-4">
               <ReportObservations assessmentId={previewPadrao.assessment_id} clientId={user!.id} viewerRole="client" />
