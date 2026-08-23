@@ -14,6 +14,8 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { Modal } from '../../components/ui/Modal';
+import { EsquemasBarChart } from '../../components/EsquemasBarChart';
+import { ReportObservations } from '../../components/ReportObservations';
 import { formatDate } from '../../lib/format';
 import type { Report } from '../../lib/database.types';
 
@@ -26,18 +28,27 @@ interface PadraoEsquema {
 interface PadraoContent {
   esquemas: PadraoEsquema[];
   conclusao: string;
+  todos?: { domain_id: string; percentual: number }[];
 }
 
 interface PadraoRow {
   id: string;
+  assessment_id: string;
   content: PadraoContent;
   published_at: string;
+}
+
+interface SchemaDomain {
+  id: string;
+  friendly_name: string | null;
+  wiki_description: string | null;
 }
 
 export function ClientReports() {
   const { user } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
   const [padroes, setPadroes] = useState<PadraoRow[]>([]);
+  const [domains, setDomains] = useState<SchemaDomain[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewReport, setPreviewReport] = useState<Report | null>(null);
   const [previewPadrao, setPreviewPadrao] = useState<PadraoRow | null>(null);
@@ -52,12 +63,14 @@ export function ClientReports() {
         .order('created_at', { ascending: false }),
       supabase
         .from('client_published_reports')
-        .select('id, content, published_at')
+        .select('id, assessment_id, content, published_at')
         .eq('client_id', user!.id)
         .order('published_at', { ascending: false }),
-    ]).then(([{ data: reportRows }, { data: padraoRows }]) => {
+      supabase.from('schema_domains').select('id, friendly_name, wiki_description'),
+    ]).then(([{ data: reportRows }, { data: padraoRows }, { data: domainRows }]) => {
       setReports(reportRows || []);
       setPadroes((padraoRows ?? []) as unknown as PadraoRow[]);
+      setDomains((domainRows ?? []) as SchemaDomain[]);
       setLoading(false);
     });
   }, [user]);
@@ -172,6 +185,38 @@ export function ClientReports() {
             </div>
             <div className="border-t border-beige-300 pt-4">
               <p className="text-sm text-dark/70 leading-relaxed">{previewPadrao.content.conclusao}</p>
+            </div>
+
+            {previewPadrao.content.todos && previewPadrao.content.todos.length > 0 && (
+              <div className="border-t border-beige-300 pt-4">
+                <h3 className="font-semibold text-dark font-serif mb-3">Visão geral dos 16 padrões</h3>
+                <EsquemasBarChart
+                  items={previewPadrao.content.todos.map((t) => {
+                    const domain = domains.find((d) => d.id === t.domain_id);
+                    return { name: domain?.friendly_name ?? '—', percentual: t.percentual };
+                  })}
+                />
+                <div className="mt-4 space-y-2">
+                  {[...previewPadrao.content.todos]
+                    .sort((a, b) => b.percentual - a.percentual)
+                    .map((t) => {
+                      const domain = domains.find((d) => d.id === t.domain_id);
+                      if (!domain) return null;
+                      return (
+                        <details key={t.domain_id} className="group">
+                          <summary className="cursor-pointer text-sm text-dark/80 font-medium marker:text-dark/30">
+                            {domain.friendly_name} <span className="text-dark/40 font-normal">— {t.percentual.toFixed(0)}%</span>
+                          </summary>
+                          <p className="text-sm text-dark/60 leading-relaxed mt-2 pl-4">{domain.wiki_description}</p>
+                        </details>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+            <div className="border-t border-beige-300 pt-4">
+              <ReportObservations assessmentId={previewPadrao.assessment_id} clientId={user!.id} viewerRole="client" />
             </div>
           </div>
         )}
