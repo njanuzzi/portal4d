@@ -14,7 +14,7 @@ interface ClientEsquema {
 
 interface ClientContent {
   esquemas: ClientEsquema[];
-  cruzamento: string;
+  conclusao: string;
 }
 
 interface ReportRow {
@@ -70,7 +70,7 @@ export function ClientFacingReportPreview() {
     );
   }
 
-  const { esquemas, cruzamento } = report.client_content;
+  const { esquemas, conclusao } = report.client_content;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -115,8 +115,8 @@ export function ClientFacingReportPreview() {
 
       <Card>
         <CardBody>
-          <h3 className="font-semibold text-dark font-serif mb-2">Como esses padrões conversam entre si</h3>
-          <p className="text-sm text-dark/70 leading-relaxed">{cruzamento}</p>
+          <h3 className="font-semibold text-dark font-serif mb-2">Conclusão</h3>
+          <p className="text-sm text-dark/70 leading-relaxed">{conclusao}</p>
         </CardBody>
       </Card>
     </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Brain, Sparkles, Eye, Heart } from 'lucide-react';
+import { ArrowLeft, Brain, Sparkles, Eye, Heart, RefreshCw } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -180,12 +180,23 @@ export function ClientSchemaAnalysis() {
 
                     {report && (
                       report.client_content ? (
-                        <Link to={`/clients/${id}/schema-analysis/report/${report.id}/cliente`}>
-                          <Button size="sm" variant="secondary">
-                            <Heart size={14} />
-                            Ver Relatório do Cliente
+                        <>
+                          <Link to={`/clients/${id}/schema-analysis/report/${report.id}/cliente`}>
+                            <Button size="sm" variant="secondary">
+                              <Heart size={14} />
+                              Ver Relatório do Cliente
+                            </Button>
+                          </Link>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            title="Gerar novamente"
+                            loading={isGeneratingClient}
+                            onClick={() => handleGenerateClientReport(assessment.id)}
+                          >
+                            <RefreshCw size={14} />
                           </Button>
-                        </Link>
+                        </>
                       ) : (
                         <Button
                           size="sm"
