@@ -22,6 +22,8 @@ interface ClientGoal {
   goal_text: string;
   created_at: string;
   entry_count_at_creation: number;
+  closed_at: string | null;
+  closing_notes: string | null;
 }
 
 interface WaSession {
@@ -121,7 +123,7 @@ export function ClientDetail() {
           .eq('client_id', id).order('sent_at', { ascending: false }),
         supabase.rpc('get_client_last_login', { p_client_id: id }),
         supabase.from('client_goals')
-          .select('id, goal_text, created_at, entry_count_at_creation')
+          .select('id, goal_text, created_at, entry_count_at_creation, closed_at, closing_notes')
           .eq('user_id', id)
           .order('created_at', { ascending: false }),
         supabase.from('whatsapp_sessions')
@@ -603,15 +605,26 @@ export function ClientDetail() {
           ) : (
             <div className="space-y-3">
               {goals.map((goal, idx) => (
-                <div key={goal.id} className={`rounded-lg p-3 border ${idx === 0 ? 'bg-gold-50 border-gold-200' : 'bg-beige-50 border-beige-200'}`}>
+                <div key={goal.id} className={`rounded-lg p-3 border ${idx === 0 && !goal.closed_at ? 'bg-gold-50 border-gold-200' : 'bg-beige-50 border-beige-200'}`}>
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    {idx === 0 && (
+                    {idx === 0 && !goal.closed_at && (
                       <span className="text-[10px] font-medium bg-gold-200 text-gold-800 px-1.5 py-0.5 rounded-full">atual</span>
+                    )}
+                    {goal.closed_at && (
+                      <span className="text-[10px] font-medium bg-beige-200 text-dark/50 px-1.5 py-0.5 rounded-full">
+                        encerrada em {formatDateTime(goal.closed_at)}
+                      </span>
                     )}
                     <span className="text-xs text-dark/40 ml-auto">{formatDateTime(goal.created_at)}</span>
                   </div>
                   <p className="text-sm text-dark/80 leading-snug">{goal.goal_text}</p>
                   <p className="text-xs text-dark/30 mt-1.5">Ao completar {goal.entry_count_at_creation} registros</p>
+                  {goal.closing_notes && (
+                    <div className="mt-2 pt-2 border-t border-beige-200">
+                      <p className="text-[10px] font-medium text-dark/30 mb-0.5">Observações de encerramento</p>
+                      <p className="text-xs text-dark/60 leading-snug">{goal.closing_notes}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

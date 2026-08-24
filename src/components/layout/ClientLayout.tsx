@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Clock, FileText, Calendar, LogOut, KeyRound } from 'lucide-react';
+import { Home, BookOpen, Clock, FileText, Calendar, LogOut, KeyRound, Bell } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { ClientChatbot } from '../client/ClientChatbot';
@@ -44,6 +44,14 @@ export function ClientLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Link
+                to="/notifications"
+                className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors text-sm"
+                title="Lembretes do diário"
+              >
+                <Bell size={16} />
+                <span className="hidden sm:inline text-xs">Lembretes</span>
+              </Link>
               <Link
                 to="/change-password"
                 className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors text-sm"
