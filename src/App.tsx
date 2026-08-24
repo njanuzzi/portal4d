@@ -28,6 +28,7 @@ import { ClientHome } from './pages/client/ClientHome';
 import { DiaryPage } from './pages/client/DiaryPage';
 import { DiaryHistory } from './pages/client/DiaryHistory';
 import { ClientReports as ClientReportsPage } from './pages/client/ClientReports';
+import { ClientScheduling } from './pages/client/ClientScheduling';
 import { ChangePassword } from './pages/client/ChangePassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
@@ -146,6 +147,7 @@ function AppRoutes() {
           <Route path="/diary" element={<DiaryPage />} />
           <Route path="/diary/history" element={<DiaryHistory />} />
           <Route path="/reports" element={<ClientReportsPage />} />
+          <Route path="/scheduling" element={<ClientScheduling />} />
           <Route path="/change-password" element={<ChangePassword />} />
           <Route path="/areamembros" element={<Navigate to="/home" replace />} />
           <Route path="/login" element={<Navigate to="/home" replace />} />
