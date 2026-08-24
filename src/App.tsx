@@ -37,6 +37,7 @@ import { Scheduling } from './pages/therapist/Scheduling';
 import { MarketingHome } from './pages/MarketingHome';
 import { Protocolo4D } from './pages/Protocolo4D';
 import { ClientSignup } from './pages/ClientSignup';
+import { SchemaQuestionnaire } from './pages/SchemaQuestionnaire';
 
 function AppRoutes() {
   const location = useLocation();
@@ -75,6 +76,15 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/cadastrocliente" element={<ClientSignup />} />
+      </Routes>
+    );
+  }
+
+  // Schema questionnaire (Inventário de Esquemas) is always public
+  if (location.pathname === '/questionario-esquemas') {
+    return (
+      <Routes>
+        <Route path="/questionario-esquemas" element={<SchemaQuestionnaire />} />
       </Routes>
     );
   }
