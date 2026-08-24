@@ -2,7 +2,7 @@
   "name": "Sistema Núbia Januzzi",
   "short_name": "Protocolo 4D",
   "description": "Diário emocional e acompanhamento terapêutico",
-  "start_url": "/",
+  "start_url": "/areamembros",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#e8e0d5",
