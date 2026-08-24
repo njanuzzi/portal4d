@@ -91,7 +91,7 @@ function formatTime(isoString: string) {
 type Tab = 'notes' | 'diary';
 
 export function DiaryPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [searchParams] = useSearchParams();
 
   const diaryDate = resolveDiaryDate(searchParams.get('date'));
@@ -339,7 +339,16 @@ export function DiaryPage() {
   if (loading) return <PageSpinner />;
 
   const reminderPrompt = showReminderPrompt && profile ? (
-    <DiaryReminderPrompt clientId={profile.id} onResolved={() => setShowReminderPrompt(false)} />
+    <DiaryReminderPrompt
+      clientId={profile.id}
+      onResolved={() => {
+        setShowReminderPrompt(false);
+        // A escolha já foi salva no banco — atualiza a cópia do perfil que
+        // fica em memória (AuthContext), senão ao navegar de volta pro
+        // Diário sem dar reload ele ainda pensa que ninguém respondeu.
+        void refreshProfile();
+      }}
+    />
   ) : null;
 
   if (!diary) {

@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   isTherapist: boolean;
   isClient: boolean;
 }
@@ -70,6 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  // profile só é buscado no login/troca de sessão — telas que atualizam
+  // colunas de profiles diretamente (ex: preferência de lembrete do diário)
+  // chamam isso depois pra essa cópia em memória não ficar desatualizada
+  // enquanto o usuário navega sem dar reload na página.
+  const refreshProfile = async () => {
+    if (!user) return;
+    const p = await fetchProfile(user.id);
+    setProfile(p);
+  };
+
   const role = profile?.role
     ?? user?.user_metadata?.role
     ?? user?.app_metadata?.role;
@@ -85,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       signIn,
       signOut,
+      refreshProfile,
       isTherapist,
       isClient,
     }}>
