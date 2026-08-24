@@ -212,9 +212,9 @@ Após entrar, você pode alterar a senha em "Alterar senha" no menu.
 ─────────────────────
 📲 *Instale o app no celular:*
 
-*iPhone:* precisa ser pelo Safari — no Chrome do iPhone essa opção não aparece.
-1. Abra o link acima no *Safari*
-2. Toque no ícone de compartilhar ↑
+*iPhone:* só funciona pelo *Safari* (o ícone da bússola azul 🧭) — o Chrome do iPhone não tem essa opção, mesmo procurando no menu.
+1. Se esse link abriu em outro app, copie e cole o endereço no Safari
+2. No Safari, toque no ícone de compartilhar ↑ (barra de baixo)
 3. Escolha "Adicionar à Tela de Início"
 4. Toque em "Adicionar"
 
@@ -223,7 +223,7 @@ Após entrar, você pode alterar a senha em "Alterar senha" no menu.
 2. Escolha "Adicionar à tela inicial"
 3. Toque em "Adicionar"
 
-🔔 Ao abrir o app, *permita as notificações* para receber seus lembretes diários.
+🔔 Depois de entrar, acesse a página do *Diário* — vai aparecer uma pergunta se você quer ser avisado(a). Toque em "Sim, quero ser avisado(a)" e permita as notificações quando o navegador pedir.
 
 Qualquer dúvida, é só me chamar! 😊`;
   };
