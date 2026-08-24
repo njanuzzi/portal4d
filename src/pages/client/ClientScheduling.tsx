@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Video, Calendar, ExternalLink } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -12,6 +12,7 @@ const CAL_LINK = 'https://cal.com/nubia-januzzi-orbex7/sessao-de-mentoria';
 
 interface Appointment {
   id: string;
+  cal_booking_uid: string;
   title: string | null;
   start_time: string;
   end_time: string | null;
@@ -41,18 +42,37 @@ export function ClientScheduling() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const load = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('appointments')
+      .select('id, cal_booking_uid, title, start_time, end_time, zoom_join_url, status')
+      .eq('client_id', user.id)
+      .order('start_time', { ascending: true });
+    setAppointments((data ?? []) as Appointment[]);
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // O agendamento acontece dentro do iframe do Cal.com — nosso app só fica
+  // sabendo quando o webhook grava no banco, então escuta em tempo real em
+  // vez de exigir um refresh manual pra ver o agendamento novo aparecer.
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('appointments')
-      .select('id, title, start_time, end_time, zoom_join_url, status')
-      .eq('client_id', user.id)
-      .order('start_time', { ascending: true })
-      .then(({ data }) => {
-        setAppointments((data ?? []) as Appointment[]);
-        setLoading(false);
-      });
-  }, [user]);
+    const channel = supabase
+      .channel(`appointments-${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments', filter: `client_id=eq.${user.id}` },
+        () => load()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, load]);
 
   const now = Date.now();
   const upcoming = appointments.filter((a) => a.status !== 'cancelled' && new Date(a.start_time).getTime() >= now - 60 * 60 * 1000);
@@ -96,6 +116,16 @@ export function ClientScheduling() {
                     </div>
                     <div className="text-sm font-medium text-dark capitalize">{formatDateTime(appt.start_time)}</div>
                     {appt.title && <div className="text-xs text-dark/40 mt-0.5">{appt.title}</div>}
+                    {appt.status === 'scheduled' && (
+                      <a
+                        href={`https://cal.com/booking/${appt.cal_booking_uid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-petrol-600 hover:text-petrol-800 underline underline-offset-2 mt-1 inline-block"
+                      >
+                        Cancelar ou reagendar
+                      </a>
+                    )}
                   </div>
                   {appt.status === 'scheduled' && appt.zoom_join_url && (
                     <a href={appt.zoom_join_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
