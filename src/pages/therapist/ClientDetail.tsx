@@ -290,7 +290,11 @@ export function ClientDetail() {
   );
 
   const diaryName = client.diary_id ? linkedDiary?.name ?? 'Diário não encontrado' : 'Não vinculado';
-  const reminderPreference = (client as unknown as { diary_reminder_preference: 'enabled' | 'declined' | null }).diary_reminder_preference;
+  const reminderInfo = client as unknown as { diary_reminder_preference: 'enabled' | 'declined' | null; diary_reminder_next_at: string | null };
+  const reminderPreference = reminderInfo.diary_reminder_preference;
+  const reminderSnoozedUntil = !reminderPreference && reminderInfo.diary_reminder_next_at && new Date(reminderInfo.diary_reminder_next_at) > new Date()
+    ? reminderInfo.diary_reminder_next_at
+    : null;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -405,6 +409,11 @@ export function ClientDetail() {
             <Badge variant={reminderPreference === 'enabled' ? 'success' : reminderPreference === 'declined' ? 'neutral' : 'warning'}>
               {reminderPreference === 'enabled' ? 'Ativado' : reminderPreference === 'declined' ? 'Desativado' : 'Ainda não decidiu'}
             </Badge>
+            {reminderSnoozedUntil && (
+              <span className="text-xs text-dark/40">
+                (pediu para lembrar mais tarde — próximo aviso em {formatDateTime(reminderSnoozedUntil)})
+              </span>
+            )}
           </div>
         </CardBody>
       </Card>
