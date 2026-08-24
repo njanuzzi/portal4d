@@ -217,8 +217,12 @@ export function SchemaQuestionnaire() {
 
   return (
     <div className="min-h-screen bg-[#032a3c] text-white font-sans">
+      <div className="h-40 sm:h-52 w-full">
+        <img src="/questionario-cover.jpg" alt="" className="w-full h-full object-cover" />
+      </div>
+
       <div className="max-w-md mx-auto px-6 py-10">
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center -mt-16 mb-6">
           <img
             src="/logosistema.png"
             alt="Núbia Januzzi"
@@ -278,8 +282,8 @@ export function SchemaQuestionnaire() {
           <>
             <div className="flex items-center gap-4 mb-6">
               <img
-                src="/logosistema.png"
-                alt=""
+                src="/nubia-foto-questionario.jpg"
+                alt="Núbia Januzzi"
                 className="w-16 h-16 rounded-full object-cover border-2 border-petrol-600 shrink-0"
               />
               <h1 className="font-serif text-xl leading-snug text-balance">Bem-vindo(a)!</h1>
