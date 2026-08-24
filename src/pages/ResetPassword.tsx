@@ -5,6 +5,21 @@ import { supabase } from '../lib/supabase';
 
 type PageState = 'loading' | 'ready' | 'saving' | 'done' | 'error';
 
+// Quando o link de recuperação já foi usado, expirou, ou foi aberto duas
+// vezes, o Supabase não emite PASSWORD_RECOVERY — em vez disso ele redireciona
+// pra cá com "#error=access_denied&error_code=otp_expired&..." na URL. Sem
+// checar isso, a tela ficava girando em "Validando link..." pra sempre.
+function parseHashError(): string | null {
+  const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+  const params = new URLSearchParams(hash);
+  const errorCode = params.get('error_code');
+  if (!params.get('error')) return null;
+  if (errorCode === 'otp_expired') {
+    return 'Este link de redefinição expirou ou já foi usado. Peça um novo link.';
+  }
+  return 'Este link de redefinição é inválido. Peça um novo link.';
+}
+
 export function ResetPassword() {
   const navigate = useNavigate();
   const [pageState, setPageState] = useState<PageState>('loading');
@@ -12,10 +27,18 @@ export function ResetPassword() {
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fieldError, setFieldError] = useState('');
+  const [linkError, setLinkError] = useState('');
 
   // Supabase emits PASSWORD_RECOVERY when the user lands from the reset link.
   // The client automatically exchanges the token in the URL for a session.
   useEffect(() => {
+    const hashError = parseHashError();
+    if (hashError) {
+      setLinkError(hashError);
+      setPageState('error');
+      return;
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setPageState('ready');
@@ -27,7 +50,17 @@ export function ResetPassword() {
       if (session) setPageState('ready');
     });
 
-    return () => subscription.unsubscribe();
+    // Se depois de um tempo nenhum dos casos acima resolveu, não fica
+    // girando pra sempre — mostra a mesma tela de link inválido.
+    const timeout = setTimeout(() => {
+      setPageState((current) => {
+        if (current !== 'loading') return current;
+        setLinkError('Não foi possível validar o link de redefinição. Peça um novo link.');
+        return 'error';
+      });
+    }, 10_000);
+
+    return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -92,6 +125,27 @@ export function ResetPassword() {
               <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#7a6e60', fontSize: 14 }}>
                 Validando link de recuperação...
               </p>
+            </div>
+          )}
+
+          {pageState === 'error' && (
+            <div className="text-center py-4">
+              <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={28} className="text-red-600" />
+              </div>
+              <h2 style={{ fontFamily: "'Playfair Display', serif", color: '#1B4B5A', fontSize: 22, fontWeight: 400, margin: '0 0 8px' }}>
+                Link inválido
+              </h2>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#7a6e60', fontSize: 13, lineHeight: 1.6, margin: '0 0 24px' }}>
+                {linkError}
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/areamembros')}
+                style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 500, letterSpacing: '0.03em', padding: '12px 24px', background: '#1B4B5A', color: '#E8DCC8', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+              >
+                Voltar para o login
+              </button>
             </div>
           )}
 
