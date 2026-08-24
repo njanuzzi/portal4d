@@ -3,7 +3,6 @@ import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Clock, FileText, LogOut, KeyRound } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { ClientChatbot } from '../client/ClientChatbot';
 
 const navItems = [
@@ -17,8 +16,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
   const loginRecorded = useRef(false);
-
-  usePushNotifications(profile?.id);
 
   // Record real client login once per session
   useEffect(() => {

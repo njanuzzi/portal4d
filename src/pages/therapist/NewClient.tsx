@@ -212,10 +212,11 @@ Após entrar, você pode alterar a senha em "Alterar senha" no menu.
 ─────────────────────
 📲 *Instale o app no celular:*
 
-*iPhone (Safari):*
-1. Toque no ícone de compartilhar ↑
-2. Escolha "Adicionar à Tela de Início"
-3. Toque em "Adicionar"
+*iPhone:* precisa ser pelo Safari — no Chrome do iPhone essa opção não aparece.
+1. Abra o link acima no *Safari*
+2. Toque no ícone de compartilhar ↑
+3. Escolha "Adicionar à Tela de Início"
+4. Toque em "Adicionar"
 
 *Android (Chrome):*
 1. Toque nos três pontos ⋮
