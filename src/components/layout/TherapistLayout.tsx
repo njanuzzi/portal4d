@@ -9,6 +9,7 @@ import {
   Menu,
   ChevronRight,
   CalendarDays,
+  Brain,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -23,6 +24,7 @@ const navItems: NavItem[] = [
   { to: '/clients', label: 'Clientes', icon: <Users size={18} /> },
   { to: '/diaries', label: 'Diários', icon: <BookOpen size={18} /> },
   { to: '/reports', label: 'Relatórios', icon: <FileText size={18} /> },
+  { to: '/schema-respostas', label: 'Esquemas', icon: <Brain size={18} /> },
   { to: '/scheduling', label: 'Agendamento', icon: <CalendarDays size={18} /> },
 ];
 

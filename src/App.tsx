@@ -22,6 +22,7 @@ import { ReportsByClient } from './pages/therapist/ReportsByClient';
 import { ClientSchemaAnalysis } from './pages/therapist/ClientSchemaAnalysis';
 import { SchemaReportDetail } from './pages/therapist/SchemaReportDetail';
 import { ClientFacingReportPreview } from './pages/therapist/ClientFacingReportPreview';
+import { SchemaResponsesRepository } from './pages/therapist/SchemaResponsesRepository';
 import { ClientAccess } from './pages/client/ClientAccess';
 import { ClientDiaryForm } from './pages/client/ClientDiaryForm';
 import { ClientHome } from './pages/client/ClientHome';
@@ -37,6 +38,7 @@ import { Scheduling } from './pages/therapist/Scheduling';
 import { MarketingHome } from './pages/MarketingHome';
 import { Protocolo4D } from './pages/Protocolo4D';
 import { ClientSignup } from './pages/ClientSignup';
+import { SchemaQuestionnaire } from './pages/SchemaQuestionnaire';
 
 function AppRoutes() {
   const location = useLocation();
@@ -75,6 +77,15 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/cadastrocliente" element={<ClientSignup />} />
+      </Routes>
+    );
+  }
+
+  // Schema questionnaire (Inventário de Esquemas) is always public
+  if (location.pathname === '/questionario-esquemas') {
+    return (
+      <Routes>
+        <Route path="/questionario-esquemas" element={<SchemaQuestionnaire />} />
       </Routes>
     );
   }
@@ -122,6 +133,7 @@ function AppRoutes() {
           <Route path="/clients/:id/schema-analysis" element={<ClientSchemaAnalysis />} />
           <Route path="/clients/:id/schema-analysis/report/:reportId" element={<SchemaReportDetail />} />
           <Route path="/clients/:id/schema-analysis/report/:reportId/cliente" element={<ClientFacingReportPreview />} />
+          <Route path="/schema-respostas" element={<SchemaResponsesRepository />} />
           <Route path="/diaries" element={<Diaries />} />
           <Route path="/diaries/new" element={<NewDiary />} />
           <Route path="/diaries/:id" element={<DiaryDetail />} />

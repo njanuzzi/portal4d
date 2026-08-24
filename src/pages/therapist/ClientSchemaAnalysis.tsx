@@ -34,6 +34,10 @@ const reportStatusVariant: Record<string, 'warning' | 'success' | 'neutral'> = {
   published: 'success',
 };
 
+// Rascunho do formulário nativo (por domínio) — o cliente ainda não
+// terminou de responder, então não tem scores calculados ainda.
+const isIncomplete = (status: string) => status === 'in_progress';
+
 export function ClientSchemaAnalysis() {
   const { id } = useParams<{ id: string }>();
   const [client, setClient] = useState<Profile | null>(null);
@@ -146,12 +150,14 @@ export function ClientSchemaAnalysis() {
             const report = reportsByAssessment[assessment.id];
             const isGenerating = generatingId === assessment.id;
             const isGeneratingClient = generatingClientId === assessment.id;
+            const incomplete = isIncomplete(assessment.status);
             return (
               <Card key={assessment.id}>
                 <CardBody className="flex items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-medium text-dark">Versão {assessment.version}</span>
+                      {incomplete && <Badge variant="neutral">Em andamento</Badge>}
                       {report && (
                         <Badge variant={reportStatusVariant[report.status] ?? 'neutral'}>
                           {reportStatusLabel[report.status] ?? report.status}
@@ -159,12 +165,14 @@ export function ClientSchemaAnalysis() {
                       )}
                     </div>
                     <div className="text-xs text-dark/40">
-                      Respondido em {formatDateTime(assessment.submitted_at)}
+                      {incomplete
+                        ? `Iniciado em ${formatDateTime(assessment.submitted_at)} — aguardando o cliente concluir`
+                        : `Respondido em ${formatDateTime(assessment.submitted_at)}`}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {report ? (
+                    {incomplete ? null : report ? (
                       <Link to={`/clients/${id}/schema-analysis/report/${report.id}`}>
                         <Button size="sm" variant="secondary">
                           <Eye size={14} />
