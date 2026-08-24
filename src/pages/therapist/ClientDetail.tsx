@@ -52,6 +52,10 @@ export function ClientDetail() {
   const { id } = useParams<{ id: string }>();
   const [client, setClient] = useState<ClientProfile | null>(null);
   const [linkedDiary, setLinkedDiary] = useState<Diary | null>(null);
+  const [activeDiaries, setActiveDiaries] = useState<Diary[]>([]);
+  const [editingDiary, setEditingDiary] = useState(false);
+  const [diaryDraft, setDiaryDraft] = useState('');
+  const [savingDiary, setSavingDiary] = useState(false);
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [last7Count, setLast7Count] = useState(0);
   const [invites, setInvites] = useState<ClientInvite[]>([]);
@@ -91,6 +95,7 @@ export function ClientDetail() {
       setGoals([]);
       setWaSession(null);
       setWaActivationLink(null);
+      setEditingDiary(false);
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles').select('*').eq('id', id).eq('role', 'client').maybeSingle();
@@ -114,6 +119,7 @@ export function ClientDetail() {
         { data: lastLoginData },
         { data: goalRows },
         { data: waSessionRow },
+        { data: activeDiaryRows },
       ] = await Promise.all([
         supabase.from('diary_entries').select('id, user_id, diary_id, date, created_at')
           .eq('user_id', id).order('date', { ascending: false }).limit(10),
@@ -131,6 +137,8 @@ export function ClientDetail() {
           .eq('client_id', id)
           .order('invite_sent_at', { ascending: false })
           .limit(1),
+        supabase.from('diaries').select('id, name, is_active, created_at')
+          .eq('is_active', true).order('created_at', { ascending: false }),
       ]);
 
       let diaryRow: Diary | null = null;
@@ -150,6 +158,7 @@ export function ClientDetail() {
       setGoals((goalRows ?? []) as ClientGoal[]);
       const waRows = (waSessionRow as WaSession[] | null) ?? [];
       setWaSession(waRows.length > 0 ? waRows[0] : null);
+      setActiveDiaries((activeDiaryRows ?? []) as Diary[]);
 
       const loadError = entriesError?.message || countError?.message;
       if (loadError) setError(loadError);
@@ -179,6 +188,25 @@ export function ClientDetail() {
     }
     setSavingWhatsapp(false);
     setEditingWhatsapp(false);
+  };
+
+  const saveDiary = async () => {
+    if (!client || !diaryDraft) return;
+    setSavingDiary(true);
+    const { error: rpcError } = await supabase.rpc('update_client_profile', {
+      p_client_id: client.id,
+      p_name: client.name,
+      p_email: client.email,
+      p_whatsapp: client.whatsapp,
+      p_address: client.address,
+      p_diary_id: diaryDraft,
+    });
+    if (!rpcError) {
+      setClient({ ...client, diary_id: diaryDraft });
+      setLinkedDiary(activeDiaries.find((d) => d.id === diaryDraft) ?? null);
+      setEditingDiary(false);
+    }
+    setSavingDiary(false);
   };
 
   const toggleActive = async () => {
@@ -385,7 +413,39 @@ export function ClientDetail() {
 
           <div className="flex items-center gap-3 text-sm">
             <BookOpen size={16} className="text-dark/30 shrink-0" />
-            <span className="text-dark/70">Diário vinculado: {diaryName}</span>
+            {editingDiary ? (
+              <div className="flex items-center gap-2 flex-1">
+                <select
+                  value={diaryDraft}
+                  onChange={e => setDiaryDraft(e.target.value)}
+                  className="flex-1 text-sm border border-beige-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-petrol-400"
+                  autoFocus
+                >
+                  {activeDiaries.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+                <button onClick={saveDiary} disabled={savingDiary} className="text-emerald-600 hover:text-emerald-800">
+                  <Check size={15} />
+                </button>
+                <button onClick={() => setEditingDiary(false)} className="text-dark/40 hover:text-dark">
+                  <X size={15} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-1">
+                <span className="text-dark/70">Diário vinculado: {diaryName}</span>
+                {activeDiaries.length > 0 && (
+                  <button
+                    onClick={() => { setDiaryDraft(client.diary_id ?? activeDiaries[0].id); setEditingDiary(true); }}
+                    className="text-dark/30 hover:text-petrol-600 transition-colors"
+                    title="Vincular diário"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3 text-sm">
             <Calendar size={16} className="text-dark/30 shrink-0" />
