@@ -1,5 +1,4 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
@@ -477,11 +476,8 @@ export function SchemaQuestionnaire() {
             <CheckCircle2 size={40} className="text-gold-400 mx-auto mb-4" />
             <h1 className="font-serif text-2xl mb-2 text-balance">Respostas enviadas!</h1>
             <p className="text-petrol-100/80 text-sm leading-relaxed">
-              Obrigada por preencher o inventário. Sua terapeuta vai analisar suas respostas.
+              Obrigada por preencher o inventário. Em breve você receberá meu contato.
             </p>
-            <Link to="/areamembros" className="inline-block mt-6 text-gold-300 text-sm hover:text-gold-200">
-              Ir para o login
-            </Link>
           </div>
         )}
       </div>
