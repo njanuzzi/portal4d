@@ -116,8 +116,9 @@ export function ClientHome() {
         <p className="text-dark/50 text-sm mt-0.5 capitalize">{formatDateLong(today)}</p>
       </div>
 
-      {/* Past pending days warning */}
-      {data!.pastPendingCount > 0 && (
+      {/* Past pending days warning — só cobra depois que o cliente já tem
+          uma meta definida; antes disso não faz sentido pressionar. */}
+      {data!.pastPendingCount > 0 && currentGoal && (
         <Link to="/diary/history" className="block">
           <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 hover:bg-amber-100 transition-colors">
             <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />

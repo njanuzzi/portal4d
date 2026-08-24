@@ -121,20 +121,27 @@ export function DiaryPage() {
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [goalPhase, setGoalPhase] = useState<'new' | 'renew'>('new');
   const [goalDraft, setGoalDraft] = useState('');
-  const [keepingGoal, setKeepingGoal] = useState(false);
+  const [closingNotes, setClosingNotes] = useState('');
+  // true quando o cliente pediu pra mudar de meta por conta própria (pode
+  // cancelar); false no ciclo automático de renovação após 7 registros
+  // (é obrigatório definir a próxima antes de continuar).
+  const [goalChangeOptional, setGoalChangeOptional] = useState(false);
   const [savingGoal, setSavingGoal] = useState(false);
 
-  // Popup de lembrete do diário — só aparece se o cliente ainda não decidiu
-  // (sim/não) e o prazo de "lembrar mais tarde" (se houver) já passou.
+  // Popup de lembrete do diário — só aparece se o cliente já tem uma meta
+  // definida (o sistema só começa a cobrar depois disso) e ainda não
+  // decidiu (sim/não), com o prazo de "lembrar mais tarde" (se houver) já
+  // tendo passado.
   const [showReminderPrompt, setShowReminderPrompt] = useState(false);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || loading) return;
+    if (!currentGoal) { setShowReminderPrompt(false); return; }
     const p = profile as unknown as { diary_reminder_preference: string | null; diary_reminder_next_at: string | null };
     if (p.diary_reminder_preference) { setShowReminderPrompt(false); return; }
     if (p.diary_reminder_next_at && new Date(p.diary_reminder_next_at) > new Date()) { setShowReminderPrompt(false); return; }
     setShowReminderPrompt(true);
-  }, [profile]);
+  }, [profile, currentGoal, loading]);
 
   // ── Load diary + notes ──────────────────────────────────────────────────────
 
@@ -177,13 +184,15 @@ export function DiaryPage() {
         if (!latestGoal) {
           setGoalPhase('new');
           setGoalDraft('');
+          setGoalChangeOptional(false);
           setShowGoalForm(true);
         } else {
           const entriesSinceGoal = total - latestGoal.entry_count_at_creation;
           if (entriesSinceGoal >= 7) {
             setGoalPhase('renew');
             setGoalDraft(latestGoal.goal_text); // pre-fill with previous so client can keep or edit
-            setKeepingGoal(false);
+            setClosingNotes('');
+            setGoalChangeOptional(false);
             setShowGoalForm(true);
           } else {
             setShowGoalForm(false);
@@ -266,10 +275,37 @@ export function DiaryPage() {
 
   // ── Goal submit ─────────────────────────────────────────────────────────────
 
+  const startGoalChange = () => {
+    setGoalPhase('renew');
+    setGoalDraft('');
+    setClosingNotes('');
+    setGoalChangeOptional(true);
+    setShowGoalForm(true);
+  };
+
+  const cancelGoalChange = () => {
+    setShowGoalForm(false);
+    setGoalDraft('');
+    setClosingNotes('');
+    setGoalChangeOptional(false);
+  };
+
   const handleGoalSubmit = async () => {
     const text = goalDraft.trim();
     if (!text) return;
+    if (goalPhase === 'renew' && !closingNotes.trim()) return;
+
     setSavingGoal(true);
+
+    // Encerra a meta anterior com as observações do encerramento antes de
+    // criar a próxima — mantém o histórico completo pro terapeuta acompanhar.
+    if (goalPhase === 'renew' && currentGoal) {
+      await supabase
+        .from('client_goals')
+        .update({ closed_at: new Date().toISOString(), closing_notes: closingNotes.trim() })
+        .eq('id', currentGoal.id);
+    }
+
     const { data: newGoal } = await supabase
       .from('client_goals')
       .insert({
@@ -283,7 +319,8 @@ export function DiaryPage() {
       setCurrentGoal(newGoal as ClientGoal);
       setShowGoalForm(false);
       setGoalDraft('');
-      setKeepingGoal(false);
+      setClosingNotes('');
+      setGoalChangeOptional(false);
     }
     setSavingGoal(false);
   };
@@ -389,26 +426,47 @@ export function DiaryPage() {
                 <p className="text-xs text-dark/50 mt-0.5">
                   {goalPhase === 'new'
                     ? 'Defina uma intenção que guiará suas reflexões nos próximos 7 registros.'
-                    : 'Você completou mais um ciclo de 7 registros. Parabéns! Renove ou ajuste sua meta.'}
+                    : goalChangeOptional
+                      ? 'Encerre o ciclo atual com suas observações e defina a próxima meta.'
+                      : 'Você completou mais um ciclo de 7 registros. Parabéns! Encerre com suas observações e renove ou ajuste sua meta.'}
                 </p>
               </div>
             </div>
 
-            {/* Previous goal (renew only) */}
+            {/* Previous goal + closing notes (renew only) */}
             {goalPhase === 'renew' && currentGoal && (
-              <div className="bg-beige-100 rounded-lg p-3 border border-beige-200">
-                <p className="text-xs font-medium text-dark/40 mb-1">Sua meta do ciclo anterior</p>
-                <p className="text-sm text-dark/70">{currentGoal.goal_text}</p>
+              <div className="space-y-3">
+                <div className="bg-beige-100 rounded-lg p-3 border border-beige-200">
+                  <p className="text-xs font-medium text-dark/40 mb-1">Sua meta do ciclo anterior</p>
+                  <p className="text-sm text-dark/70">{currentGoal.goal_text}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-dark/50 mb-1.5">
+                    Como foi esse ciclo? (obrigatório para encerrar)
+                  </label>
+                  <Textarea
+                    placeholder="Ex: Consegui perceber quando ficava ansiosa, mas ainda preciso praticar mais..."
+                    value={closingNotes}
+                    onChange={e => setClosingNotes(e.target.value.slice(0, 500))}
+                    rows={3}
+                  />
+                  <div className="flex justify-end mt-1">
+                    <span className="text-xs text-dark/30">{closingNotes.length}/500</span>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Textarea */}
             <div>
+              {goalPhase === 'renew' && (
+                <label className="block text-xs font-medium text-dark/50 mb-1.5">Nova meta</label>
+              )}
               <Textarea
                 placeholder={
                   goalPhase === 'new'
                     ? 'Ex: Quero praticar parar e respirar antes de reagir às situações difíceis.'
-                    : 'Edite ou mantenha sua meta para os próximos 7 registros...'
+                    : 'Edite ou mantenha sua meta para o próximo ciclo...'
                 }
                 value={goalDraft}
                 onChange={e => setGoalDraft(e.target.value.slice(0, 300))}
@@ -419,14 +477,21 @@ export function DiaryPage() {
               </div>
             </div>
 
-            <Button
-              onClick={handleGoalSubmit}
-              loading={savingGoal}
-              disabled={!goalDraft.trim()}
-              className="w-full"
-            >
-              {goalPhase === 'new' ? 'Definir minha meta' : 'Confirmar meta'}
-            </Button>
+            <div className="flex gap-2">
+              {goalPhase === 'renew' && goalChangeOptional && (
+                <Button variant="ghost" onClick={cancelGoalChange} disabled={savingGoal} className="flex-1">
+                  Cancelar
+                </Button>
+              )}
+              <Button
+                onClick={handleGoalSubmit}
+                loading={savingGoal}
+                disabled={!goalDraft.trim() || (goalPhase === 'renew' && !closingNotes.trim())}
+                className="flex-1"
+              >
+                {goalPhase === 'new' ? 'Definir minha meta' : 'Confirmar nova meta'}
+              </Button>
+            </div>
           </CardBody>
         </Card>
       )}
@@ -438,9 +503,16 @@ export function DiaryPage() {
           {currentGoal && isToday && (
             <div className="flex items-start gap-2.5 bg-gold-50 border border-gold-200 rounded-xl p-3 mb-4">
               <Target size={14} className="text-gold-600 shrink-0 mt-0.5" />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-gold-700 mb-0.5">Meta desta semana</p>
                 <p className="text-sm text-dark/70 leading-snug">{currentGoal.goal_text}</p>
+                <button
+                  type="button"
+                  onClick={startGoalChange}
+                  className="text-xs text-gold-700 hover:text-gold-900 underline underline-offset-2 mt-1.5"
+                >
+                  Mudar meta
+                </button>
               </div>
             </div>
           )}
