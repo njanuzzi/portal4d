@@ -290,6 +290,25 @@ export function DiaryPage() {
     setGoalChangeOptional(false);
   };
 
+  // Sem nenhum registro de diário feito desde que a meta foi criada — nesse
+  // caso não faz sentido pedir observações de encerramento, então deixa
+  // excluir direto em vez de passar pelo fluxo de "mudar meta".
+  const canDeleteGoal = !!currentGoal && totalEntries === currentGoal.entry_count_at_creation;
+
+  const handleDeleteGoal = async () => {
+    if (!currentGoal) return;
+    if (!window.confirm('Excluir esta meta? Como você ainda não preencheu nenhum diário nela, não fica nada no histórico.')) return;
+    setSavingGoal(true);
+    await supabase.from('client_goals').delete().eq('id', currentGoal.id);
+    setCurrentGoal(null);
+    setGoalPhase('new');
+    setGoalDraft('');
+    setClosingNotes('');
+    setGoalChangeOptional(false);
+    setShowGoalForm(true);
+    setSavingGoal(false);
+  };
+
   const handleGoalSubmit = async () => {
     const text = goalDraft.trim();
     if (!text) return;
@@ -506,13 +525,25 @@ export function DiaryPage() {
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-gold-700 mb-0.5">Meta desta semana</p>
                 <p className="text-sm text-dark/70 leading-snug">{currentGoal.goal_text}</p>
-                <button
-                  type="button"
-                  onClick={startGoalChange}
-                  className="text-xs text-gold-700 hover:text-gold-900 underline underline-offset-2 mt-1.5"
-                >
-                  Mudar meta
-                </button>
+                <div className="flex items-center gap-3 mt-1.5">
+                  <button
+                    type="button"
+                    onClick={startGoalChange}
+                    className="text-xs text-gold-700 hover:text-gold-900 underline underline-offset-2"
+                  >
+                    Mudar meta
+                  </button>
+                  {canDeleteGoal && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteGoal}
+                      disabled={savingGoal}
+                      className="text-xs text-dark/40 hover:text-red-600 underline underline-offset-2 disabled:opacity-50"
+                    >
+                      Excluir meta
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
