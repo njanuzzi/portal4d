@@ -20,6 +20,7 @@ interface ClientTodayStatus {
   entryId: string | null;
   lastEntryDate: string | null;
   daysSinceActivity: number;
+  hasGoal: boolean;
 }
 
 interface Stats {
@@ -81,8 +82,10 @@ export function Dashboard() {
       if (activeClients.length > 0) {
         const clientIds = activeClients.map(c => c.id);
 
-        // Fetch today's entries and all entries (to find last response per client)
-        const [{ data: todayEntryRows }, { data: allEntryRows }] = await Promise.all([
+        // Fetch today's entries, all entries (to find last response per client)
+        // and quais clientes já têm ao menos uma meta cadastrada — o sistema
+        // só cobra preenchimento de quem já passou por essa etapa.
+        const [{ data: todayEntryRows }, { data: allEntryRows }, { data: goalRows }] = await Promise.all([
           supabase
             .from('diary_entries')
             .select('id, user_id')
@@ -93,6 +96,10 @@ export function Dashboard() {
             .select('user_id, date')
             .in('user_id', clientIds)
             .order('date', { ascending: false }),
+          supabase
+            .from('client_goals')
+            .select('user_id')
+            .in('user_id', clientIds),
         ]);
 
         if (cancelled) return;
@@ -100,6 +107,7 @@ export function Dashboard() {
         const respondedMap = new Map(
           (todayEntryRows ?? []).map(e => [e.user_id, e.id])
         );
+        const clientsWithGoal = new Set((goalRows ?? []).map(g => g.user_id));
 
         // Most recent entry date per client (first occurrence per user since sorted desc)
         const lastEntryMap = new Map<string, string>();
@@ -134,6 +142,7 @@ export function Dashboard() {
             entryId: respondedMap.get(c.id) ?? null,
             lastEntryDate,
             daysSinceActivity,
+            hasGoal: clientsWithGoal.has(c.id),
           };
         });
       }
@@ -285,6 +294,27 @@ export function Dashboard() {
                     <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-beige-100 text-dark/40">
                       <Clock size={12} /> Aguardando acesso
                     </span>
+                  ) : !c.hasGoal ? (
+                    // Já acessou, mas ainda não definiu uma meta — o sistema só
+                    // cobra preenchimento depois dessa etapa, então não faz
+                    // sentido mostrar "dias sem responder" ainda.
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-beige-100 text-dark/40">
+                        <XCircle size={12} /> Sem meta cadastrada
+                      </span>
+                      {whatsappLink(c) && (
+                        <a
+                          href={whatsappLink(c)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Enviar lembrete via WhatsApp"
+                          className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 transition-colors"
+                        >
+                          <MessageCircle size={13} />
+                          <span className="hidden sm:inline">Lembrete</span>
+                        </a>
+                      )}
+                    </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1 text-xs text-dark/35">
