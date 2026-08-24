@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Clock, FileText, LogOut, KeyRound } from 'lucide-react';
+import { Home, BookOpen, Clock, FileText, Calendar, LogOut, KeyRound } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { ClientChatbot } from '../client/ClientChatbot';
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/diary', label: 'Diário', icon: BookOpen, end: true },
   { to: '/diary/history', label: 'Histórico', icon: Clock, end: false },
   { to: '/reports', label: 'Relatórios', icon: FileText, end: false },
+  { to: '/scheduling', label: 'Agendar', icon: Calendar, end: false },
 ];
 
 export function ClientLayout({ children }: { children: ReactNode }) {
