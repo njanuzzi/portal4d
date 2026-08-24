@@ -20,16 +20,29 @@ interface Appointment {
   status: 'scheduled' | 'cancelled' | 'rescheduled';
 }
 
-const statusLabel: Record<Appointment['status'], string> = {
+type DisplayStatus = Appointment['status'] | 'completed';
+
+const statusLabel: Record<DisplayStatus, string> = {
   scheduled: 'Confirmado',
+  completed: 'Realizada',
   cancelled: 'Cancelado',
   rescheduled: 'Remarcado',
 };
-const statusVariant: Record<Appointment['status'], 'success' | 'error' | 'warning'> = {
+const statusVariant: Record<DisplayStatus, 'success' | 'error' | 'warning' | 'neutral'> = {
   scheduled: 'success',
+  completed: 'neutral',
   cancelled: 'error',
   rescheduled: 'warning',
 };
+
+// Sem um evento do Cal.com pra "sessão terminou", tratamos como realizada
+// assim que o horário previsto de término (ou 1h após o início, se não
+// tiver end_time) já passou — sem precisar de nenhuma marcação manual.
+function displayStatus(appt: Appointment): DisplayStatus {
+  if (appt.status !== 'scheduled') return appt.status;
+  const endMs = appt.end_time ? new Date(appt.end_time).getTime() : new Date(appt.start_time).getTime() + 60 * 60 * 1000;
+  return endMs < Date.now() ? 'completed' : 'scheduled';
+}
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString('pt-BR', {
@@ -49,17 +62,18 @@ function monthLabel(key: string) {
 }
 
 function AppointmentCard({ appt }: { appt: Appointment }) {
+  const status = displayStatus(appt);
   return (
     <Card>
       <CardBody>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Badge variant={statusVariant[appt.status]}>{statusLabel[appt.status]}</Badge>
+              <Badge variant={statusVariant[status]}>{statusLabel[status]}</Badge>
             </div>
             <div className="text-sm font-medium text-dark capitalize">{formatDateTime(appt.start_time)}</div>
             {appt.title && <div className="text-xs text-dark/40 mt-0.5">{appt.title}</div>}
-            {appt.status === 'scheduled' && (
+            {status === 'scheduled' && (
               <a
                 href={`https://cal.com/booking/${appt.cal_booking_uid}`}
                 target="_blank"
@@ -70,7 +84,7 @@ function AppointmentCard({ appt }: { appt: Appointment }) {
               </a>
             )}
           </div>
-          {appt.status === 'scheduled' && appt.zoom_join_url && (
+          {status === 'scheduled' && appt.zoom_join_url && (
             <a href={appt.zoom_join_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
               <Button size="sm">
                 <Video size={14} />

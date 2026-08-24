@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target, MessageCircle, Copy, ExternalLink, Brain } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target, MessageCircle, Copy, ExternalLink, Brain, Bell, BellOff } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -290,6 +290,7 @@ export function ClientDetail() {
   );
 
   const diaryName = client.diary_id ? linkedDiary?.name ?? 'Diário não encontrado' : 'Não vinculado';
+  const reminderPreference = (client as unknown as { diary_reminder_preference: 'enabled' | 'declined' | null }).diary_reminder_preference;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -393,6 +394,17 @@ export function ClientDetail() {
                 ? `Último acesso em ${formatDateTime(lastLogin)}`
                 : 'Nunca acessou o sistema'}
             </span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
+            {reminderPreference === 'enabled' ? (
+              <Bell size={16} className="text-emerald-500 shrink-0" />
+            ) : (
+              <BellOff size={16} className="text-dark/30 shrink-0" />
+            )}
+            <span className="text-dark/70">Lembrete de diário:</span>
+            <Badge variant={reminderPreference === 'enabled' ? 'success' : reminderPreference === 'declined' ? 'neutral' : 'warning'}>
+              {reminderPreference === 'enabled' ? 'Ativado' : reminderPreference === 'declined' ? 'Desativado' : 'Ainda não decidiu'}
+            </Badge>
           </div>
         </CardBody>
       </Card>
