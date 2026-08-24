@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Video, Calendar, ExternalLink } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Video, Calendar, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -37,10 +37,59 @@ function formatDateTime(iso: string) {
   });
 }
 
+function monthKey(iso: string) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthLabel(key: string) {
+  const [year, month] = key.split('-').map(Number);
+  const label = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function AppointmentCard({ appt }: { appt: Appointment }) {
+  return (
+    <Card>
+      <CardBody>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant={statusVariant[appt.status]}>{statusLabel[appt.status]}</Badge>
+            </div>
+            <div className="text-sm font-medium text-dark capitalize">{formatDateTime(appt.start_time)}</div>
+            {appt.title && <div className="text-xs text-dark/40 mt-0.5">{appt.title}</div>}
+            {appt.status === 'scheduled' && (
+              <a
+                href={`https://cal.com/booking/${appt.cal_booking_uid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-petrol-600 hover:text-petrol-800 underline underline-offset-2 mt-1 inline-block"
+              >
+                Cancelar ou reagendar
+              </a>
+            )}
+          </div>
+          {appt.status === 'scheduled' && appt.zoom_join_url && (
+            <a href={appt.zoom_join_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+              <Button size="sm">
+                <Video size={14} />
+                Entrar
+                <ExternalLink size={12} />
+              </Button>
+            </a>
+          )}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
 export function ClientScheduling() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(() => new Set([monthKey(new Date().toISOString())]));
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -74,9 +123,34 @@ export function ClientScheduling() {
     return () => { supabase.removeChannel(channel); };
   }, [user, load]);
 
+  const toggleMonth = (key: string) => {
+    setExpandedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   const now = Date.now();
-  const upcoming = appointments.filter((a) => a.status !== 'cancelled' && new Date(a.start_time).getTime() >= now - 60 * 60 * 1000);
-  const past = appointments.filter((a) => !upcoming.includes(a));
+  const upcoming = appointments.filter((a) => a.status === 'scheduled' && new Date(a.start_time).getTime() >= now - 60 * 60 * 1000);
+
+  // Histórico: tudo que não é próximo — cancelados e passados. Agrupado por
+  // mês pra não virar uma lista infinita conforme o tempo passa.
+  const historyGroups = useMemo(() => {
+    const history = appointments
+      .filter((a) => !upcoming.includes(a))
+      .slice()
+      .sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+
+    const groups = new Map<string, Appointment[]>();
+    for (const appt of history) {
+      const key = monthKey(appt.start_time);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(appt);
+    }
+    return Array.from(groups.entries()).map(([key, items]) => ({ key, items }));
+  }, [appointments, upcoming]);
 
   return (
     <div>
@@ -94,8 +168,6 @@ export function ClientScheduling() {
         />
       </Card>
 
-      <h2 className="text-sm font-semibold text-dark/60 uppercase tracking-wide mb-3">Meus agendamentos</h2>
-
       {loading ? (
         <PageSpinner />
       ) : appointments.length === 0 ? (
@@ -105,42 +177,47 @@ export function ClientScheduling() {
           description="Marque uma sessão acima para ela aparecer aqui"
         />
       ) : (
-        <div className="space-y-3">
-          {[...upcoming, ...past].map((appt) => (
-            <Card key={appt.id}>
-              <CardBody>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant={statusVariant[appt.status]}>{statusLabel[appt.status]}</Badge>
-                    </div>
-                    <div className="text-sm font-medium text-dark capitalize">{formatDateTime(appt.start_time)}</div>
-                    {appt.title && <div className="text-xs text-dark/40 mt-0.5">{appt.title}</div>}
-                    {appt.status === 'scheduled' && (
-                      <a
-                        href={`https://cal.com/booking/${appt.cal_booking_uid}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-petrol-600 hover:text-petrol-800 underline underline-offset-2 mt-1 inline-block"
+        <>
+          <h2 className="text-sm font-semibold text-dark/60 uppercase tracking-wide mb-3">Próximos</h2>
+          {upcoming.length === 0 ? (
+            <p className="text-sm text-dark/40 mb-6">Nenhum agendamento confirmado no momento.</p>
+          ) : (
+            <div className="space-y-3 mb-6">
+              {upcoming.map((appt) => <AppointmentCard key={appt.id} appt={appt} />)}
+            </div>
+          )}
+
+          {historyGroups.length > 0 && (
+            <>
+              <h2 className="text-sm font-semibold text-dark/60 uppercase tracking-wide mb-3">Histórico</h2>
+              <div className="space-y-2">
+                {historyGroups.map(({ key, items }) => {
+                  const isOpen = expandedMonths.has(key);
+                  return (
+                    <div key={key}>
+                      <button
+                        type="button"
+                        onClick={() => toggleMonth(key)}
+                        className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-beige-100 hover:bg-beige-200 transition-colors text-left"
                       >
-                        Cancelar ou reagendar
-                      </a>
-                    )}
-                  </div>
-                  {appt.status === 'scheduled' && appt.zoom_join_url && (
-                    <a href={appt.zoom_join_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                      <Button size="sm">
-                        <Video size={14} />
-                        Entrar
-                        <ExternalLink size={12} />
-                      </Button>
-                    </a>
-                  )}
-                </div>
-              </CardBody>
-            </Card>
-          ))}
-        </div>
+                        <span className="text-sm font-medium text-dark">{monthLabel(key)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-dark/40">{items.length}</span>
+                          {isOpen ? <ChevronUp size={15} className="text-dark/40" /> : <ChevronDown size={15} className="text-dark/40" />}
+                        </div>
+                      </button>
+                      {isOpen && (
+                        <div className="space-y-3 mt-3">
+                          {items.map((appt) => <AppointmentCard key={appt.id} appt={appt} />)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </>
       )}
     </div>
   );
