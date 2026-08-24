@@ -9,6 +9,7 @@ import { Textarea } from '../../components/ui/Textarea';
 import { ScaleInput } from '../../components/ui/ScaleInput';
 import { Input } from '../../components/ui/Input';
 import { PageSpinner } from '../../components/ui/Spinner';
+import { DiaryReminderPrompt } from '../../components/client/DiaryReminderPrompt';
 import { formatDateLong } from '../../lib/format';
 import type { Diary, DiaryQuestion, DiaryEntry, DayNote } from '../../lib/database.types';
 
@@ -90,7 +91,7 @@ function formatTime(isoString: string) {
 type Tab = 'notes' | 'diary';
 
 export function DiaryPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [searchParams] = useSearchParams();
 
   const diaryDate = resolveDiaryDate(searchParams.get('date'));
@@ -122,6 +123,18 @@ export function DiaryPage() {
   const [goalDraft, setGoalDraft] = useState('');
   const [keepingGoal, setKeepingGoal] = useState(false);
   const [savingGoal, setSavingGoal] = useState(false);
+
+  // Popup de lembrete do diário — só aparece se o cliente ainda não decidiu
+  // (sim/não) e o prazo de "lembrar mais tarde" (se houver) já passou.
+  const [showReminderPrompt, setShowReminderPrompt] = useState(false);
+
+  useEffect(() => {
+    if (!profile) return;
+    const p = profile as unknown as { diary_reminder_preference: string | null; diary_reminder_next_at: string | null };
+    if (p.diary_reminder_preference) { setShowReminderPrompt(false); return; }
+    if (p.diary_reminder_next_at && new Date(p.diary_reminder_next_at) > new Date()) { setShowReminderPrompt(false); return; }
+    setShowReminderPrompt(true);
+  }, [profile]);
 
   // ── Load diary + notes ──────────────────────────────────────────────────────
 
@@ -325,9 +338,14 @@ export function DiaryPage() {
 
   if (loading) return <PageSpinner />;
 
+  const reminderPrompt = showReminderPrompt && profile ? (
+    <DiaryReminderPrompt clientId={profile.id} onResolved={() => setShowReminderPrompt(false)} />
+  ) : null;
+
   if (!diary) {
     return (
       <div className="text-center py-16">
+        {reminderPrompt}
         <BookOpen size={48} className="text-beige-400 mx-auto mb-4" />
         <h2 className="text-lg font-semibold text-dark/60">Nenhum diário ativo</h2>
         <p className="text-dark/40 text-sm mt-1">Aguarde sua terapeuta ativar um diário</p>
@@ -339,6 +357,7 @@ export function DiaryPage() {
 
   return (
     <div>
+      {reminderPrompt}
       {/* Header */}
       <div className="mb-5">
         <h1 className="text-xl font-semibold text-dark font-serif">{diary.name}</h1>
