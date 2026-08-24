@@ -8,9 +8,7 @@ import { PageSpinner } from '../../components/ui/Spinner';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
-// TODO: substituir pelo link real de agendamento do Cal.com (ex:
-// https://cal.com/nubiajanuzzi/sessao) antes de publicar.
-const CAL_LINK = 'https://cal.com/nubiajanuzzi';
+const CAL_LINK = 'https://cal.com/nubia-januzzi-orbex7/sessao-de-mentoria';
 
 interface Appointment {
   id: string;
