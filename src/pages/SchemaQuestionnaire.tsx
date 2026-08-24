@@ -33,7 +33,7 @@ interface Question {
   question_text: string;
 }
 
-type Step = 'loading' | 'identity' | 'domains' | 'done';
+type Step = 'loading' | 'identity' | 'welcome' | 'domains' | 'done';
 
 function loadDraft(): { assessment_id: string } | null {
   try {
@@ -70,6 +70,9 @@ export function SchemaQuestionnaire() {
   const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [hp, setHp] = useState('');
+  const [lgpdConsent, setLgpdConsent] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState(false);
+  const [notifyWhatsapp, setNotifyWhatsapp] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -127,15 +130,30 @@ export function SchemaQuestionnaire() {
     load();
   }, []);
 
-  const handleIdentitySubmit = async (e: FormEvent) => {
+  const handleIdentitySubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
+    if (hp.trim()) return; // honeypot preenchido — provável bot, não avança
+    setStep('welcome');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleWelcomeSubmit = async () => {
+    if (!lgpdConsent) return;
 
     setSubmitting(true);
     setError('');
 
     const { data, error: fnError } = await supabase.functions.invoke('schema-assessment-start', {
-      body: { name: name.trim(), email: email.trim(), whatsapp: whatsapp.trim(), hp },
+      body: {
+        name: name.trim(),
+        email: email.trim(),
+        whatsapp: whatsapp.trim(),
+        hp,
+        lgpd_consent: lgpdConsent,
+        wants_email_notification: notifyEmail,
+        wants_whatsapp_notification: notifyWhatsapp,
+      },
     });
 
     if (fnError || !data?.assessment_id) {
@@ -149,6 +167,7 @@ export function SchemaQuestionnaire() {
     setCurrentDomainIndex(0);
     setStep('domains');
     setSubmitting(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const currentDomain = domains[currentDomainIndex];
@@ -249,14 +268,122 @@ export function SchemaQuestionnaire() {
                 <input id="website" name="website" tabIndex={-1} autoComplete="off" value={hp} onChange={(e) => setHp(e.target.value)} />
               </div>
 
-              {error && (
-                <div className="text-sm text-red-300 bg-red-900/30 border border-red-800 rounded-lg px-3 py-2">{error}</div>
-              )}
-
-              <Button type="submit" variant="secondary" className="w-full" loading={submitting}>
-                Começar
+              <Button type="submit" variant="secondary" className="w-full">
+                Continuar
               </Button>
             </form>
+          </>
+        )}
+
+        {step === 'welcome' && (
+          <>
+            <div className="flex items-center gap-4 mb-6">
+              <img
+                src="/logosistema.png"
+                alt=""
+                className="w-16 h-16 rounded-full object-cover border-2 border-petrol-600 shrink-0"
+              />
+              <h1 className="font-serif text-xl leading-snug text-balance">Bem-vindo(a)!</h1>
+            </div>
+
+            <div className="space-y-5 text-sm text-petrol-100/85 leading-relaxed mb-8">
+              <p>
+                Este formulário foi criado como uma ferramenta segura, prática e confidencial para te ajudar a
+                identificar padrões emocionais profundos, enraizados desde a infância, que influenciam como você
+                sente, pensa, age e se relaciona.
+              </p>
+              <p>
+                Ele é baseado na abordagem da Terapia dos Esquemas, desenvolvida por Jeffrey Young, e aqui é
+                adaptado para fins de autoconhecimento estruturado e acompanhamento terapêutico individualizado.
+              </p>
+
+              <div>
+                <p className="font-semibold text-petrol-50 mb-1.5">Como responder?</p>
+                <p className="mb-2">
+                  Pense em você no presente. Responda com base em como você costuma se sentir, pensar e agir
+                  atualmente, mesmo que já tenha superado algo do passado.
+                </p>
+                <ol className="list-decimal list-inside space-y-1.5">
+                  <li>Tente responder sem pensar demais. A primeira reação emocional ou intuitiva costuma refletir melhor seus esquemas ainda ativos.</li>
+                  <li>Este não é um teste de "certo ou errado". Não existem respostas boas ou ruins. O que buscamos aqui é reconhecimento de padrões, não julgamentos.</li>
+                  <li>O preenchimento costuma levar entre 20 a 30 minutos. Reserve um momento calmo, onde possa se concentrar em você.</li>
+                </ol>
+              </div>
+
+              <div>
+                <p className="font-semibold text-petrol-50 mb-1.5">Quando responder?</p>
+                <p>
+                  Você pode preencher este inventário em qualquer fase da sua vida, mas ele é particularmente útil
+                  em momentos de crise, transição, sofrimento emocional, dúvidas repetitivas ou padrões de
+                  relacionamentos que se repetem.
+                </p>
+              </div>
+
+              <div>
+                <p className="font-semibold text-petrol-50 mb-1.5">Recomenda-se que você:</p>
+                <ol className="list-decimal list-inside space-y-1.5">
+                  <li>Esteja num estado emocional neutro ou leve (nem eufórico, nem em crise intensa).</li>
+                  <li>Se pergunte: "Como costumo reagir, me sentir ou pensar na maior parte do tempo, especialmente em relações significativas?"</li>
+                  <li>Se estiver em sofrimento intenso, o inventário ainda pode ser feito, mas seus resultados deverão ser avaliados com mais cuidado em contexto terapêutico.</li>
+                </ol>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <label className="flex items-start gap-2.5 text-sm text-petrol-100/85 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={notifyEmail}
+                  onChange={(e) => setNotifyEmail(e.target.checked)}
+                  className="mt-0.5 accent-gold-400 w-4 h-4"
+                />
+                Deseja receber notificação por e-mail?
+              </label>
+              <label className="flex items-start gap-2.5 text-sm text-petrol-100/85 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={notifyWhatsapp}
+                  onChange={(e) => setNotifyWhatsapp(e.target.checked)}
+                  className="mt-0.5 accent-gold-400 w-4 h-4"
+                />
+                Deseja receber notificação por WhatsApp?
+              </label>
+            </div>
+
+            <div className="bg-petrol-800/60 border border-petrol-600 rounded-lg px-4 py-4 mb-6">
+              <p className="font-semibold text-petrol-50 text-sm mb-1.5">Termo de Consentimento — LGPD</p>
+              <p className="text-xs text-petrol-100/70 leading-relaxed mb-3">
+                Os dados fornecidos neste formulário serão utilizados exclusivamente para fins de análise e
+                acompanhamento do seu processo terapêutico. Seus dados serão tratados com confidencialidade e
+                segurança, conforme a Lei nº 13.709/2018 (LGPD). Ao prosseguir, você consente com o uso das
+                informações fornecidas.
+              </p>
+              <label className="flex items-start gap-2.5 text-sm text-petrol-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={lgpdConsent}
+                  onChange={(e) => setLgpdConsent(e.target.checked)}
+                  className="mt-0.5 accent-gold-400 w-4 h-4"
+                />
+                Li e concordo com o uso dos meus dados conforme descrito acima
+              </label>
+            </div>
+
+            {error && (
+              <div className="text-sm text-red-300 bg-red-900/30 border border-red-800 rounded-lg px-3 py-2 mb-4">{error}</div>
+            )}
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              loading={submitting}
+              disabled={!lgpdConsent}
+              onClick={handleWelcomeSubmit}
+            >
+              Iniciar
+              <ChevronRight size={16} />
+            </Button>
           </>
         )}
 
