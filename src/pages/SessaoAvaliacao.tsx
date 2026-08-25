@@ -15,12 +15,12 @@ const FAQ_ITEMS = [
   {
     question: 'A sessão de avaliação já resolve alguma coisa, ou é só uma conversa de venda?',
     answer:
-      'Não é uma conversa de venda — é uma sessão de trabalho real, com começo, meio e fim. Ela começa antes de nos falarmos, com o Inventário de Esquemas, e termina com você sabendo qual padrão te trava e quais metas emocionais precisa perseguir — mesmo que decida não seguir para o atendimento individual depois.',
+      'Não é uma conversa de venda — é uma sessão de trabalho real, com começo, meio e fim. Ela começa antes de nos falarmos, com o Mapeamento de Padrões, e termina com você sabendo qual padrão te trava e quais metas emocionais precisa perseguir — mesmo que decida não seguir para o atendimento individual depois.',
   },
   {
     question: 'Preciso preencher alguma coisa antes da sessão?',
     answer:
-      'Sim: ao confirmar e pagar, você recebe o Inventário de Esquemas, um questionário estruturado de 20 a 30 minutos. É ele que me permite chegar na sessão já com uma leitura preparada do seu padrão, em vez de gastar o tempo ao vivo levantando sua história do zero.',
+      'Sim: ao confirmar e pagar, você recebe o Mapeamento de Padrões, um questionário estruturado de 20 a 30 minutos. É ele que me permite chegar na sessão já com uma leitura preparada do seu padrão, em vez de gastar o tempo ao vivo levantando sua história do zero.',
   },
   {
     question: 'E se não fizer sentido seguir?',
@@ -76,9 +76,9 @@ export function SessaoAvaliacao() {
           <ol className="space-y-4">
             {[
               {
-                titulo: 'Você recebe o Inventário de Esquemas',
+                titulo: 'Você recebe o Mapeamento de Padrões',
                 texto:
-                  'Ao confirmar e pagar a sessão, você recebe um questionário completo, baseado na Terapia dos Esquemas de Jeffrey Young, que mapeia com precisão os padrões emocionais que se repetem na sua vida — não é uma ficha de anamnese genérica, é um instrumento estruturado pra rastrear onde o seu travamento nasce.',
+                  'Ao confirmar e pagar a sessão, você recebe o Mapeamento de Padrões — um questionário completo que rastreia com precisão os ciclos emocionais e relacionais que se repetem na sua vida: onde aparecem, com quem, o que sustentam. Não é uma ficha de anamnese genérica, é o instrumento que localiza onde o seu travamento nasce.',
               },
               {
                 titulo: 'Eu analiso suas respostas',
@@ -153,7 +153,7 @@ export function SessaoAvaliacao() {
           {[
             ['Duração da sessão', '2h a 2h30'],
             ['Formato', 'Online, ao vivo'],
-            ['Antes da sessão', 'Inventário de Esquemas (20 a 30 minutos, respondido com calma)'],
+            ['Antes da sessão', 'Mapeamento de Padrões (20 a 30 minutos, respondido com calma)'],
             ['Retorno com a direção', 'Ainda na própria sessão'],
             ['Valor', 'R$ 420,00'],
           ].map(([label, value]) => (
