@@ -11,11 +11,8 @@ export function MarketingHeader({ onOpenMenu }: MarketingHeaderProps) {
     <header className="sticky top-0 z-40 bg-petrol-700 text-white">
       <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
-          <img src="/logosistema.png" alt="Logo" className="w-9 h-9 rounded-lg object-cover shrink-0" />
-          <div>
-            <div className="font-serif text-sm leading-tight">Núbia Januzzi</div>
-            <div className="text-petrol-200 text-xs">Psicoterapeuta</div>
-          </div>
+          <img src="/logosistema.png" alt="Logo" className="w-10 h-10 rounded-full object-cover shrink-0" />
+          <div className="font-serif text-sm leading-tight">Núbia Januzzi</div>
         </Link>
 
         <div className="flex items-center gap-3">
