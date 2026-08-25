@@ -49,11 +49,14 @@ function normalizePhoneE164(raw: string): string {
 // entre cadastros, ou cliente que já mandou mensagem e o Manychat criou o
 // subscriber antes da gente). Tenta com e sem o "+" porque não foi possível
 // confirmar contra uma chamada real qual formato o findBySystemField espera
-// (rede bloqueada pro Manychat neste ambiente de desenvolvimento).
+// (rede bloqueada pro Manychat neste ambiente de desenvolvimento) — a
+// primeira tentativa (system_field_name/system_field_value) voltou "Only
+// phone or email can be specified", indicando que o parâmetro certo é
+// "phone" direto na query string.
 async function findSubscriberByPhone(phone: string): Promise<string | null> {
   const candidates = [phone, phone.replace(/^\+/, "")];
   for (const value of candidates) {
-    const url = `https://api.manychat.com/fb/subscriber/findBySystemField?system_field_name=phone&system_field_value=${encodeURIComponent(value)}`;
+    const url = `https://api.manychat.com/fb/subscriber/findBySystemField?phone=${encodeURIComponent(value)}`;
     const res = await fetch(url, { headers: { "Authorization": `Bearer ${MANYCHAT_API_TOKEN}` } });
     const body = await res.json().catch(() => null);
     console.log("[manychat-register-subscriber] findBySystemField:", { value, status: res.status, body: JSON.stringify(body) });
