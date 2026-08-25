@@ -1,5 +1,5 @@
-import { PARECERES, DISCLAIMER_TEXT, FECHAMENTO_TEXT, STAGE_TITLES, STAGES } from '../src/lib/quizProtocolo4d';
-import type { Stage4D } from '../src/lib/quizProtocolo4d';
+import { PARECERES, DISCLAIMER_TEXT, FECHAMENTO_TEXT, STAGE_TITLES, STAGES } from '../src/lib/quizProtocolo4d.js';
+import type { Stage4D } from '../src/lib/quizProtocolo4d.js';
 
 export const config = { runtime: 'nodejs' };
 
