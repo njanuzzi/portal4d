@@ -61,7 +61,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     question: 'E com seu corpo e autocuidado?',
     options: [
-      { stage: 'detectar', label: 'Só noto que estou esgotada quando o corpo já deu um sinal forte (dor, doença, crise)' },
+      { stage: 'detectar', label: 'Só noto que estou esgotada(o) quando o corpo já deu um sinal forte (dor, doença, crise)' },
       { stage: 'desacelerar', label: 'Sei que preciso parar, mas sigo no automático até não aguentar mais' },
       { stage: 'decodificar', label: 'Entendo que meu corpo reage ao estresse de um jeito específico, mas não sei a raiz' },
       { stage: 'direcionar', label: 'Sei o que meu corpo precisa, mas não consigo sustentar a mudança na rotina' },
@@ -70,7 +70,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     question: 'No trabalho ou nos seus projetos, o que mais trava?',
     options: [
-      { stage: 'detectar', label: 'Não sei dizer se estou insatisfeita ou só cansada — as sensações se misturam' },
+      { stage: 'detectar', label: 'Não sei dizer se estou insatisfeita(o) ou só cansada(o) — as sensações se misturam' },
       { stage: 'desacelerar', label: 'Aceito demanda demais antes de perceber que já passei do limite' },
       { stage: 'decodificar', label: 'Sei que travo sempre no mesmo tipo de situação, mas não entendo a causa' },
       { stage: 'direcionar', label: 'Sei exatamente o que me trava, mas não consigo agir diferente na prática' },
