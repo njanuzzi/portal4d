@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Target, Eye } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { MarketingLayout } from '../components/marketing/MarketingLayout';
 import { InstagramFeed } from '../components/marketing/InstagramFeed';
@@ -22,40 +22,58 @@ export function MarketingHome() {
     <MarketingLayout>
       {/* Hero */}
       <section className="bg-petrol-700 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-20 md:py-28">
-          <p className="text-gold-300 text-xs font-semibold tracking-widest uppercase mb-4">
-            Especialista em Psicoterapia · Criadora do Protocolo 4D
-          </p>
-          <h1 className="font-serif text-4xl md:text-5xl leading-tight max-w-2xl text-balance mb-6">
-            Trabalho com pessoas que já entenderam o problema e continuam travadas.
-          </h1>
-          <p className="text-petrol-100 text-base md:text-lg max-w-xl mb-3 leading-relaxed">
-            Não trabalho com motivação. Trabalho com o mecanismo que produz o travamento.
-          </p>
-          <p className="text-petrol-200 text-sm max-w-xl mb-10">
-            Força de vontade não muda nada. Técnica muda tudo.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <a href="#contato">
-              <Button variant="secondary" size="lg">Agendar uma conversa</Button>
-            </a>
-            <Link to="/areamembros">
-              <Button
-                variant="ghost"
-                size="lg"
-                className="!border-petrol-300 !text-white hover:!bg-petrol-600"
-              >
-                Já sou cliente
-              </Button>
-            </Link>
+        <div className="max-w-5xl mx-auto px-4 py-20 md:py-28 grid md:grid-cols-[1fr_auto] gap-12 items-center">
+          <div>
+            <p className="text-gold-300 text-xs font-semibold tracking-widest uppercase mb-4">
+              Especialista em Desbloqueio Comportamental · Criadora do Protocolo 4D
+            </p>
+            <h1 className="font-serif text-4xl md:text-5xl leading-tight max-w-2xl text-balance mb-6">
+              Trabalho com pessoas que já entenderam o problema e continuam travadas.
+            </h1>
+            <p className="text-petrol-100 text-base md:text-lg max-w-xl mb-3 leading-relaxed">
+              Não trabalho com motivação. Trabalho com o mecanismo que produz o travamento.
+            </p>
+            <p className="text-petrol-200 text-sm max-w-xl mb-10">
+              Força de vontade não muda nada. Técnica muda tudo.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <a href="#contato">
+                <Button variant="secondary" size="lg">Agendar uma conversa</Button>
+              </a>
+              <Link to="/areamembros">
+                <Button
+                  variant="ghost"
+                  size="lg"
+                  className="!border-petrol-300 !text-white hover:!bg-petrol-600"
+                >
+                  Já sou cliente
+                </Button>
+              </Link>
+            </div>
+          </div>
+          <div className="relative mx-auto md:mx-0 shrink-0">
+            <div className="absolute -inset-3 rounded-full border border-gold-400/40" />
+            <img
+              src="/nubia-foto.jpg"
+              alt="Núbia Januzzi"
+              className="relative w-48 h-48 md:w-64 md:h-64 rounded-full object-cover border-4 border-gold-400 shadow-2xl"
+            />
           </div>
         </div>
       </section>
 
       {/* Quem sou eu */}
       <section id="sobre" className="bg-white border-y border-beige-300 scroll-mt-20">
-        <div className="max-w-5xl mx-auto px-4 py-20 grid md:grid-cols-[220px_1fr] gap-10 items-start">
+        <div className="max-w-5xl mx-auto px-4 py-20 grid md:grid-cols-[300px_1fr] gap-12 items-start">
           <div>
+            <div className="relative mb-6 max-w-[280px] mx-auto md:mx-0">
+              <div className="absolute -inset-3 rounded-2xl border border-gold-400/40" />
+              <img
+                src="/nubia-foto.jpg"
+                alt="Núbia Januzzi"
+                className="relative w-full aspect-[4/5] object-cover rounded-2xl border-4 border-gold-400 shadow-xl"
+              />
+            </div>
             <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">Sobre</p>
             <h2 className="font-serif text-3xl text-balance">Núbia Januzzi</h2>
           </div>
@@ -106,61 +124,80 @@ export function MarketingHome() {
       </section>
 
       {/* Missão e visão */}
-      <section id="missao" className="max-w-5xl mx-auto px-4 py-20 scroll-mt-20">
-        <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">
-          Missão e visão
-        </p>
-        <div className="grid sm:grid-cols-2 gap-8">
-          <div>
-            <h3 className="font-serif text-xl mb-2">Missão</h3>
-            <p className="text-petrol-800/80 leading-relaxed mb-3">
-              Trabalhar com pessoas que já entenderam o próprio padrão e continuam travadas — reduzindo a
-              distância entre saber o que precisa ser feito e conseguir fazer.
-            </p>
-            <p className="text-petrol-800/80 leading-relaxed">
-              Não com motivação, disciplina ou produtividade. Com técnica aplicada ao mecanismo que
-              produz o travamento: a origem do padrão, a resposta do corpo e a reconstrução do
-              comportamento.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-serif text-xl mb-2">Visão</h3>
-            <p className="text-petrol-800/80 leading-relaxed mb-3">
-              Consolidar o Protocolo 4D como um método de referência para travamento comportamental —
-              reconhecido pelo que entrega em comportamento observável, não pelo que promete.
-            </p>
-            <p className="text-petrol-800/80 leading-relaxed">
-              E tornar esse trabalho disponível além do atendimento individual, sem diluir o que o faz
-              funcionar: sequência definida, prazo fechado e acompanhamento entre as sessões.
-            </p>
+      <section id="missao" className="relative overflow-hidden scroll-mt-20">
+        <div className="pointer-events-none absolute -right-28 -top-28 w-72 h-72 rounded-full border border-gold-400/30" />
+        <div className="pointer-events-none absolute -left-24 bottom-0 w-56 h-56 rounded-full border border-petrol-300/40" />
+        <div className="relative max-w-5xl mx-auto px-4 py-20">
+          <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">
+            Missão e visão
+          </p>
+          <div className="grid sm:grid-cols-2 gap-8">
+            <div className="bg-white border border-beige-300 rounded-2xl shadow-sm p-8">
+              <span className="w-12 h-12 rounded-full bg-petrol-700 text-gold-300 flex items-center justify-center mb-5">
+                <Target size={20} />
+              </span>
+              <h3 className="font-serif text-xl mb-2">Missão</h3>
+              <p className="text-petrol-800/80 leading-relaxed mb-3">
+                Trabalhar com pessoas que já entenderam o próprio padrão e continuam travadas —
+                reduzindo a distância entre saber o que precisa ser feito e conseguir fazer.
+              </p>
+              <p className="text-petrol-800/80 leading-relaxed">
+                Não com motivação, disciplina ou produtividade. Com técnica aplicada ao mecanismo que
+                produz o travamento: a origem do padrão, a resposta do corpo e a reconstrução do
+                comportamento.
+              </p>
+            </div>
+            <div className="bg-white border border-beige-300 rounded-2xl shadow-sm p-8">
+              <span className="w-12 h-12 rounded-full bg-petrol-700 text-gold-300 flex items-center justify-center mb-5">
+                <Eye size={20} />
+              </span>
+              <h3 className="font-serif text-xl mb-2">Visão</h3>
+              <p className="text-petrol-800/80 leading-relaxed mb-3">
+                Consolidar o Protocolo 4D como um método de referência para travamento comportamental —
+                reconhecido pelo que entrega em comportamento observável, não pelo que promete.
+              </p>
+              <p className="text-petrol-800/80 leading-relaxed">
+                E tornar esse trabalho disponível além do atendimento individual, sem diluir o que o
+                faz funcionar: sequência definida, prazo fechado e acompanhamento entre as sessões.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Protocolo 4D — teaser */}
       <section className="bg-white border-y border-beige-300">
-        <div className="max-w-5xl mx-auto px-4 py-20">
-          <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">O método</p>
-          <h2 className="font-serif text-3xl mb-4 text-balance">Isso tem um nome: Protocolo 4D</h2>
-          <p className="text-petrol-800/80 max-w-2xl mb-10 leading-relaxed">
-            Não é rótulo, não é fórmula pronta — é uma direção. Quatro etapas que se repetem em cada
-            questão que aparece na terapia, até virarem um jeito de olhar para a própria vida.
-          </p>
-          <div className="grid sm:grid-cols-4 gap-4 mb-8">
-            {PILARES.map((p, i) => (
-              <div key={p.titulo} className="bg-beige-100 border border-beige-300 rounded-xl p-4">
-                <span className="text-petrol-400 text-xs font-mono">0{i + 1}</span>
-                <h3 className="font-serif text-lg mt-1">{p.titulo}</h3>
-              </div>
-            ))}
+        <div className="max-w-5xl mx-auto px-4 py-20 grid md:grid-cols-[1fr_260px] gap-12 items-center">
+          <div className="order-2 md:order-1">
+            <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">O método</p>
+            <h2 className="font-serif text-3xl mb-4 text-balance">Isso tem um nome: Protocolo 4D</h2>
+            <p className="text-petrol-800/80 max-w-2xl mb-10 leading-relaxed">
+              Não é rótulo, não é fórmula pronta — é uma direção. Quatro etapas que se repetem em cada
+              questão que aparece na terapia, até virarem um jeito de olhar para a própria vida.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4 mb-8">
+              {PILARES.map((p, i) => (
+                <div key={p.titulo} className="bg-beige-100 border border-beige-300 rounded-xl p-4">
+                  <span className="text-petrol-400 text-xs font-mono">0{i + 1}</span>
+                  <h3 className="font-serif text-lg mt-1">{p.titulo}</h3>
+                </div>
+              ))}
+            </div>
+            <Link
+              to="/protocolo4d"
+              className="inline-flex items-center gap-2 text-petrol-700 font-medium text-sm hover:text-petrol-800"
+            >
+              Entender o Protocolo 4D em detalhe
+              <ArrowRight size={16} />
+            </Link>
           </div>
-          <Link
-            to="/protocolo4d"
-            className="inline-flex items-center gap-2 text-petrol-700 font-medium text-sm hover:text-petrol-800"
-          >
-            Entender o Protocolo 4D em detalhe
-            <ArrowRight size={16} />
-          </Link>
+          <div className="order-1 md:order-2 max-w-[220px] md:max-w-none mx-auto">
+            <img
+              src="/protocolo4d-espiral.png"
+              alt="Espiral do Protocolo 4D: Detectar, Desacelerar, Decodificar, Direcionar"
+              className="w-full rounded-2xl shadow-xl"
+            />
+          </div>
         </div>
       </section>
 
