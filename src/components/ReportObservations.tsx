@@ -19,17 +19,23 @@ interface ObservationRow {
   updated_at: string;
 }
 
-interface ReportObservationsProps {
-  assessmentId: string;
+type ReportObservationsProps = {
   clientId: string;
   /** De qual lado esta tela está sendo vista — decide os rótulos "Você" / "Cliente" / "Terapeuta" e o que é editável. */
   viewerRole: AuthorRole;
-}
+} & (
+  | { assessmentId: string; sessionReportId?: undefined }
+  | { assessmentId?: undefined; sessionReportId: string }
+);
 
 const formatDateTime = (iso: string) =>
   new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-export function ReportObservations({ assessmentId, clientId, viewerRole }: ReportObservationsProps) {
+export function ReportObservations({ assessmentId, sessionReportId, clientId, viewerRole }: ReportObservationsProps) {
+  // Um dos dois sempre está definido (garantido pelo union type acima) —
+  // usado tanto pra filtrar/gravar no banco quanto pra chamar a function.
+  const targetField = assessmentId ? 'assessment_id' : 'session_report_id';
+  const targetId = (assessmentId ?? sessionReportId)!;
   const [items, setItems] = useState<ObservationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,14 +59,14 @@ export function ReportObservations({ assessmentId, clientId, viewerRole }: Repor
     const { data, error: loadError } = await supabase
       .from('report_observations')
       .select('id, parent_id, author_role, message, status, created_at, updated_at')
-      .eq('assessment_id', assessmentId)
+      .eq(targetField, targetId)
       .order('created_at', { ascending: true });
     setItems((data ?? []) as ObservationRow[]);
     if (loadError) setError(loadError.message);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [assessmentId, viewerRole]);
+  useEffect(() => { load(); }, [targetField, targetId, viewerRole]);
 
   const handleCreate = async (mode: 'save' | 'send', parentId: string | null = null) => {
     if (!newMessage.trim()) return;
@@ -71,11 +77,11 @@ export function ReportObservations({ assessmentId, clientId, viewerRole }: Repor
       const { error: insertError } = await (supabase
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('report_observations') as any)
-        .insert({ assessment_id: assessmentId, client_id: clientId, author_role: viewerRole, message: newMessage.trim(), status: 'draft', parent_id: parentId });
+        .insert({ [targetField]: targetId, client_id: clientId, author_role: viewerRole, message: newMessage.trim(), status: 'draft', parent_id: parentId });
       if (insertError) { setError(insertError.message); setComposing(null); return; }
     } else {
       const { error: fnError } = await supabase.functions.invoke('send-report-observation', {
-        body: { assessment_id: assessmentId, message: newMessage.trim(), parent_id: parentId },
+        body: { [targetField]: targetId, message: newMessage.trim(), parent_id: parentId },
       });
       if (fnError) { setError(fnError.message || 'Erro ao enviar.'); setComposing(null); return; }
     }
@@ -110,7 +116,7 @@ export function ReportObservations({ assessmentId, clientId, viewerRole }: Repor
     if (!editText.trim()) return;
     setEditBusy('send');
     const { error: fnError } = await supabase.functions.invoke('send-report-observation', {
-      body: { assessment_id: assessmentId, message: editText.trim(), observation_id: item.id },
+      body: { [targetField]: targetId, message: editText.trim(), observation_id: item.id },
     });
     if (fnError) { setError(fnError.message || 'Erro ao enviar.'); setEditBusy(null); return; }
     setEditingId(null);
@@ -140,7 +146,7 @@ export function ReportObservations({ assessmentId, clientId, viewerRole }: Repor
   const handleSendDraft = async (item: ObservationRow) => {
     setSendingId(item.id);
     const { error: fnError } = await supabase.functions.invoke('send-report-observation', {
-      body: { assessment_id: assessmentId, message: item.message, observation_id: item.id },
+      body: { [targetField]: targetId, message: item.message, observation_id: item.id },
     });
     if (fnError) setError(fnError.message || 'Erro ao enviar.');
     await load();
@@ -163,11 +169,11 @@ export function ReportObservations({ assessmentId, clientId, viewerRole }: Repor
       const { error: insertError } = await (supabase
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('report_observations') as any)
-        .insert({ assessment_id: assessmentId, client_id: clientId, author_role: viewerRole, message: replyText.trim(), status: 'draft', parent_id: parentId });
+        .insert({ [targetField]: targetId, client_id: clientId, author_role: viewerRole, message: replyText.trim(), status: 'draft', parent_id: parentId });
       if (insertError) { setError(insertError.message); setReplyBusy(null); return; }
     } else {
       const { error: fnError } = await supabase.functions.invoke('send-report-observation', {
-        body: { assessment_id: assessmentId, message: replyText.trim(), parent_id: parentId },
+        body: { [targetField]: targetId, message: replyText.trim(), parent_id: parentId },
       });
       if (fnError) { setError(fnError.message || 'Erro ao enviar.'); setReplyBusy(null); return; }
     }
