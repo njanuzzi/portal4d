@@ -1,8 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, MessageCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
+import { buildWhatsAppActivationLink } from '../lib/whatsapp';
 
 const fieldClass =
   'w-full px-3.5 py-2.5 rounded-lg border border-petrol-600 bg-petrol-800 text-white text-sm placeholder:text-petrol-300 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-transparent transition-colors';
@@ -72,9 +73,20 @@ export function ClientSignup() {
             <p className="text-petrol-100/80 text-sm leading-relaxed">
               Você vai receber um e-mail em instantes para definir sua senha e acessar o Portal Núbia Januzzi.
             </p>
-            <Link to="/areamembros" className="inline-block mt-6 text-gold-300 text-sm hover:text-gold-200">
-              Já tenho senha — ir para o login
-            </Link>
+            <a
+              href={buildWhatsAppActivationLink('Oi! Já me cadastrei!')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-medium text-white hover:brightness-105 transition"
+            >
+              <MessageCircle size={16} />
+              Ativar lembretes pelo WhatsApp
+            </a>
+            <div>
+              <Link to="/areamembros" className="inline-block mt-4 text-gold-300 text-sm hover:text-gold-200">
+                Já tenho senha — ir para o login
+              </Link>
+            </div>
           </div>
         ) : (
           <>
