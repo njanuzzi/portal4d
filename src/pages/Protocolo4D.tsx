@@ -1,14 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { MarketingHeader } from '../components/marketing/MarketingHeader';
-import { MarketingFooter } from '../components/marketing/MarketingFooter';
+import { MarketingLayout } from '../components/marketing/MarketingLayout';
 import { PILARES } from '../lib/protocolo4d';
 
 export function Protocolo4D() {
   return (
-    <div className="min-h-screen bg-beige-100 text-dark font-sans">
-      <MarketingHeader />
-
+    <MarketingLayout>
       {/* Hero */}
       <section className="bg-petrol-700 text-white">
         <div className="max-w-3xl mx-auto px-4 py-16 md:py-20">
@@ -53,13 +50,13 @@ export function Protocolo4D() {
             Pronta para aplicar isso à sua própria vida?
           </h2>
           <p className="text-petrol-100 max-w-lg mx-auto mb-8">
-            O Protocolo 4D é o método por trás do acompanhamento clínico — conheça o processo e veja
-            se faz sentido para o seu momento.
+            O Protocolo 4D é o método por trás do atendimento individual — conheça o processo completo,
+            as 24 sessões e os 6 meses, e veja se faz sentido para o seu momento.
           </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <a href="https://wa.me/" target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary" size="lg">Agendar pelo WhatsApp</Button>
-            </a>
+          <div className="flex flex-wrap justify-center gap-3 mb-6">
+            <Link to="/produtos#sessao-avaliacao">
+              <Button variant="secondary" size="lg">Agendar sessão de avaliação</Button>
+            </Link>
             <Link to="/areamembros">
               <Button
                 variant="ghost"
@@ -70,10 +67,11 @@ export function Protocolo4D() {
               </Button>
             </Link>
           </div>
+          <Link to="/atendimento" className="text-petrol-200 text-sm underline hover:text-white">
+            Ver como funciona na prática
+          </Link>
         </div>
       </section>
-
-      <MarketingFooter />
-    </div>
+    </MarketingLayout>
   );
 }

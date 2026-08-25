@@ -1,0 +1,21 @@
+import { ReactNode, useState } from 'react';
+import { MarketingHeader } from './MarketingHeader';
+import { MarketingDrawer } from './MarketingDrawer';
+import { MarketingFooter } from './MarketingFooter';
+
+interface MarketingLayoutProps {
+  children: ReactNode;
+}
+
+export function MarketingLayout({ children }: MarketingLayoutProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-beige-100 text-dark font-sans">
+      <MarketingHeader onOpenMenu={() => setMenuOpen(true)} />
+      <MarketingDrawer open={menuOpen} onClose={() => setMenuOpen(false)} />
+      {children}
+      <MarketingFooter />
+    </div>
+  );
+}

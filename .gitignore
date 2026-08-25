@@ -24,3 +24,5 @@ dist-ssr
 .claude/
 .vercel
 .env*
+conteudo-site/
+supabase/.temp/

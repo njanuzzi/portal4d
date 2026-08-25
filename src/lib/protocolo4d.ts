@@ -1,8 +1,8 @@
-import { Compass, Pause, KeyRound, ArrowRight } from 'lucide-react';
+import { Fingerprint, Pause, KeyRound, ArrowRight } from 'lucide-react';
 
 export const PILARES = [
   {
-    icon: Compass,
+    icon: Fingerprint,
     titulo: 'Detectar',
     texto: 'Reconhecer o padrão que se repete — no trabalho, nas relações, no corpo — antes de tentar mudá-lo.',
     detalhe:

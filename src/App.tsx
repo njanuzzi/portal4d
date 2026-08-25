@@ -40,11 +40,28 @@ import { MarketingHome } from './pages/MarketingHome';
 import { Protocolo4D } from './pages/Protocolo4D';
 import { ClientSignup } from './pages/ClientSignup';
 import { SchemaQuestionnaire } from './pages/SchemaQuestionnaire';
+import { Atendimento } from './pages/Atendimento';
+import { Produtos } from './pages/Produtos';
+import { QuizInstagram } from './pages/QuizInstagram';
+// Desativado até a Núbia criar um Substack direcionado ao Protocolo 4D.
+// import { Blog } from './pages/Blog';
+
+const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/produtos', '/quizinstagram'];
 
 function AppRoutes() {
   const location = useLocation();
   const { user, profile, loading } = useAuth();
   const isClientTokenRoute = /^\/client\/[^/]+(\/diary)?\/?$/.test(location.pathname);
+
+  // Subdomínio dedicado do quiz (lead magnet do Instagram) — qualquer caminho
+  // ali sempre mostra o quiz, sem precisar do /quizinstagram na URL.
+  if (window.location.hostname === 'quizinstagram.nubiajanuzzi.com') {
+    return (
+      <Routes>
+        <Route path="*" element={<QuizInstagram />} />
+      </Routes>
+    );
+  }
 
   // Reset password route is always public
   if (location.pathname === '/reset-password') {
@@ -64,11 +81,15 @@ function AppRoutes() {
     );
   }
 
-  // Protocolo 4D explainer is always public
-  if (location.pathname === '/protocolo4d') {
+  // Marketing pages (method explainers, products, blog) are always public
+  if (ALWAYS_PUBLIC_MARKETING_ROUTES.includes(location.pathname)) {
     return (
       <Routes>
         <Route path="/protocolo4d" element={<Protocolo4D />} />
+        <Route path="/atendimento" element={<Atendimento />} />
+        <Route path="/produtos" element={<Produtos />} />
+        <Route path="/quizinstagram" element={<QuizInstagram />} />
+        {/* <Route path="/blog" element={<Blog />} /> */}
       </Routes>
     );
   }

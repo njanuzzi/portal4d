@@ -1,31 +1,39 @@
-import { Link } from 'react-router-dom';
-import { Instagram, ArrowRight } from 'lucide-react';
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { MarketingHeader } from '../components/marketing/MarketingHeader';
-import { MarketingFooter } from '../components/marketing/MarketingFooter';
+import { MarketingLayout } from '../components/marketing/MarketingLayout';
+import { InstagramFeed } from '../components/marketing/InstagramFeed';
+// Desativado até a Núbia criar um Substack direcionado ao Protocolo 4D (o atual é um espaço livre, fora do tom do site).
+// import { BlogPreview } from '../components/marketing/BlogPreview';
+import { LeadForm } from '../components/marketing/LeadForm';
 import { PILARES } from '../lib/protocolo4d';
 
-// TODO: substituir pelo @ real antes de publicar
-const INSTAGRAM_URL = 'https://instagram.com/';
-
 export function MarketingHome() {
-  return (
-    <div className="min-h-screen bg-beige-100 text-dark font-sans">
-      <MarketingHeader />
+  const location = useLocation();
 
+  useEffect(() => {
+    if (!location.hash) return;
+    const el = document.getElementById(location.hash.slice(1));
+    el?.scrollIntoView({ behavior: 'smooth' });
+  }, [location.hash]);
+
+  return (
+    <MarketingLayout>
       {/* Hero */}
       <section className="bg-petrol-700 text-white">
         <div className="max-w-5xl mx-auto px-4 py-20 md:py-28">
           <p className="text-gold-300 text-xs font-semibold tracking-widest uppercase mb-4">
-            Psicoterapeuta · Criadora do Protocolo 4D
+            Especialista em Psicoterapia · Criadora do Protocolo 4D
           </p>
           <h1 className="font-serif text-4xl md:text-5xl leading-tight max-w-2xl text-balance mb-6">
-            O que se repete em você não é falta de esforço. É um padrão que ainda não foi nomeado.
+            Trabalho com pessoas que já entenderam o problema e continuam travadas.
           </h1>
-          <p className="text-petrol-100 text-base md:text-lg max-w-xl mb-10 leading-relaxed">
-            Trabalho com o Protocolo 4D — um método próprio para ir à raiz do que se repete no trabalho,
-            nas relações e no corpo, e mudar o rumo a partir daí. Atendimento 100% online, através do
-            Portal 4D.
+          <p className="text-petrol-100 text-base md:text-lg max-w-xl mb-3 leading-relaxed">
+            Não trabalho com motivação. Trabalho com o mecanismo que produz o travamento.
+          </p>
+          <p className="text-petrol-200 text-sm max-w-xl mb-10">
+            Força de vontade não muda nada. Técnica muda tudo.
           </p>
           <div className="flex flex-wrap gap-3">
             <a href="#contato">
@@ -44,69 +52,138 @@ export function MarketingHome() {
         </div>
       </section>
 
-      {/* Protocolo 4D — teaser */}
-      <section className="max-w-5xl mx-auto px-4 py-20">
-        <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">O método</p>
-        <h2 className="font-serif text-3xl mb-4 text-balance">Isso tem um nome: Protocolo 4D</h2>
-        <p className="text-petrol-800/80 max-w-2xl mb-10 leading-relaxed">
-          Não é rótulo, não é fórmula pronta — é uma direção. Quatro etapas que se repetem em cada
-          questão que aparece na terapia, até virarem um jeito de olhar para a própria vida.
-        </p>
-        <div className="grid sm:grid-cols-4 gap-4 mb-8">
-          {PILARES.map((p, i) => (
-            <div key={p.titulo} className="bg-white border border-beige-300 rounded-xl p-4">
-              <span className="text-petrol-400 text-xs font-mono">0{i + 1}</span>
-              <h3 className="font-serif text-lg mt-1">{p.titulo}</h3>
-            </div>
-          ))}
-        </div>
-        <Link
-          to="/protocolo4d"
-          className="inline-flex items-center gap-2 text-petrol-700 font-medium text-sm hover:text-petrol-800"
-        >
-          Entender o Protocolo 4D em detalhe
-          <ArrowRight size={16} />
-        </Link>
-      </section>
-
-      {/* Sobre */}
-      <section className="bg-white border-y border-beige-300">
+      {/* Quem sou eu */}
+      <section id="sobre" className="bg-white border-y border-beige-300 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4 py-20 grid md:grid-cols-[220px_1fr] gap-10 items-start">
           <div>
             <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">Sobre</p>
             <h2 className="font-serif text-3xl text-balance">Núbia Januzzi</h2>
           </div>
           <div>
-            {/* TODO: revisar bio e credenciais reais com a Núbia antes de publicar */}
             <p className="text-petrol-800/80 leading-relaxed mb-4">
-              Psicoterapeuta especialista em Desbloqueio Comportamental, com foco em neurociência
-              comportamental. Criou o Protocolo 4D a partir de anos de escuta clínica — um método para
-              transformar padrões que se repetem em direção e clareza.
+              Comecei a atender em 2018. Nos primeiros anos, o padrão que eu via se repetir era sempre o
+              mesmo: a pessoa entendia o próprio funcionamento com clareza, saía da sessão organizada — e
+              travava de novo três dias depois, na hora de fazer.
             </p>
-            <p className="text-petrol-800/80 leading-relaxed">
-              Atendimento 100% online, individual, com acompanhamento estruturado através do Portal 4D —
-              o mesmo espaço onde cada cliente preenche o diário e acompanha os relatórios da sua jornada.
+            <p className="text-petrol-800/80 leading-relaxed mb-4">
+              O problema não estava na sessão. Estava no que acontecia entre uma sessão e outra.
+            </p>
+            <p className="text-petrol-800/80 leading-relaxed mb-4">
+              Foi aí que mudei o formato. Passei a acompanhar as pessoas fora da sessão — não para dar
+              dicas ou motivar, mas para mostrar, no momento exato em que o travamento acontecia, o que
+              estava acontecendo no funcionamento delas. Um GPS, não um manual.
+            </p>
+            <p className="text-petrol-800/80 leading-relaxed mb-4">
+              A mudança foi imediata. E se manteve ao longo de mais de 3 mil horas de atendimento.
+            </p>
+            <p className="text-petrol-800/80 leading-relaxed mb-4">
+              <strong className="text-petrol-900">
+                O Protocolo 4D não foi criado para ser vendido. Foi nomeado depois de já estar
+                funcionando.
+              </strong>{' '}
+              É a estruturação formal de um processo que se repetiu, se corrigiu e se estabilizou na
+              prática — organizado em seis etapas, 24 sessões e seis meses.
+            </p>
+            <p className="text-petrol-800/80 leading-relaxed mb-8">
+              Meu ponto de partida não foi a clínica. Foi o Direito — onde passei anos observando o que
+              faz alguém decidir, adiar ou recuar sob pressão. Vim para o comportamento por essa porta, e
+              nunca deixei de trabalhar com o que é observável.
+            </p>
+
+            <h3 className="font-serif text-lg mb-3">Formação</h3>
+            <ul className="text-petrol-800/80 text-sm leading-relaxed space-y-1.5 mb-4">
+              <li>Pós-graduação em Psicoterapia com ênfase em Abordagem Sistêmica Comportamental — 720h</li>
+              <li>Pós-graduação em Neurociência do Comportamento Humano — PUCRS</li>
+              <li>Formação em Psicoterapia — Instituto Saulo Veríssimo</li>
+              <li>Bacharelado em Direito</li>
+              <li>Pesquisa continuada em Terapia do Esquema e Logoterapia</li>
+            </ul>
+            <p className="text-petrol-900 text-sm font-medium">
+              Mais de 3 mil horas de atendimento desde 2018.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Conteúdo */}
-      <section id="conteudo" className="max-w-5xl mx-auto px-4 py-20">
-        <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">Conteúdo</p>
-        <h2 className="font-serif text-3xl mb-4 text-balance">Reflexões sobre padrões, corpo e comportamento</h2>
-        <p className="text-petrol-800/80 max-w-xl mb-8 leading-relaxed">
-          Por enquanto, o conteúdo vive no Instagram — em breve esse espaço ganha artigos próprios.
+      {/* Missão e visão */}
+      <section id="missao" className="max-w-5xl mx-auto px-4 py-20 scroll-mt-20">
+        <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">
+          Missão e visão
         </p>
-        <a
-          href={INSTAGRAM_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-petrol-700 text-white px-5 py-3 rounded-lg text-sm font-medium hover:bg-petrol-800 transition-colors"
-        >
-          <Instagram size={16} />
-          Seguir no Instagram
-        </a>
+        <div className="grid sm:grid-cols-2 gap-8">
+          <div>
+            <h3 className="font-serif text-xl mb-2">Missão</h3>
+            <p className="text-petrol-800/80 leading-relaxed mb-3">
+              Trabalhar com pessoas que já entenderam o próprio padrão e continuam travadas — reduzindo a
+              distância entre saber o que precisa ser feito e conseguir fazer.
+            </p>
+            <p className="text-petrol-800/80 leading-relaxed">
+              Não com motivação, disciplina ou produtividade. Com técnica aplicada ao mecanismo que
+              produz o travamento: a origem do padrão, a resposta do corpo e a reconstrução do
+              comportamento.
+            </p>
+          </div>
+          <div>
+            <h3 className="font-serif text-xl mb-2">Visão</h3>
+            <p className="text-petrol-800/80 leading-relaxed mb-3">
+              Consolidar o Protocolo 4D como um método de referência para travamento comportamental —
+              reconhecido pelo que entrega em comportamento observável, não pelo que promete.
+            </p>
+            <p className="text-petrol-800/80 leading-relaxed">
+              E tornar esse trabalho disponível além do atendimento individual, sem diluir o que o faz
+              funcionar: sequência definida, prazo fechado e acompanhamento entre as sessões.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Protocolo 4D — teaser */}
+      <section className="bg-white border-y border-beige-300">
+        <div className="max-w-5xl mx-auto px-4 py-20">
+          <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">O método</p>
+          <h2 className="font-serif text-3xl mb-4 text-balance">Isso tem um nome: Protocolo 4D</h2>
+          <p className="text-petrol-800/80 max-w-2xl mb-10 leading-relaxed">
+            Não é rótulo, não é fórmula pronta — é uma direção. Quatro etapas que se repetem em cada
+            questão que aparece na terapia, até virarem um jeito de olhar para a própria vida.
+          </p>
+          <div className="grid sm:grid-cols-4 gap-4 mb-8">
+            {PILARES.map((p, i) => (
+              <div key={p.titulo} className="bg-beige-100 border border-beige-300 rounded-xl p-4">
+                <span className="text-petrol-400 text-xs font-mono">0{i + 1}</span>
+                <h3 className="font-serif text-lg mt-1">{p.titulo}</h3>
+              </div>
+            ))}
+          </div>
+          <Link
+            to="/protocolo4d"
+            className="inline-flex items-center gap-2 text-petrol-700 font-medium text-sm hover:text-petrol-800"
+          >
+            Entender o Protocolo 4D em detalhe
+            <ArrowRight size={16} />
+          </Link>
+        </div>
+      </section>
+
+      {/* Instagram */}
+      <section className="max-w-5xl mx-auto px-4 py-20">
+        <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">Instagram</p>
+        <h2 className="font-serif text-3xl mb-8 text-balance">O que ando compartilhando</h2>
+        <InstagramFeed />
+      </section>
+
+      {/* Blog — desativado até a Núbia criar um Substack direcionado (ver import comentado acima)
+      <section className="bg-white border-y border-beige-300">
+        <div className="max-w-5xl mx-auto px-4 py-20">
+          <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">Conteúdo</p>
+          <h2 className="font-serif text-3xl mb-8 text-balance">Reflexões sobre padrões, corpo e comportamento</h2>
+          <BlogPreview />
+        </div>
+      </section>
+      */}
+
+      {/* Newsletter */}
+      <section className="max-w-5xl mx-auto px-4 py-20">
+        <LeadForm source="newsletter_home" />
       </section>
 
       {/* CTA fechamento */}
@@ -127,8 +204,6 @@ export function MarketingHome() {
           </a>
         </div>
       </section>
-
-      <MarketingFooter />
-    </div>
+    </MarketingLayout>
   );
 }
