@@ -302,7 +302,19 @@ export function ClientDetail() {
     });
 
     if (fnError || data?.error) {
-      setManychatError(data?.error || fnError?.message || 'Erro ao sincronizar com o Manychat.');
+      // supabase-js não parseia o corpo da resposta em erros não-2xx — o
+      // detalhe real da falha (ex: número já registrado) vem em fnError.context
+      let serverMessage: string | undefined;
+      const context = (fnError as { context?: Response })?.context;
+      if (context) {
+        try {
+          const body = await context.clone().json();
+          serverMessage = body?.error;
+        } catch {
+          // corpo não era JSON, ignora
+        }
+      }
+      setManychatError(data?.error || serverMessage || fnError?.message || 'Erro ao sincronizar com o Manychat.');
       setSyncingManychat(false);
       return;
     }
