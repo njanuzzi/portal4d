@@ -5,8 +5,9 @@ import { Faq } from '../components/marketing/Faq';
 
 const O_QUE_VOCE_SAI_SABENDO = [
   'Qual padrão específico está travando sua execução, nomeado com clareza — não um rótulo genérico como "ansiedade" ou "procrastinação"',
+  'De onde esse padrão vem e o que ele está protegendo ou tentando garantir',
+  'Quais metas emocionais você precisa perseguir a partir de agora — a direção do seu processo, não só o diagnóstico dele',
   'Se esse padrão é do tipo que o Protocolo 4D resolve, ou se o seu caso pede outro tipo de cuidado primeiro',
-  'Um primeiro esboço de onde esse padrão começou e o que ele está protegendo ou tentando garantir',
   'Se faz sentido seguir para o atendimento individual — e por quê, com clareza suficiente pra você decidir sem pressão',
 ];
 
@@ -14,7 +15,12 @@ const FAQ_ITEMS = [
   {
     question: 'A sessão de avaliação já resolve alguma coisa, ou é só uma conversa de venda?',
     answer:
-      'Não é uma conversa de venda — é uma sessão de trabalho real, com começo, meio e fim. Você sai dela com uma leitura concreta do seu padrão, mesmo que decida não seguir para o atendimento individual depois.',
+      'Não é uma conversa de venda — é uma sessão de trabalho real, com começo, meio e fim. Ela começa antes de nos falarmos, com o Inventário de Esquemas, e termina com você sabendo qual padrão te trava e quais metas emocionais precisa perseguir — mesmo que decida não seguir para o atendimento individual depois.',
+  },
+  {
+    question: 'Preciso preencher alguma coisa antes da sessão?',
+    answer:
+      'Sim: ao confirmar e pagar, você recebe o Inventário de Esquemas, um questionário estruturado de 20 a 30 minutos. É ele que me permite chegar na sessão já com uma leitura preparada do seu padrão, em vez de gastar o tempo ao vivo levantando sua história do zero.',
   },
   {
     question: 'E se não fizer sentido seguir?',
@@ -54,45 +60,76 @@ export function SessaoAvaliacao() {
       </section>
 
       {/* O que acontece */}
-      <section className="max-w-3xl mx-auto px-4 py-16 space-y-6">
-        <h2 className="font-serif text-2xl mb-2">O que acontece nessa sessão</h2>
-        <p className="text-petrol-800/80 leading-relaxed">
-          Quatro movimentos, na mesma sessão:
-        </p>
-        <ol className="space-y-4">
-          {[
-            {
-              titulo: 'Você conta o que te trouxe aqui',
-              texto:
-                'Não é levantar anos de história — é descrever o padrão específico: onde ele trava, há quanto tempo se repete, o que você já tentou.',
-            },
-            {
-              titulo: 'Eu identifico o mecanismo',
-              texto:
-                'A que tipo de padrão isso corresponde, e se há sinais de que seu caso precisa de outro tipo de cuidado antes de qualquer protocolo comportamental.',
-            },
-            {
-              titulo: 'Te devolvo uma leitura direta',
-              texto:
-                'Não um diagnóstico genérico — uma leitura concreta de como esse padrão específico provavelmente está se sustentando na sua vida hoje.',
-            },
-            {
-              titulo: 'Decidimos o próximo passo',
-              texto:
-                'Seguir para o atendimento individual (24 sessões, 6 meses), ou não seguir agora — com indicação do que buscar em vez disso.',
-            },
-          ].map((item, i) => (
-            <li key={item.titulo} className="flex gap-4">
-              <span className="shrink-0 w-8 h-8 rounded-full bg-petrol-700 text-gold-300 flex items-center justify-center font-mono text-sm">
-                {i + 1}
-              </span>
-              <div>
-                <h3 className="font-serif text-lg mb-1">{item.titulo}</h3>
-                <p className="text-petrol-800/80 leading-relaxed">{item.texto}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+      <section className="max-w-3xl mx-auto px-4 py-16 space-y-10">
+        <div>
+          <h2 className="font-serif text-2xl mb-2">O que acontece nessa sessão</h2>
+          <p className="text-petrol-800/80 leading-relaxed">
+            Não é uma conversa aberta pra ver no que dá. É um processo com começo definido antes de você
+            nem me ver ao vivo.
+          </p>
+        </div>
+
+        <div>
+          <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-4">
+            Antes da sessão
+          </p>
+          <ol className="space-y-4">
+            {[
+              {
+                titulo: 'Você recebe o Inventário de Esquemas',
+                texto:
+                  'Ao confirmar e pagar a sessão, você recebe um questionário completo, baseado na Terapia dos Esquemas de Jeffrey Young, que mapeia com precisão os padrões emocionais que se repetem na sua vida — não é uma ficha de anamnese genérica, é um instrumento estruturado pra rastrear onde o seu travamento nasce.',
+              },
+              {
+                titulo: 'Eu analiso suas respostas',
+                texto:
+                  'Antes de falarmos ao vivo, eu debruço sobre o que você escreveu e preparo a devolutiva: a que tipo de padrão isso corresponde, de onde ele provavelmente vem, e se há sinais de que seu caso pede outro tipo de cuidado antes de qualquer protocolo comportamental.',
+              },
+            ].map((item, i) => (
+              <li key={item.titulo} className="flex gap-4">
+                <span className="shrink-0 w-8 h-8 rounded-full bg-petrol-700 text-gold-300 flex items-center justify-center font-mono text-sm">
+                  {i + 1}
+                </span>
+                <div>
+                  <h3 className="font-serif text-lg mb-1">{item.titulo}</h3>
+                  <p className="text-petrol-800/80 leading-relaxed">{item.texto}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div>
+          <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-4">
+            Na sessão
+          </p>
+          <ol className="space-y-4">
+            {[
+              {
+                titulo: 'Eu te devolvo a leitura, ao vivo',
+                texto:
+                  'Essa sessão não é pra você me contar sua história do zero — é pra eu te devolver o que enxerguei nela: o padrão nomeado com precisão, a função que ele cumpre, e por que ele continua ativo hoje.',
+                n: 3,
+              },
+              {
+                titulo: 'Você sai com direção, não só com diagnóstico',
+                texto:
+                  'Mesmo sendo uma sessão única, você sai dali sabendo qual padrão te trava e quais metas emocionais precisa perseguir a partir de agora. O trabalho de reconstruir o comportamento na prática — repetir, sustentar, consolidar — acontece dentro do Protocolo 4D. Mas a direção, você já leva no mesmo dia.',
+                n: 4,
+              },
+            ].map((item) => (
+              <li key={item.titulo} className="flex gap-4">
+                <span className="shrink-0 w-8 h-8 rounded-full bg-petrol-700 text-gold-300 flex items-center justify-center font-mono text-sm">
+                  {item.n}
+                </span>
+                <div>
+                  <h3 className="font-serif text-lg mb-1">{item.titulo}</h3>
+                  <p className="text-petrol-800/80 leading-relaxed">{item.texto}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
       </section>
 
       {/* O que você sai sabendo */}
@@ -114,10 +151,10 @@ export function SessaoAvaliacao() {
         <h2 className="font-serif text-2xl mb-6">Estrutura</h2>
         <dl className="grid sm:grid-cols-2 gap-4 mb-10">
           {[
-            ['Duração', '[a definir]'],
+            ['Duração da sessão', '[a definir]'],
             ['Formato', 'Online, ao vivo'],
-            ['Preparo necessário', 'Nenhum — só disposição para descrever o padrão com honestidade'],
-            ['Retorno com a decisão', 'Ainda na própria sessão'],
+            ['Antes da sessão', 'Inventário de Esquemas (20 a 30 minutos, respondido com calma)'],
+            ['Retorno com a direção', 'Ainda na própria sessão'],
             ['Valor', '[a definir]'],
           ].map(([label, value]) => (
             <div key={label} className="bg-beige-100 border border-beige-300 rounded-xl p-4">
