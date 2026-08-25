@@ -8,6 +8,7 @@ import { PageSpinner } from './components/ui/Spinner';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/therapist/Dashboard';
 import { Clients } from './pages/therapist/Clients';
+import { Leads } from './pages/therapist/Leads';
 import { NewClient } from './pages/therapist/NewClient';
 import { ClientDetail } from './pages/therapist/ClientDetail';
 import { ClientEntries } from './pages/therapist/ClientEntries';
@@ -147,6 +148,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/clients" element={<Clients />} />
+          <Route path="/leads" element={<Leads />} />
           <Route path="/clients/new" element={<NewClient />} />
           <Route path="/clients/:id" element={<ClientDetail />} />
           <Route path="/clients/:id/entries" element={<ClientEntries />} />

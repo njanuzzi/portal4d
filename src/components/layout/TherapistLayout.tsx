@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CalendarDays,
   Brain,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,6 +23,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
   { to: '/clients', label: 'Clientes', icon: <Users size={18} /> },
+  { to: '/leads', label: 'Leads', icon: <Sparkles size={18} /> },
   { to: '/diaries', label: 'Diários', icon: <BookOpen size={18} /> },
   { to: '/reports', label: 'Relatórios', icon: <FileText size={18} /> },
   { to: '/schema-respostas', label: 'Esquemas', icon: <Brain size={18} /> },
