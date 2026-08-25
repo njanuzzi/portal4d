@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ArrowLeft, CalendarClock, ChevronRight, Plus } from 'lucide-react';
+import { ArrowLeft, CalendarClock, ChevronRight, Plus, RefreshCw } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -61,6 +61,20 @@ export function SessionReports() {
   const [addOpen, setAddOpen] = useState(false);
   const [newDate, setNewDate] = useState(todayISO());
   const [adding, setAdding] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
+
+  const loadReports = async () => {
+    if (!clientId) return null;
+    const { data, error: reportsError } = await untypedSupabase
+      .from('session_reports')
+      .select('id, session_date, title, status')
+      .eq('client_id', clientId)
+      .order('session_date', { ascending: false });
+    setReports((data ?? []) as SessionReportRow[]);
+    if (reportsError) setError(reportsError.message);
+    return data;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -70,26 +84,48 @@ export function SessionReports() {
       setLoading(true);
       setError('');
 
-      const [{ data: clientRow, error: clientError }, { data: reportRows, error: reportsError }] = await Promise.all([
+      const [{ data: clientRow, error: clientError }] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', clientId).eq('role', 'client').maybeSingle(),
-        untypedSupabase
-          .from('session_reports')
-          .select('id, session_date, title, status')
-          .eq('client_id', clientId)
-          .order('session_date', { ascending: false }),
+        loadReports(),
       ]);
 
       if (cancelled) return;
 
       setClient((clientRow ?? null) as ClientProfile | null);
-      setReports((reportRows ?? []) as SessionReportRow[]);
-      setError(clientError?.message || reportsError?.message || '');
+      setError(clientError?.message || '');
       setLoading(false);
     };
 
     load();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
+
+  const handleSync = async () => {
+    if (!clientId) return;
+    setSyncing(true);
+    setSyncMessage('');
+    setError('');
+
+    const { data, error: fnError } = await supabase.functions.invoke('sync-notion-sessions', {
+      body: { client_id: clientId },
+    });
+
+    setSyncing(false);
+    if (fnError || data?.error) {
+      setError(data?.error || fnError?.message || 'Não foi possível sincronizar agora.');
+      return;
+    }
+
+    const parts: string[] = [];
+    if (data.synced) parts.push(`${data.synced} nova${data.synced !== 1 ? 's' : ''}`);
+    if (data.adopted) parts.push(`${data.adopted} preenchida${data.adopted !== 1 ? 's' : ''} num rascunho existente`);
+    if (data.skipped) parts.push(`${data.skipped} já sincronizada${data.skipped !== 1 ? 's' : ''} antes`);
+    setSyncMessage(parts.length > 0 ? `Sincronizado: ${parts.join(', ')}.` : (data.message || 'Nenhuma sessão nova encontrada.'));
+    if (data.errors?.length) setError(data.errors.join(' '));
+
+    await loadReports();
+  };
 
   const handleAdd = async () => {
     if (!clientId || !newDate) return;
@@ -143,12 +179,24 @@ export function SessionReports() {
               {reports.length} sessão{reports.length !== 1 ? 'ões' : ''} registrada{reports.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Button onClick={() => { setNewDate(todayISO()); setAddOpen(true); }}>
-            <Plus size={16} />
-            Nova sessão
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" loading={syncing} onClick={handleSync}>
+              <RefreshCw size={16} />
+              Sincronizar
+            </Button>
+            <Button onClick={() => { setNewDate(todayISO()); setAddOpen(true); }}>
+              <Plus size={16} />
+              Nova sessão
+            </Button>
+          </div>
         </div>
       </div>
+
+      {syncMessage && (
+        <div className="mb-4 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+          {syncMessage}
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -160,8 +208,13 @@ export function SessionReports() {
         <EmptyState
           icon={<CalendarClock size={40} />}
           title="Nenhum relatório de sessão ainda"
-          description="Adicione a primeira sessão manualmente pra começar"
-          action={<Button onClick={() => { setNewDate(todayISO()); setAddOpen(true); }}><Plus size={16} />Nova sessão</Button>}
+          description="Sincronize com o Notion ou adicione a primeira sessão manualmente"
+          action={
+            <div className="flex gap-2">
+              <Button variant="ghost" loading={syncing} onClick={handleSync}><RefreshCw size={16} />Sincronizar</Button>
+              <Button onClick={() => { setNewDate(todayISO()); setAddOpen(true); }}><Plus size={16} />Nova sessão</Button>
+            </div>
+          }
         />
       ) : (
         <div className="space-y-6">

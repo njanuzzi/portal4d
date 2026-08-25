@@ -134,8 +134,7 @@ serve(async (req) => {
         .single();
       if (assessmentError || !assessment) throw assessmentError ?? new Error("Assessment não encontrado");
       clientId = assessment.client_id;
-      // deno-lint-ignore no-explicit-any
-      clientProfile = (assessment as any).profiles;
+      clientProfile = (assessment as unknown as { profiles: typeof clientProfile }).profiles;
       reportLabel = "relatório de esquemas";
     } else {
       const { data: sessionReport, error: sessionReportError } = await supabase
@@ -145,8 +144,7 @@ serve(async (req) => {
         .single();
       if (sessionReportError || !sessionReport) throw sessionReportError ?? new Error("Relatório de sessão não encontrado");
       clientId = sessionReport.client_id;
-      // deno-lint-ignore no-explicit-any
-      clientProfile = (sessionReport as any).profiles;
+      clientProfile = (sessionReport as unknown as { profiles: typeof clientProfile }).profiles;
       reportLabel = "relatório de sessão";
     }
 
