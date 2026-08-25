@@ -20,6 +20,14 @@ export const DISCLAIMER_TEXT =
 export const FECHAMENTO_TEXT =
   'Esse é exatamente o ponto em que a Sessão de Avaliação do Protocolo 4D entra — duas horas para transformar esse retrato em um plano concreto.';
 
+// Link temporário pro WhatsApp da terapeuta — usado enquanto a Sessão de
+// Avaliação (/produtos#sessao-avaliacao) não tem um link de agendamento
+// próprio. Depois que isso mudar, trocar aqui (e não mais no formulário do
+// quiz e no e-mail de resultado, que usam esta mesma constante).
+export const SESSAO_AVALIACAO_WHATSAPP_LINK =
+  'https://wa.me/5548988652228?text=' +
+  encodeURIComponent('Olá! Fiz o quiz do Protocolo 4D e quero minha Sessão de Avaliação.');
+
 interface QuizOption {
   stage: Stage4D;
   label: string;
@@ -77,7 +85,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     ],
   },
   {
-    question: 'Quando você tenta mudar algo em si mesma, o que costuma acontecer?',
+    question: 'Quando você tenta mudar algo em si mesma(o), o que costuma acontecer?',
     options: [
       { stage: 'detectar', label: 'Nem sempre sei nomear o que quero mudar de verdade' },
       { stage: 'desacelerar', label: 'Tomo a decisão, mas na hora H reajo do jeito antigo' },

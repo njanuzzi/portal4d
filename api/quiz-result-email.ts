@@ -1,4 +1,4 @@
-import { PARECERES, DISCLAIMER_TEXT, FECHAMENTO_TEXT, STAGE_TITLES, STAGES } from '../src/lib/quizProtocolo4d.js';
+import { PARECERES, DISCLAIMER_TEXT, FECHAMENTO_TEXT, STAGE_TITLES, STAGES, SESSAO_AVALIACAO_WHATSAPP_LINK } from '../src/lib/quizProtocolo4d.js';
 import type { Stage4D } from '../src/lib/quizProtocolo4d.js';
 
 export const config = { runtime: 'nodejs' };
@@ -27,7 +27,7 @@ function buildHtmlBody(name: string, stage: Stage4D): string {
       <p style="line-height: 1.6; margin-top: 24px;">${FECHAMENTO_TEXT}</p>
       <p style="margin-top: 20px;">
         <a
-          href="https://nubiajanuzzi.com/produtos#sessao-avaliacao"
+          href="${SESSAO_AVALIACAO_WHATSAPP_LINK}"
           style="background: #2c5f5f; color: #fff; padding: 12px 20px; border-radius: 8px; text-decoration: none; display: inline-block;"
         >
           Quero minha Sessão de Avaliação
