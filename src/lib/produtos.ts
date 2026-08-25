@@ -11,14 +11,14 @@ export const PRODUTOS: Produto[] = [
     nome: 'Sessão de Avaliação',
     descricao:
       'Sessão individual para identificar o padrão que está travando sua execução e definir se o Protocolo 4D faz sentido para o seu caso. É por aqui que o acesso ao protocolo acontece.',
-    link: '#', // TODO: [preencher] link de agendamento/pagamento da sessão de avaliação
+    link: '/sessao-avaliacao',
     slug: 'sessao-avaliacao',
   },
   {
     nome: 'Atendimento Individual — Protocolo 4D',
     descricao:
       'Método comportamental estruturado em 24 sessões ao longo de 6 meses, para quem sabe exatamente o que precisa fazer e mesmo assim não faz. Entrada por sessão de avaliação.',
-    link: '/protocolo4d',
+    link: '/atendimento',
     slug: 'atendimento-individual',
   },
   // Comentados até os PDFs serem atualizados (checklist em conteudo-site/textos/produtos.txt) — não apagar.
