@@ -1,8 +1,8 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { CheckCircle2, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
-import { buildWhatsAppActivationLink } from '../lib/whatsapp';
+// import { WHATSAPP_ACTIVATION_LINK } from '../lib/whatsapp'; — desativado, ver botão abaixo
 
 const fieldClass =
   'w-full px-3.5 py-2.5 rounded-lg border border-petrol-600 bg-petrol-800 text-white text-sm placeholder:text-petrol-300 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-transparent transition-colors';
@@ -483,9 +483,14 @@ export function SchemaQuestionnaire() {
             <p className="text-petrol-100/80 text-sm leading-relaxed">
               Obrigada por preencher o inventário. Em breve você receberá meu contato.
             </p>
+            {/* Botão de ativação do WhatsApp desativado temporariamente —
+                automações do Manychat não estão enviando mensagem alguma
+                (aberto chamado com o suporte deles). Reativar assim que
+                resolver: descomentar o import de WHATSAPP_ACTIVATION_LINK
+                e este bloco.
             {notifyWhatsapp && (
               <a
-                href={buildWhatsAppActivationLink('Olá, já respondi o formulário!')}
+                href={WHATSAPP_ACTIVATION_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-medium text-white hover:brightness-105 transition"
@@ -494,6 +499,7 @@ export function SchemaQuestionnaire() {
                 Ativar lembretes pelo WhatsApp
               </a>
             )}
+            */}
           </div>
         )}
       </div>
