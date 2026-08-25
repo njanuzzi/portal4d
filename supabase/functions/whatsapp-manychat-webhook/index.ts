@@ -14,6 +14,14 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Sempre responde em JSON — o Manychat pode ter "Mapeamento de respostas"
+// configurado na External Request esperando JSON; uma resposta em texto
+// puro pode travar a continuação do fluxo silenciosamente na produção
+// (mesmo funcionando na pré-visualização, que não executa a chamada real).
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
 // Sequência de opt-in em 3 perguntas (configurada no Flow Builder do
 // Manychat, com botões de resposta rápida) — cada botão dispara uma
 // External Request pra cá com uma dessas keywords. Guardamos a resposta
@@ -60,7 +68,7 @@ serve(async (req) => {
   }
 
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+    return json({ status: "error", error: "Method not allowed" }, 405);
   }
 
   try {
@@ -70,7 +78,7 @@ serve(async (req) => {
     const { whatsapp_id, last_text_input, keyword } = body;
 
     if (!whatsapp_id || !keyword) {
-      return new Response("Campos obrigatórios: whatsapp_id, keyword", { status: 400, headers: corsHeaders });
+      return json({ status: "error", error: "Campos obrigatórios: whatsapp_id, keyword" }, 400);
     }
 
     // Normaliza o número para o mesmo formato salvo no banco
@@ -100,7 +108,7 @@ serve(async (req) => {
 
     if (!session) {
       console.log("[manychat-webhook] nenhuma sessão encontrada para:", phone);
-      return new Response("OK", { status: 200, headers: corsHeaders });
+      return json({ status: "ok", session_found: false });
     }
 
     // Atualiza janela 24h
@@ -181,12 +189,9 @@ serve(async (req) => {
       console.log(`[manychat-webhook] opt-in ${optin.column}=${optin.value} para:`, phone);
     }
 
-    return new Response("OK", { status: 200, headers: corsHeaders });
+    return json({ status: "ok" });
   } catch (err) {
     console.error("[manychat-webhook] erro:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ status: "error", error: String(err) }, 500);
   }
 });
