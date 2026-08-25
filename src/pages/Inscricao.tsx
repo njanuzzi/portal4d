@@ -109,29 +109,44 @@ export function Inscricao() {
     e.preventDefault();
     setStatus('loading');
 
+    const answers = {
+      idade,
+      sexo,
+      estado_civil: estadoCivil,
+      profissao,
+      como_conheceu: comoConheceu,
+      ja_fez_terapia: jaFezTerapia,
+      o_que_fez_parar: oQueFezParar || null,
+      motivo,
+      travamento_areas: travamentoAreas,
+      travamento_detalhe: travamentoDetalhe || null,
+      autoavaliacao,
+      triagem_clinica: triagemClinica,
+    };
+
     const { error } = await untypedSupabase.rpc('submit_lead', {
       p_name: name,
       p_email: email,
       p_whatsapp: whatsapp,
       p_source: 'sessao_avaliacao',
       p_status: 'selecao',
-      p_answers: {
-        idade,
-        sexo,
-        estado_civil: estadoCivil,
-        profissao,
-        como_conheceu: comoConheceu,
-        ja_fez_terapia: jaFezTerapia,
-        o_que_fez_parar: oQueFezParar || null,
-        motivo,
-        travamento_areas: travamentoAreas,
-        travamento_detalhe: travamentoDetalhe || null,
-        autoavaliacao,
-        triagem_clinica: triagemClinica,
-      },
+      p_answers: answers,
     });
 
-    setStatus(error ? 'error' : 'done');
+    if (error) {
+      setStatus('error');
+      return;
+    }
+
+    setStatus('done');
+
+    fetch('/api/inscricao-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, whatsapp, answers }),
+    }).catch(() => {
+      // Envio do e-mail é best-effort — a inscrição já foi registrada.
+    });
   }
 
   if (status === 'done') {

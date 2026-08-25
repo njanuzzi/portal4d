@@ -8,6 +8,7 @@ import { PageSpinner } from '../../components/ui/Spinner';
 import { formatDateTime } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
 import { STAGE_TITLES, STAGES, Stage4D } from '../../lib/quizProtocolo4d';
+import { ANSWER_LABELS, formatAnswerValue } from '../../lib/inscricaoAnswers';
 
 // leads não está no database.types.ts (gerado antes dessa tabela existir) —
 // mesmo padrão de client não tipado usado em LeadForm.tsx e QuizInstagram.tsx.
@@ -44,21 +45,6 @@ const STATUS_BADGE_VARIANT: Record<LeadStatus, 'neutral' | 'warning' | 'success'
   encaminhado: 'info',
 };
 
-const ANSWER_LABELS: Record<string, string> = {
-  idade: 'Idade',
-  sexo: 'Sexo',
-  estado_civil: 'Estado civil',
-  profissao: 'Profissão',
-  como_conheceu: 'Como conheceu a Núbia',
-  ja_fez_terapia: 'Já fez terapia antes',
-  o_que_fez_parar: 'O que fez parar / o que faltou',
-  motivo: 'O que trouxe até aqui',
-  travamento_areas: 'Onde o travamento aparece mais forte',
-  travamento_detalhe: 'Mais detalhes sobre o travamento',
-  autoavaliacao: 'Por que acha que o Protocolo 4D é pra ela(e)',
-  triagem_clinica: 'Em acompanhamento clínico/psiquiátrico no momento',
-};
-
 function parseQuizStage(source: string): Stage4D | null {
   const match = source.match(/^quiz_instagram_(.+)$/);
   const stage = match?.[1];
@@ -79,12 +65,6 @@ function whatsappLink(whatsapp: string, name: string | null) {
   const firstName = name?.split(' ')[0];
   const msg = encodeURIComponent(firstName ? `Olá, ${firstName}!` : 'Olá!');
   return `https://wa.me/${number}?text=${msg}`;
-}
-
-function formatAnswerValue(value: unknown): string {
-  if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
-  if (value === null || value === undefined || value === '') return '—';
-  return String(value);
 }
 
 const FILTERS: { value: OriginFilter; label: string }[] = [
