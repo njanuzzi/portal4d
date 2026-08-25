@@ -9,8 +9,9 @@ const fieldClass =
 
 const STORAGE_KEY = 'portal_schema_draft';
 
-// Escala padrão de 6 pontos do Inventário de Esquemas de Young — não varia
-// por pergunta, então fica fixa aqui em vez de vir do banco.
+// Escala padrão de 6 pontos do Mapeamento de Padrões (Inventário de Esquemas
+// de Young, nome interno) — não varia por pergunta, então fica fixa aqui em
+// vez de vir do banco.
 const SCALE = [
   { value: 1, label: 'Completamente falsa' },
   { value: 2, label: 'A maior parte é falsa' },
@@ -239,9 +240,9 @@ export function SchemaQuestionnaire() {
 
         {step === 'identity' && (
           <>
-            <h1 className="font-serif text-2xl text-center mb-3 text-balance">Inventário de Esquemas</h1>
+            <h1 className="font-serif text-2xl text-center mb-3 text-balance">Mapeamento de Padrões</h1>
             <p className="text-petrol-100/70 text-sm text-center leading-relaxed mb-8">
-              Esse inventário tem 205 perguntas, divididas por tema. Você pode fechar e voltar depois — suas
+              Esse questionário tem 205 perguntas, divididas por tema. Você pode fechar e voltar depois — suas
               respostas ficam salvas automaticamente a cada etapa.
             </p>
 
@@ -297,8 +298,9 @@ export function SchemaQuestionnaire() {
                 sente, pensa, age e se relaciona.
               </p>
               <p>
-                Ele é baseado na abordagem da Terapia dos Esquemas, desenvolvida por Jeffrey Young, e aqui é
-                adaptado para fins de autoconhecimento estruturado e acompanhamento terapêutico individualizado.
+                Ele foi construído pra localizar com precisão os ciclos emocionais e relacionais que se
+                repetem na sua vida, e aqui é adaptado para fins de autoconhecimento estruturado e
+                acompanhamento terapêutico individualizado.
               </p>
 
               <div>
@@ -308,7 +310,7 @@ export function SchemaQuestionnaire() {
                   atualmente, mesmo que já tenha superado algo do passado.
                 </p>
                 <ol className="list-decimal list-inside space-y-1.5">
-                  <li>Tente responder sem pensar demais. A primeira reação emocional ou intuitiva costuma refletir melhor seus esquemas ainda ativos.</li>
+                  <li>Tente responder sem pensar demais. A primeira reação emocional ou intuitiva costuma refletir melhor seus padrões ainda ativos.</li>
                   <li>Este não é um teste de "certo ou errado". Não existem respostas boas ou ruins. O que buscamos aqui é reconhecimento de padrões, não julgamentos.</li>
                   <li>O preenchimento costuma levar entre 20 a 30 minutos. Reserve um momento calmo, onde possa se concentrar em você.</li>
                 </ol>
@@ -317,7 +319,7 @@ export function SchemaQuestionnaire() {
               <div>
                 <p className="font-semibold text-petrol-50 mb-1.5">Quando responder?</p>
                 <p>
-                  Você pode preencher este inventário em qualquer fase da sua vida, mas ele é particularmente útil
+                  Você pode preencher este questionário em qualquer fase da sua vida, mas ele é particularmente útil
                   em momentos de crise, transição, sofrimento emocional, dúvidas repetitivas ou padrões de
                   relacionamentos que se repetem.
                 </p>
@@ -328,7 +330,7 @@ export function SchemaQuestionnaire() {
                 <ol className="list-decimal list-inside space-y-1.5">
                   <li>Esteja num estado emocional neutro ou leve (nem eufórico, nem em crise intensa).</li>
                   <li>Se pergunte: "Como costumo reagir, me sentir ou pensar na maior parte do tempo, especialmente em relações significativas?"</li>
-                  <li>Se estiver em sofrimento intenso, o inventário ainda pode ser feito, mas seus resultados deverão ser avaliados com mais cuidado em contexto terapêutico.</li>
+                  <li>Se estiver em sofrimento intenso, o questionário ainda pode ser feito, mas seus resultados deverão ser avaliados com mais cuidado em contexto terapêutico.</li>
                 </ol>
               </div>
             </div>
@@ -481,7 +483,7 @@ export function SchemaQuestionnaire() {
             <CheckCircle2 size={40} className="text-gold-400 mx-auto mb-4" />
             <h1 className="font-serif text-2xl mb-2 text-balance">Respostas enviadas!</h1>
             <p className="text-petrol-100/80 text-sm leading-relaxed">
-              Obrigada por preencher o inventário. Em breve você receberá meu contato.
+              Obrigada por preencher o questionário. Em breve você receberá meu contato.
             </p>
             {/* Botão de ativação do WhatsApp desativado temporariamente —
                 automações do Manychat não estão enviando mensagem alguma

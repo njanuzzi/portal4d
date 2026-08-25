@@ -108,7 +108,7 @@ function AppRoutes() {
     );
   }
 
-  // Schema questionnaire (Inventário de Esquemas) is always public
+  // Schema questionnaire (public-facing name: "Mapeamento de Padrões") is always public
   if (location.pathname === '/questionario-esquemas') {
     return (
       <Routes>
