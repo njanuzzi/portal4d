@@ -44,6 +44,26 @@ function normalizePhoneE164(raw: string): string {
   return `+${withCountry}`;
 }
 
+// Busca um subscriber já existente no Manychat pelo telefone — usado quando
+// createSubscriber recusa por já existir (ex: número de teste reaproveitado
+// entre cadastros, ou cliente que já mandou mensagem e o Manychat criou o
+// subscriber antes da gente). Tenta com e sem o "+" porque não foi possível
+// confirmar contra uma chamada real qual formato o findBySystemField espera
+// (rede bloqueada pro Manychat neste ambiente de desenvolvimento).
+async function findSubscriberByPhone(phone: string): Promise<string | null> {
+  const candidates = [phone, phone.replace(/^\+/, "")];
+  for (const value of candidates) {
+    const url = `https://api.manychat.com/fb/subscriber/findBySystemField?system_field_name=phone&system_field_value=${encodeURIComponent(value)}`;
+    const res = await fetch(url, { headers: { "Authorization": `Bearer ${MANYCHAT_API_TOKEN}` } });
+    const body = await res.json().catch(() => null);
+    console.log("[manychat-register-subscriber] findBySystemField:", { value, status: res.status, body: JSON.stringify(body) });
+    if (!res.ok || body?.status !== "success") continue;
+    const found = Array.isArray(body?.data) ? body.data[0] : body?.data;
+    if (found?.id) return String(found.id);
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -103,8 +123,24 @@ serve(async (req) => {
         m.toLowerCase().includes("already exists")
       );
       if (alreadyExists) {
+        // Recupera o subscriber_id já existente e vincula a este cliente,
+        // em vez de só falhar — comum quando o número já mandou mensagem
+        // pro WhatsApp antes, ou reaproveita um número já usado em outro
+        // cadastro do portal.
+        const existingId = await findSubscriberByPhone(phone);
+        if (existingId) {
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({ manychat_subscriber_id: existingId })
+            .eq("id", client_id);
+          if (updateError) throw updateError;
+
+          console.log(`[manychat-register-subscriber] Cliente ${client_id} vinculado a subscriber já existente ${existingId}`);
+          return json({ ok: true, subscriber_id: existingId, linked_existing: true });
+        }
+
         return json({
-          error: "Esse número de WhatsApp já está registrado no Manychat em outro cadastro do portal — cada número só pode ter um subscriber.",
+          error: "Esse número de WhatsApp já está registrado no Manychat, mas não consegui recuperar o subscriber_id automaticamente. Veja o console de logs da função para o motivo.",
           status: res.status,
           details: resBody,
         }, 409);
