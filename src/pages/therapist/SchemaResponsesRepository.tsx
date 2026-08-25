@@ -7,7 +7,7 @@ import { Input } from '../../components/ui/Input';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { supabase } from '../../lib/supabase';
-import { buildRawAnswersCsv, downloadCsv } from '../../lib/schemaCsv';
+import { buildRawAnswersCsv, downloadCsv, QuestionRef } from '../../lib/schemaCsv';
 
 interface AssessmentRow {
   id: string;
@@ -26,7 +26,7 @@ function formatDateTime(iso: string) {
 
 export function SchemaResponsesRepository() {
   const [assessments, setAssessments] = useState<AssessmentRow[]>([]);
-  const [questionNumbers, setQuestionNumbers] = useState<number[]>([]);
+  const [questions, setQuestions] = useState<QuestionRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -35,7 +35,7 @@ export function SchemaResponsesRepository() {
       setLoading(true);
 
       const [{ data: questionRows }, { data: assessmentRows }] = await Promise.all([
-        supabase.from('schema_questions').select('question_number').order('question_number'),
+        supabase.from('schema_questions').select('question_number, question_text').order('question_number'),
         supabase
           .from('client_assessments')
           .select('id, client_id, version, submitted_at, raw_answers, profiles(name, email, whatsapp)')
@@ -43,7 +43,7 @@ export function SchemaResponsesRepository() {
           .order('submitted_at', { ascending: false }),
       ]);
 
-      setQuestionNumbers((questionRows ?? []).map((q) => q.question_number));
+      setQuestions((questionRows ?? []) as QuestionRef[]);
 
       const rows: AssessmentRow[] = ((assessmentRows ?? []) as unknown as Array<{
         id: string; client_id: string; version: number; submitted_at: string; raw_answers: Record<string, number>;
@@ -76,7 +76,7 @@ export function SchemaResponsesRepository() {
   const handleExportAll = () => {
     const csv = buildRawAnswersCsv(
       filteredAssessments.map((a) => ({ name: a.client_name, email: a.client_email, whatsapp: a.client_whatsapp, answers: a.raw_answers })),
-      questionNumbers
+      questions
     );
     downloadCsv(`respostas-esquemas-${new Date().toISOString().split('T')[0]}.csv`, csv);
   };

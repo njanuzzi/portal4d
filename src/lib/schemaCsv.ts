@@ -14,11 +14,16 @@ function csvEscape(value: string | number): string {
   return str;
 }
 
-export function buildRawAnswersCsv(rows: RawAnswersCsvRow[], questionNumbers: number[]): string {
-  const header = ['Nome', 'Email', 'WhatsApp', ...questionNumbers.map((n) => `Pergunta ${n}`)];
+export interface QuestionRef {
+  question_number: number;
+  question_text: string;
+}
+
+export function buildRawAnswersCsv(rows: RawAnswersCsvRow[], questions: QuestionRef[]): string {
+  const header = ['Nome', 'Email', 'WhatsApp', ...questions.map((q) => q.question_text)];
   const dataRows = rows.map((r) => [
     r.name, r.email, r.whatsapp ?? '',
-    ...questionNumbers.map((n) => r.answers[String(n)] ?? ''),
+    ...questions.map((q) => r.answers[String(q.question_number)] ?? ''),
   ]);
   return [header, ...dataRows].map((row) => row.map(csvEscape).join(',')).join('\n');
 }

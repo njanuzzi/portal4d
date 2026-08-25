@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { supabase } from '../../lib/supabase';
-import { buildRawAnswersCsv, downloadCsv, titleCase } from '../../lib/schemaCsv';
+import { buildRawAnswersCsv, downloadCsv, titleCase, QuestionRef } from '../../lib/schemaCsv';
 
 interface AssessmentInfo {
   id: string;
@@ -40,7 +40,7 @@ export function SchemaResponseDetail() {
   const { assessmentId } = useParams<{ assessmentId: string }>();
   const [assessment, setAssessment] = useState<AssessmentInfo | null>(null);
   const [scores, setScores] = useState<DomainScore[]>([]);
-  const [questionNumbers, setQuestionNumbers] = useState<number[]>([]);
+  const [questions, setQuestions] = useState<QuestionRef[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export function SchemaResponseDetail() {
           .select('domain_id, percentual, classification, schema_domains(name)')
           .eq('assessment_id', assessmentId)
           .order('percentual', { ascending: false }),
-        supabase.from('schema_questions').select('question_number').order('question_number'),
+        supabase.from('schema_questions').select('question_number, question_text').order('question_number'),
       ]);
 
       if (assessmentRow) {
@@ -84,7 +84,7 @@ export function SchemaResponseDetail() {
         const domain = Array.isArray(s.schema_domains) ? s.schema_domains[0] : s.schema_domains;
         return { domain_id: s.domain_id, domain_name: domain?.name ?? '—', percentual: s.percentual, classification: s.classification };
       }));
-      setQuestionNumbers((questionRows ?? []).map((q) => q.question_number));
+      setQuestions((questionRows ?? []) as QuestionRef[]);
       setLoading(false);
     };
     load();
@@ -94,7 +94,7 @@ export function SchemaResponseDetail() {
     if (!assessment) return;
     const csv = buildRawAnswersCsv(
       [{ name: assessment.client_name, email: assessment.client_email, whatsapp: assessment.client_whatsapp, answers: assessment.raw_answers }],
-      questionNumbers
+      questions
     );
     downloadCsv(`respostas-${assessment.client_name.replace(/\s+/g, '-').toLowerCase()}-v${assessment.version}.csv`, csv);
   };
