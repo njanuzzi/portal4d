@@ -13,6 +13,7 @@ import {
   CONSENT_TEXT,
   DISCLAIMER_TEXT,
   FECHAMENTO_TEXT,
+  SESSAO_AVALIACAO_WHATSAPP_LINK,
   computeDominantStage,
 } from '../lib/quizProtocolo4d';
 
@@ -211,7 +212,7 @@ export function QuizInstagram() {
 
             <div className="pt-2 border-t border-petrol-700 space-y-4">
               <p className="text-petrol-100/85 leading-relaxed text-sm">{FECHAMENTO_TEXT}</p>
-              <a href="/produtos#sessao-avaliacao">
+              <a href={SESSAO_AVALIACAO_WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
                 <Button variant="secondary" size="lg" className="w-full">
                   Quero minha Sessão de Avaliação
                   <ArrowRight size={16} />
