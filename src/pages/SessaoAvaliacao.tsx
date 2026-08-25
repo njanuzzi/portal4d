@@ -151,11 +151,11 @@ export function SessaoAvaliacao() {
         <h2 className="font-serif text-2xl mb-6">Estrutura</h2>
         <dl className="grid sm:grid-cols-2 gap-4 mb-10">
           {[
-            ['Duração da sessão', '[a definir]'],
+            ['Duração da sessão', '2h a 2h30'],
             ['Formato', 'Online, ao vivo'],
             ['Antes da sessão', 'Inventário de Esquemas (20 a 30 minutos, respondido com calma)'],
             ['Retorno com a direção', 'Ainda na própria sessão'],
-            ['Valor', '[a definir]'],
+            ['Valor', 'R$ 420,00'],
           ].map(([label, value]) => (
             <div key={label} className="bg-beige-100 border border-beige-300 rounded-xl p-4">
               <dt className="text-petrol-400 text-xs uppercase tracking-wide mb-1">{label}</dt>
