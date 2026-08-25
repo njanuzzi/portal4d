@@ -9,7 +9,7 @@ import { formatDate } from '../../lib/format';
 import { supabase, resetPasswordUrl } from '../../lib/supabase';
 import type { Profile, Diary, DiaryEntry } from '../../lib/database.types';
 
-type ClientProfile = Profile & { diary_id?: string | null };
+type ClientProfile = Profile & { diary_id?: string | null; manychat_subscriber_id?: string | null };
 
 interface ClientInvite {
   id: string;
@@ -75,6 +75,8 @@ export function ClientDetail() {
   const [waInviteError, setWaInviteError] = useState('');
   const [waActivationLink, setWaActivationLink] = useState<string | null>(null);
   const [waCopied, setWaCopied] = useState(false);
+  const [syncingManychat, setSyncingManychat] = useState(false);
+  const [manychatError, setManychatError] = useState('');
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -288,6 +290,25 @@ export function ClientDetail() {
     }));
     setWaInviteSent(true);
     setSendingWaInvite(false);
+  };
+
+  const handleSyncManychat = async () => {
+    if (!client) return;
+    setSyncingManychat(true);
+    setManychatError('');
+
+    const { data, error: fnError } = await supabase.functions.invoke('manychat-register-subscriber', {
+      body: { client_id: client.id },
+    });
+
+    if (fnError || data?.error) {
+      setManychatError(data?.error || fnError?.message || 'Erro ao sincronizar com o Manychat.');
+      setSyncingManychat(false);
+      return;
+    }
+
+    setClient({ ...client, manychat_subscriber_id: data.subscriber_id });
+    setSyncingManychat(false);
   };
 
   const copyWaLink = async () => {
@@ -626,6 +647,51 @@ export function ClientDetail() {
               {waSession.last_reminder_at && (
                 <p>Último lembrete: {formatDateTime(waSession.last_reminder_at)}</p>
               )}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Manychat sync */}
+      <Card className="mb-4">
+        <CardBody>
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <MessageCircle size={15} className="text-emerald-600" />
+                <h2 className="font-semibold text-dark font-serif text-base">Manychat</h2>
+                <Badge variant={client.manychat_subscriber_id ? 'success' : 'neutral'}>
+                  {client.manychat_subscriber_id ? 'Registrado' : 'Não registrado'}
+                </Badge>
+              </div>
+              <p className="text-xs text-dark/40 mt-0.5">
+                {client.manychat_subscriber_id
+                  ? `Subscriber ID: ${client.manychat_subscriber_id}`
+                  : 'Clientes novos são registrados automaticamente — use isto para reprocessar clientes antigos ou depois de editar o WhatsApp'}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              loading={syncingManychat}
+              disabled={!client.whatsapp}
+              onClick={handleSyncManychat}
+              className="shrink-0"
+            >
+              <MessageCircle size={14} />
+              Sincronizar com Manychat
+            </Button>
+          </div>
+
+          {!client.whatsapp && (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+              Cadastre o número WhatsApp do cliente acima para habilitar esta ação.
+            </p>
+          )}
+
+          {manychatError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">
+              {manychatError}
             </div>
           )}
         </CardBody>
