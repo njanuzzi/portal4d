@@ -188,9 +188,9 @@ export function SessaoAvaliacao() {
           <h2 className="font-serif text-3xl text-balance mb-8">
             Pronta para mapear o seu padrão?
           </h2>
-          <a href="https://wa.me/" target="_blank" rel="noopener noreferrer">
-            <Button variant="secondary" size="lg">Agendar sessão de avaliação</Button>
-          </a>
+          <Link to="/inscricao">
+            <Button variant="secondary" size="lg">Fazer inscrição</Button>
+          </Link>
         </div>
       </section>
 

@@ -43,12 +43,13 @@ import { ClientSignup } from './pages/ClientSignup';
 import { SchemaQuestionnaire } from './pages/SchemaQuestionnaire';
 import { Atendimento } from './pages/Atendimento';
 import { SessaoAvaliacao } from './pages/SessaoAvaliacao';
+import { Inscricao } from './pages/Inscricao';
 import { Produtos } from './pages/Produtos';
 import { QuizInstagram } from './pages/QuizInstagram';
 // Desativado até a Núbia criar um Substack direcionado ao Protocolo 4D.
 // import { Blog } from './pages/Blog';
 
-const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/produtos', '/quizinstagram'];
+const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram'];
 
 function AppRoutes() {
   const location = useLocation();
@@ -90,6 +91,7 @@ function AppRoutes() {
         <Route path="/protocolo4d" element={<Protocolo4D />} />
         <Route path="/atendimento" element={<Atendimento />} />
         <Route path="/sessao-avaliacao" element={<SessaoAvaliacao />} />
+        <Route path="/inscricao" element={<Inscricao />} />
         <Route path="/produtos" element={<Produtos />} />
         <Route path="/quizinstagram" element={<QuizInstagram />} />
         {/* <Route path="/blog" element={<Blog />} /> */}
