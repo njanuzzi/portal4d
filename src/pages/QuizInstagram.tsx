@@ -24,10 +24,17 @@ const untypedSupabase = supabase as unknown as SupabaseClient;
 
 type Step = 'consent' | number | 'capture' | 'result';
 
+// Só usa o valor da URL se vier preenchido de verdade — ferramentas como o
+// Growth Tool de boas-vindas do ManyChat podem passar a tag literal
+// ("{{first_name}}") sem resolver, em vez de omitir o parâmetro.
+function cleanParam(value: string | null): string {
+  return value && !value.includes('{{') ? value : '';
+}
+
 export function QuizInstagram() {
   const [searchParams] = useSearchParams();
-  const prefillName = searchParams.get('nome') ?? '';
-  const prefillWhatsapp = searchParams.get('wa') ?? '';
+  const prefillName = cleanParam(searchParams.get('nome'));
+  const prefillWhatsapp = cleanParam(searchParams.get('wa'));
 
   const [step, setStep] = useState<Step>('consent');
   const [answers, setAnswers] = useState<Stage4D[]>([]);
@@ -129,9 +136,7 @@ export function QuizInstagram() {
                   </p>
                 </div>
 
-                {!prefillName && (
-                  <Input placeholder="Seu nome" value={name} onChange={(e) => setName(e.target.value)} required />
-                )}
+                <Input placeholder="Seu nome" value={name} onChange={(e) => setName(e.target.value)} required />
                 <Input
                   type="email"
                   placeholder="Seu e-mail"
@@ -139,14 +144,13 @@ export function QuizInstagram() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
-                {!prefillWhatsapp && (
-                  <Input
-                    type="tel"
-                    placeholder="WhatsApp (opcional)"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                  />
-                )}
+                <Input
+                  type="tel"
+                  placeholder="Seu WhatsApp"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  required
+                />
 
                 <Button type="submit" variant="primary" size="lg" className="w-full" loading={status === 'loading'}>
                   Quero meu resultado
