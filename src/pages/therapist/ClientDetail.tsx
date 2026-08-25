@@ -77,6 +77,9 @@ export function ClientDetail() {
   const [waCopied, setWaCopied] = useState(false);
   const [syncingManychat, setSyncingManychat] = useState(false);
   const [manychatError, setManychatError] = useState('');
+  const [manychatAlreadyExists, setManychatAlreadyExists] = useState(false);
+  const [manualSubscriberId, setManualSubscriberId] = useState('');
+  const [linkingManual, setLinkingManual] = useState(false);
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -296,6 +299,7 @@ export function ClientDetail() {
     if (!client) return;
     setSyncingManychat(true);
     setManychatError('');
+    setManychatAlreadyExists(false);
 
     const { data, error: fnError } = await supabase.functions.invoke('manychat-register-subscriber', {
       body: { client_id: client.id },
@@ -304,23 +308,46 @@ export function ClientDetail() {
     if (fnError || data?.error) {
       // supabase-js não parseia o corpo da resposta em erros não-2xx — o
       // detalhe real da falha (ex: número já registrado) vem em fnError.context
-      let serverMessage: string | undefined;
+      let serverBody: { error?: string; message?: string } | undefined;
       const context = (fnError as { context?: Response })?.context;
       if (context) {
         try {
-          const body = await context.clone().json();
-          serverMessage = body?.error;
+          serverBody = await context.clone().json();
         } catch {
           // corpo não era JSON, ignora
         }
       }
-      setManychatError(data?.error || serverMessage || fnError?.message || 'Erro ao sincronizar com o Manychat.');
+      if (serverBody?.error === 'already_exists') {
+        setManychatAlreadyExists(true);
+      }
+      setManychatError(serverBody?.message || data?.error || serverBody?.error || fnError?.message || 'Erro ao sincronizar com o Manychat.');
       setSyncingManychat(false);
       return;
     }
 
     setClient({ ...client, manychat_subscriber_id: data.subscriber_id });
     setSyncingManychat(false);
+  };
+
+  const handleLinkManualSubscriber = async () => {
+    if (!client || !manualSubscriberId.trim()) return;
+    setLinkingManual(true);
+    setManychatError('');
+
+    const { data, error: fnError } = await supabase.functions.invoke('manychat-register-subscriber', {
+      body: { client_id: client.id, manual_subscriber_id: manualSubscriberId.trim() },
+    });
+
+    if (fnError || data?.error) {
+      setManychatError(data?.error || fnError?.message || 'Erro ao vincular o subscriber ID.');
+      setLinkingManual(false);
+      return;
+    }
+
+    setClient({ ...client, manychat_subscriber_id: data.subscriber_id });
+    setManychatAlreadyExists(false);
+    setManualSubscriberId('');
+    setLinkingManual(false);
   };
 
   const copyWaLink = async () => {
@@ -704,6 +731,28 @@ export function ClientDetail() {
           {manychatError && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">
               {manychatError}
+            </div>
+          )}
+
+          {manychatAlreadyExists && (
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                type="text"
+                placeholder="Cole o subscriber ID do Manychat"
+                value={manualSubscriberId}
+                onChange={(e) => setManualSubscriberId(e.target.value)}
+                className="flex-1 text-sm px-3 py-2 rounded-lg border border-beige-200 focus:outline-none focus:ring-2 focus:ring-petrol-400"
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={linkingManual}
+                disabled={!manualSubscriberId.trim()}
+                onClick={handleLinkManualSubscriber}
+                className="shrink-0"
+              >
+                Vincular
+              </Button>
             </div>
           )}
         </CardBody>
