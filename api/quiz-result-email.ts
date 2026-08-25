@@ -37,11 +37,7 @@ function buildHtmlBody(name: string, stage: Stage4D): string {
   `;
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-
+export async function POST(req: Request): Promise<Response> {
   const token = process.env.ZEPTOMAIL_TOKEN;
   const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL;
   const fromName = process.env.ZEPTOMAIL_FROM_NAME || 'Núbia Januzzi';

@@ -39,11 +39,7 @@ function toExcerpt(text: string, maxLength = 180): string {
   return clean.length > maxLength ? `${clean.slice(0, maxLength).trim()}…` : clean;
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== 'GET') {
-    return new Response('Method Not Allowed', { status: 405 });
-  }
-
+export async function GET(): Promise<Response> {
   try {
     const feedRes = await fetch(SUBSTACK_FEED_URL);
     if (!feedRes.ok) {
