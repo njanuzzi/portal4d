@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target, MessageCircle, Copy, ExternalLink, Brain, Bell, BellOff } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target, MessageCircle, Copy, ExternalLink, Brain, Bell, BellOff, Quote } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -69,6 +69,8 @@ export function ClientDetail() {
   const [sendingInvite, setSendingInvite] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
   const [inviteError, setInviteError] = useState('');
+  const [signupFeedback, setSignupFeedback] = useState<string | null>(null);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [waSession, setWaSession] = useState<WaSession | null>(null);
   const [sendingWaInvite, setSendingWaInvite] = useState(false);
   const [waInviteSent, setWaInviteSent] = useState(false);
@@ -100,6 +102,8 @@ export function ClientDetail() {
       setGoals([]);
       setWaSession(null);
       setWaActivationLink(null);
+      setSignupFeedback(null);
+      setShowFeedback(false);
       setEditingDiary(false);
 
       const { data: profile, error: profileError } = await supabase
@@ -125,6 +129,7 @@ export function ClientDetail() {
         { data: goalRows },
         { data: waSessionRow },
         { data: activeDiaryRows },
+        { data: feedbackRow },
       ] = await Promise.all([
         supabase.from('diary_entries').select('id, user_id, diary_id, date, created_at')
           .eq('user_id', id).order('date', { ascending: false }).limit(10),
@@ -144,6 +149,8 @@ export function ClientDetail() {
           .limit(1),
         supabase.from('diaries').select('id, name, is_active, created_at')
           .eq('is_active', true).order('created_at', { ascending: false }),
+        supabase.from('client_signup_feedback').select('feedback')
+          .eq('client_id', id).maybeSingle(),
       ]);
 
       let diaryRow: Diary | null = null;
@@ -164,6 +171,7 @@ export function ClientDetail() {
       const waRows = (waSessionRow as WaSession[] | null) ?? [];
       setWaSession(waRows.length > 0 ? waRows[0] : null);
       setActiveDiaries((activeDiaryRows ?? []) as Diary[]);
+      setSignupFeedback((feedbackRow as { feedback: string } | null)?.feedback ?? null);
 
       const loadError = entriesError?.message || countError?.message;
       if (loadError) setError(loadError);
@@ -535,6 +543,28 @@ export function ClientDetail() {
               </span>
             )}
           </div>
+
+          {signupFeedback && (
+            <div className="text-sm">
+              <button
+                onClick={() => setShowFeedback((v) => !v)}
+                className="flex items-center gap-3 text-left w-full"
+              >
+                <Quote size={16} className="text-dark/30 shrink-0" />
+                <span className="text-dark/70">Opinião sobre o app no cadastro</span>
+                {showFeedback ? (
+                  <ToggleRight size={16} className="text-emerald-500 ml-auto" />
+                ) : (
+                  <ToggleLeft size={16} className="text-dark/30 ml-auto" />
+                )}
+              </button>
+              {showFeedback && (
+                <p className="mt-2 ml-7 text-dark/70 italic bg-beige-50 border border-beige-200 rounded-lg px-3 py-2">
+                  “{signupFeedback}”
+                </p>
+              )}
+            </div>
+          )}
         </CardBody>
       </Card>
 
