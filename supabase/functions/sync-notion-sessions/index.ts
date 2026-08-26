@@ -6,8 +6,21 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Recebe { client_id }, casa o cliente no Notion pelo NOME (a terapeuta se
 // comprometeu a manter o nome do cadastro do Notion igual ao nome do
 // cliente no portal), lê a lista de sessões vinculadas a ele e traz cada
-// uma como uma linha em session_reports — com o relatório já gerado quando
-// existir, ou em branco quando ainda não foi processado no Notion.
+// uma como uma linha em session_reports, resolvendo o conteúdo em 4 níveis
+// de prioridade (do mais pronto pro mais bruto):
+//
+//   1. "Resumos de Sessão" tem uma linha pra essa sessão com o campo
+//      "Resumo Clínico" preenchido -> usa direto, já é texto revisado pela
+//      terapeuta no Notion (status entra como "revisado", falta só publicar).
+//   2. "Resumo Clínico" vazio, mas o CORPO da própria linha de "Resumos de
+//      Sessão" tem um relatório escrito -> usa esse.
+//   3. Nível 2 também vazio, mas a linha tem "Resumo" (texto bruto do
+//      Zoom/clínico) -> usa esse com a limpeza mais pesada.
+//   4. Não existe nenhuma linha em "Resumos de Sessão" pra essa sessão ->
+//      busca a página bruta direto em "🗓️ Todas as Sessões" e limpa.
+//
+// Níveis 2/3/4 entram como "rascunho" (não foram revisados, precisam de
+// conferência antes de publicar).
 //
 // Nunca sobrescreve nada que a terapeuta já tocou: uma sessão já
 // sincronizada antes (mesmo notion_session_id) é pulada; um relatório
@@ -23,12 +36,10 @@ const NOTION_API_KEY = Deno.env.get("NOTION_API_KEY_Sync");
 const NOTION_VERSION = "2025-09-03";
 const NOTION_VERSION_LEGACY = "2022-06-28";
 
-// ID fixo do "Cadastro de Clientes" no workspace da terapeuta no Notion —
-// não é segredo (só identifica ONDE buscar), por isso fica hardcoded aqui
-// em vez de configurável. As sessões de cada cliente vêm da relação
-// "🗓️ Todas as Sessões" na própria linha do cliente, então não precisamos
-// do id da data source de sessões separadamente.
+// IDs fixos das data sources no workspace da terapeuta no Notion — não são
+// segredo (só identificam ONDE buscar), por isso ficam hardcoded aqui.
 const CADASTRO_CLIENTES_DATA_SOURCE_ID = "45e1889e-d3c7-41e0-a59a-f83eb366c807";
+const RESUMOS_SESSAO_DATA_SOURCE_ID = "0b0382f3-fd05-48f9-b980-69cd632b0ec1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +49,26 @@ const corsHeaders = {
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// GET autenticado no Notion com retry em 429 (rate limit).
+async function notionGet(url: string, version = NOTION_VERSION_LEGACY): Promise<Response> {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, {
+      headers: { "Authorization": `Bearer ${NOTION_API_KEY}`, "Notion-Version": version },
+    });
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get("retry-after") || "1");
+      await sleep((retryAfter + 1) * 1000);
+      continue;
+    }
+    return res;
+  }
+  throw new Error("Muitas tentativas de rate limit no Notion");
 }
 
 // Consulta uma data source, com fallback pro endpoint legado de database
@@ -51,27 +82,60 @@ async function queryDataSource(dataSourceId: string, body: Record<string, unknow
 
   let lastError = "";
   for (const attempt of attempts) {
-    const res = await fetch(attempt.url, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${NOTION_API_KEY}`,
-        "Notion-Version": attempt.version,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-    if (res.ok) return res.json();
-    lastError = `${res.status} ${await res.text()}`;
+    for (let retry = 0; retry < 3; retry++) {
+      const res = await fetch(attempt.url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${NOTION_API_KEY}`,
+          "Notion-Version": attempt.version,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) return res.json();
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get("retry-after") || "1");
+        await sleep((retryAfter + 1) * 1000);
+        continue;
+      }
+      lastError = `${res.status} ${await res.text()}`;
+      break;
+    }
   }
   throw new Error(`Notion query falhou: ${lastError}`);
 }
 
 async function getPage(pageId: string): Promise<NotionPage> {
-  const res = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
-    headers: { "Authorization": `Bearer ${NOTION_API_KEY}`, "Notion-Version": NOTION_VERSION_LEGACY },
-  });
+  const res = await notionGet(`https://api.notion.com/v1/pages/${pageId}`);
   if (!res.ok) throw new Error(`Notion getPage falhou: ${res.status} ${await res.text()}`);
   return res.json();
+}
+
+// Lê uma propriedade de relação por completo, mesmo quando tem mais de 25
+// itens (Notion trunca o array inline na página e exige paginação via
+// endpoint próprio nesse caso — sem isso, clientes com muitas sessões
+// param de sincronizar sessões novas depois da 25ª).
+async function getFullRelationIds(page: NotionPage, propertyName: string): Promise<string[]> {
+  const prop = page.properties[propertyName];
+  if (!prop || prop.type !== "relation") return [];
+  const ids = (prop.relation ?? []).map((r) => r.id);
+  if (!prop.has_more || !prop.id) return ids;
+
+  let cursor: string | undefined;
+  do {
+    const url = new URL(`https://api.notion.com/v1/pages/${page.id}/properties/${prop.id}`);
+    url.searchParams.set("page_size", "100");
+    if (cursor) url.searchParams.set("start_cursor", cursor);
+    const res = await notionGet(url.toString());
+    if (!res.ok) throw new Error(`Notion getFullRelationIds falhou: ${res.status} ${await res.text()}`);
+    const data = await res.json() as { results?: Array<{ relation?: { id: string } }>; has_more?: boolean; next_cursor?: string | null };
+    for (const item of data.results ?? []) {
+      if (item.relation?.id) ids.push(item.relation.id);
+    }
+    cursor = data.has_more ? (data.next_cursor ?? undefined) : undefined;
+    await sleep(150);
+  } while (cursor);
+  return ids;
 }
 
 async function getPageText(pageId: string): Promise<string> {
@@ -84,9 +148,7 @@ async function getPageText(pageId: string): Promise<string> {
     url.searchParams.set("page_size", "100");
     if (cursor) url.searchParams.set("start_cursor", cursor);
 
-    const res = await fetch(url, {
-      headers: { "Authorization": `Bearer ${NOTION_API_KEY}`, "Notion-Version": NOTION_VERSION_LEGACY },
-    });
+    const res = await notionGet(url.toString());
     if (!res.ok) throw new Error(`Notion getBlocks falhou: ${res.status} ${await res.text()}`);
     const data = await res.json() as NotionBlocksResponse;
 
@@ -105,16 +167,101 @@ async function getPageText(pageId: string): Promise<string> {
   return parts.join("\n\n");
 }
 
+function richTextToPlain(prop?: { rich_text?: NotionRichText[]; title?: NotionRichText[] }): string {
+  if (!prop) return "";
+  const arr = prop.rich_text ?? prop.title ?? [];
+  return arr.map((t) => t.plain_text).join("");
+}
+
+function isPlaceholder(text: string): boolean {
+  if (!text) return true;
+  const t = text.trim();
+  if (t.length < 40) return true;
+  if (/não há resumos disponíveis/i.test(t)) return true;
+  if (/você não enviou o conteúdo/i.test(t)) return true;
+  return false;
+}
+
+function findReportStart(text: string): number {
+  const markers = [
+    /RELATÓRIO CLÍNICO:/i,
+    /#{1,2}\s*Resumo de Sessão Terapêutica/i,
+    /#{1,2}\s*Resumo de toda a sessão/i,
+    /#{1,2}\s*Resumo do relatório/i,
+    /RESUMO DE SESSÃO/,
+  ];
+  let best = -1;
+  for (const marker of markers) {
+    const m = text.match(marker);
+    if (m && m.index !== undefined) {
+      if (best === -1 || m.index < best) best = m.index;
+    }
+  }
+  return best;
+}
+
 // O texto bruto que sai do Notion vem de um pipeline que gera markdown com
-// asteriscos escapados (\*\*negrito\*\*) e alguns artefatos de montagem do
-// texto (ex: "RELATÓRIO CLÍNICO:<br>split(" no início e "; \"\\n\\n\")" no
-// fim) — limpa isso e converte pro HTML simples que o editor usa.
-function cleanReportText(raw: string): string {
-  let text = raw.trim();
-  text = text.replace(/^RELATÓRIO CLÍNICO:\s*<br>\s*split\(/i, "");
+// asteriscos escapados (\*\*negrito\*\*), títulos "#"/"##"/"###" em
+// qualquer posição do texto, listas com "-" e alguns artefatos de
+// montagem (ex: "RELATÓRIO CLÍNICO:<br>split(" no início e "; \"\\n\\n\")"
+// no fim) — limpa tudo isso e converte pro HTML simples que o editor usa.
+function cleanAll(rawInput: string): string {
+  if (!rawInput) return "";
+  let text = rawInput;
+
+  text = text.replace(/<br\s*\/?>/gi, "\n");
+
+  // Reverte headings HTML de uma limpeza anterior de volta pra markdown
+  // (proteção contra reprocessar conteúdo já parcialmente convertido).
+  text = text.replace(/<h2>([^<]*)<\/h2>/gi, "# $1");
+  text = text.replace(/<h3>([^<]*)<\/h3>/gi, "## $1");
+  text = text.replace(/<h4>([^<]*)<\/h4>/gi, "### $1");
+  text = text.replace(/<h2>([^\n<]*)\n/gi, "# $1\n");
+  text = text.replace(/<h3>([^\n<]*)\n/gi, "## $1\n");
+  text = text.replace(/<h4>([^\n<]*)\n/gi, "### $1\n");
+  text = text.replace(/<\/h[234]>/gi, "");
+
+  text = text.replace(/\n*https:\/\/docs\.zoom\.us\/doc\/\S+\s*$/i, "");
+
+  const startIdx = findReportStart(text);
+  if (startIdx > 0) text = text.slice(startIdx);
+
+  text = text.replace(/^RELATÓRIO CLÍNICO:\s*split\(/i, "");
   text = text.replace(/;\s*"\\n\\n"\)\s*$/, "");
+  text = text.replace(/;\s*"\n\n"\)\s*$/, "");
+
+  text = text.trim();
+
   text = text.replace(/\\\*/g, "*");
   text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+  // Títulos com emoji em negrito precisam de quebra de linha garantida
+  // antes e depois, mesmo que o original só tivesse uma quebra simples.
+  text = text.replace(/\n(<strong>)/g, "\n\n$1");
+  text = text.replace(/(<\/strong>)\n/g, "$1\n\n");
+
+  text = text.replace(/(^|\n)(#{1,3})[ \t]+([^\n]+)/g, (_m, prefix, hashes, title) => {
+    const tag = hashes.length === 1 ? "h2" : hashes.length === 2 ? "h3" : "h4";
+    return `${prefix}<${tag}>${title.trim()}</${tag}>`;
+  });
+
+  text = text.replace(/(^|\n)-[ \t]+([^\n]+)/g, (_m, prefix, item) => `${prefix}• ${item.trim()}`);
+
+  text = text.replace(/\n\n+/g, "<br><br>");
+  text = text.replace(/\n/g, "<br>");
+
+  return text.trim();
+}
+
+// Limpeza leve pro texto já curado da propriedade "Resumo Clínico" (nível
+// 1) — só precisa virar HTML, não precisa achar onde o relatório começa
+// nem remover prefixo de automação, já vem pronto.
+function cleanCurated(rawInput: string): string {
+  if (!rawInput) return "";
+  let text = rawInput.trim();
+  text = text.replace(/^RESUMO DE SESSÃO\n+👤[^\n]*\n📅[^\n]*\n+/i, "");
+  text = text.replace(/\n\n+/g, "<br><br>");
+  text = text.replace(/\n/g, "<br>");
   return text.trim();
 }
 
@@ -125,13 +272,19 @@ interface SyncResult {
   errors: string[];
 }
 
+interface NotionProperty {
+  type?: string;
+  id?: string;
+  title?: NotionRichText[];
+  rich_text?: NotionRichText[];
+  date?: { start: string } | null;
+  relation?: { id: string }[];
+  has_more?: boolean;
+}
+
 interface NotionPage {
   id: string;
-  properties: Record<string, {
-    title?: { plain_text: string }[];
-    date?: { start: string } | null;
-    relation?: { id: string }[];
-  }>;
+  properties: Record<string, NotionProperty>;
 }
 
 interface NotionQueryResponse {
@@ -205,16 +358,27 @@ serve(async (req) => {
     }
 
     const clienteRow = clienteRows[0];
-    const sessionRelations = clienteRow.properties?.["🗓️ Todas as Sessões"]?.relation ?? [];
+    const sessionIds = await getFullRelationIds(clienteRow, "🗓️ Todas as Sessões");
 
-    if (sessionRelations.length === 0) {
+    if (sessionIds.length === 0) {
       return json({ synced: 0, adopted: 0, skipped: 0, errors: [], message: "Cliente encontrado no Notion, mas sem sessões vinculadas ainda." });
+    }
+
+    // 2. Busca as linhas de "Resumos de Sessão" desse cliente, indexadas
+    // pela sessão que cada uma cobre — usadas como atalho pros níveis 1-3
+    // antes de cair pro fallback bruto (nível 4).
+    const resumosQuery = await queryDataSource(RESUMOS_SESSAO_DATA_SOURCE_ID, {
+      filter: { property: "Cliente", relation: { contains: clienteRow.id } },
+    });
+    const resumoBySessionId = new Map<string, NotionPage>();
+    for (const row of resumosQuery.results ?? []) {
+      const sessaoIds = (row.properties["Sessão"]?.relation ?? []).map((r) => r.id);
+      for (const sid of sessaoIds) resumoBySessionId.set(sid, row);
     }
 
     const result: SyncResult = { synced: 0, adopted: 0, skipped: 0, errors: [] };
 
-    for (const relation of sessionRelations) {
-      const sessionId: string = relation.id;
+    for (const sessionId of sessionIds) {
       try {
         // Já sincronizada antes — nunca sobrescreve.
         const { data: alreadySynced } = await supabase
@@ -224,12 +388,42 @@ serve(async (req) => {
           .maybeSingle();
         if (alreadySynced) { result.skipped++; continue; }
 
-        const page = await getPage(sessionId);
-        const sessionDate: string | null = page.properties?.["Data da Sessão"]?.date?.start ?? null;
-        if (!sessionDate) { result.errors.push(`Sessão ${sessionId} sem "Data da Sessão" preenchida — pulada.`); continue; }
+        let contentHtml = "";
+        let status: "revisado" | "rascunho" = "rascunho";
+        let sessionDate: string | null = null;
 
-        const rawText = await getPageText(sessionId);
-        const contentHtml = rawText ? cleanReportText(rawText) : "";
+        const resumoRow = resumoBySessionId.get(sessionId);
+        if (resumoRow) {
+          sessionDate = resumoRow.properties["Data da sessão"]?.date?.start ?? null;
+          const resumoClinico = richTextToPlain(resumoRow.properties["Resumo Clínico"]);
+
+          if (!isPlaceholder(resumoClinico)) {
+            contentHtml = cleanCurated(resumoClinico);
+            status = "revisado";
+          } else {
+            const bodyText = await getPageText(resumoRow.id);
+            await sleep(150);
+            if (!isPlaceholder(bodyText) && /RESUMO DE SESSÃO/i.test(bodyText)) {
+              contentHtml = cleanAll(bodyText);
+            } else {
+              const resumoBruto = richTextToPlain(resumoRow.properties["Resumo"]);
+              if (!isPlaceholder(resumoBruto)) contentHtml = cleanAll(resumoBruto);
+            }
+          }
+        }
+
+        if (!contentHtml) {
+          const page = await getPage(sessionId);
+          await sleep(150);
+          sessionDate = sessionDate ?? page.properties?.["Data da Sessão"]?.date?.start ?? null;
+          if (!sessionDate) { result.errors.push(`Sessão ${sessionId} sem "Data da Sessão" preenchida — pulada.`); continue; }
+          const rawText = await getPageText(sessionId);
+          await sleep(150);
+          contentHtml = rawText ? cleanAll(rawText) : "";
+        }
+
+        if (!sessionDate) { result.errors.push(`Sessão ${sessionId} sem data em nenhuma fonte — pulada.`); continue; }
+
         const title = new Date(`${sessionDate}T00:00:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
         const notionUrl = `https://notion.so/${sessionId.replace(/-/g, "")}`;
 
@@ -245,7 +439,7 @@ serve(async (req) => {
         if (manualDraft && manualDraft.status === "rascunho" && !manualDraft.content_html?.trim()) {
           const { error: updateError } = await supabase
             .from("session_reports")
-            .update({ notion_session_id: sessionId, notion_session_url: notionUrl, content_html: contentHtml, updated_at: new Date().toISOString() })
+            .update({ notion_session_id: sessionId, notion_session_url: notionUrl, content_html: contentHtml, status, updated_at: new Date().toISOString() })
             .eq("id", manualDraft.id);
           if (updateError) throw updateError;
           result.adopted++;
@@ -255,7 +449,7 @@ serve(async (req) => {
             session_date: sessionDate.slice(0, 10),
             title,
             content_html: contentHtml,
-            status: "rascunho",
+            status,
             notion_session_id: sessionId,
             notion_session_url: notionUrl,
           });
