@@ -1,13 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// === Sincroniza sessões do Notion pra Relatórios de Sessão do cliente ===
+// === Sincroniza a sessão DE HOJE do Notion pra Relatórios de Sessão ===
 //
 // Recebe { client_id }, casa o cliente no Notion pelo NOME (a terapeuta se
 // comprometeu a manter o nome do cadastro do Notion igual ao nome do
-// cliente no portal), lê a lista de sessões vinculadas a ele e traz cada
-// uma como uma linha em session_reports, resolvendo o conteúdo em 4 níveis
-// de prioridade (do mais pronto pro mais bruto):
+// cliente no portal) e busca só a(s) sessão(ões) de HOJE dele em
+// "🗓️ Todas as Sessões" — não varre o histórico inteiro. Carga histórica
+// (cliente novo, sessões de dias atrás que ainda não entraram) é
+// responsabilidade do script rodado localmente (backfill-client.js), não
+// desse botão.
+//
+// Pra cada sessão de hoje, resolve o conteúdo em 4 níveis de prioridade
+// (do mais pronto pro mais bruto):
 //
 //   1. "Resumos de Sessão" tem uma linha pra essa sessão com o campo
 //      "Resumo Clínico" preenchido -> usa direto, já é texto revisado pela
@@ -17,7 +22,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 //   3. Nível 2 também vazio, mas a linha tem "Resumo" (texto bruto do
 //      Zoom/clínico) -> usa esse com a limpeza mais pesada.
 //   4. Não existe nenhuma linha em "Resumos de Sessão" pra essa sessão ->
-//      busca a página bruta direto em "🗓️ Todas as Sessões" e limpa.
+//      usa a própria página de "🗓️ Todas as Sessões" e limpa.
 //
 // Níveis 2/3/4 entram como "rascunho" (não foram revisados, precisam de
 // conferência antes de publicar).
@@ -40,6 +45,7 @@ const NOTION_VERSION_LEGACY = "2022-06-28";
 // segredo (só identificam ONDE buscar), por isso ficam hardcoded aqui.
 const CADASTRO_CLIENTES_DATA_SOURCE_ID = "45e1889e-d3c7-41e0-a59a-f83eb366c807";
 const RESUMOS_SESSAO_DATA_SOURCE_ID = "0b0382f3-fd05-48f9-b980-69cd632b0ec1";
+const TODAS_SESSOES_DATA_SOURCE_ID = "d0c16b95-7ab8-4ed1-90ec-b16872e41318";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -103,39 +109,6 @@ async function queryDataSource(dataSourceId: string, body: Record<string, unknow
     }
   }
   throw new Error(`Notion query falhou: ${lastError}`);
-}
-
-async function getPage(pageId: string): Promise<NotionPage> {
-  const res = await notionGet(`https://api.notion.com/v1/pages/${pageId}`);
-  if (!res.ok) throw new Error(`Notion getPage falhou: ${res.status} ${await res.text()}`);
-  return res.json();
-}
-
-// Lê uma propriedade de relação por completo, mesmo quando tem mais de 25
-// itens (Notion trunca o array inline na página e exige paginação via
-// endpoint próprio nesse caso — sem isso, clientes com muitas sessões
-// param de sincronizar sessões novas depois da 25ª).
-async function getFullRelationIds(page: NotionPage, propertyName: string): Promise<string[]> {
-  const prop = page.properties[propertyName];
-  if (!prop || prop.type !== "relation") return [];
-  const ids = (prop.relation ?? []).map((r) => r.id);
-  if (!prop.has_more || !prop.id) return ids;
-
-  let cursor: string | undefined;
-  do {
-    const url = new URL(`https://api.notion.com/v1/pages/${page.id}/properties/${prop.id}`);
-    url.searchParams.set("page_size", "100");
-    if (cursor) url.searchParams.set("start_cursor", cursor);
-    const res = await notionGet(url.toString());
-    if (!res.ok) throw new Error(`Notion getFullRelationIds falhou: ${res.status} ${await res.text()}`);
-    const data = await res.json() as { results?: Array<{ relation?: { id: string } }>; has_more?: boolean; next_cursor?: string | null };
-    for (const item of data.results ?? []) {
-      if (item.relation?.id) ids.push(item.relation.id);
-    }
-    cursor = data.has_more ? (data.next_cursor ?? undefined) : undefined;
-    await sleep(150);
-  } while (cursor);
-  return ids;
 }
 
 async function getPageText(pageId: string): Promise<string> {
@@ -273,13 +246,10 @@ interface SyncResult {
 }
 
 interface NotionProperty {
-  type?: string;
-  id?: string;
   title?: NotionRichText[];
   rich_text?: NotionRichText[];
   date?: { start: string } | null;
   relation?: { id: string }[];
-  has_more?: boolean;
 }
 
 interface NotionPage {
@@ -358,27 +328,29 @@ serve(async (req) => {
     }
 
     const clienteRow = clienteRows[0];
-    const sessionIds = await getFullRelationIds(clienteRow, "🗓️ Todas as Sessões");
 
-    if (sessionIds.length === 0) {
-      return json({ synced: 0, adopted: 0, skipped: 0, errors: [], message: "Cliente encontrado no Notion, mas sem sessões vinculadas ainda." });
-    }
-
-    // 2. Busca as linhas de "Resumos de Sessão" desse cliente, indexadas
-    // pela sessão que cada uma cobre — usadas como atalho pros níveis 1-3
-    // antes de cair pro fallback bruto (nível 4).
-    const resumosQuery = await queryDataSource(RESUMOS_SESSAO_DATA_SOURCE_ID, {
-      filter: { property: "Cliente", relation: { contains: clienteRow.id } },
+    // 2. Busca só a(s) sessão(ões) de HOJE desse cliente — não o histórico.
+    // Carga histórica é feita pelo script (backfill-client.js), não por
+    // esse botão, então não precisamos paginar a relação inteira aqui.
+    const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    const todaysSessions = await queryDataSource(TODAS_SESSOES_DATA_SOURCE_ID, {
+      filter: {
+        and: [
+          { property: "Cliente", relation: { contains: clienteRow.id } },
+          { property: "Data da Sessão", date: { equals: todayStr } },
+        ],
+      },
     });
-    const resumoBySessionId = new Map<string, NotionPage>();
-    for (const row of resumosQuery.results ?? []) {
-      const sessaoIds = (row.properties["Sessão"]?.relation ?? []).map((r) => r.id);
-      for (const sid of sessaoIds) resumoBySessionId.set(sid, row);
+    const sessionPages = todaysSessions.results ?? [];
+
+    if (sessionPages.length === 0) {
+      return json({ synced: 0, adopted: 0, skipped: 0, errors: [], message: "Nenhuma sessão de hoje encontrada pra esse cliente no Notion." });
     }
 
     const result: SyncResult = { synced: 0, adopted: 0, skipped: 0, errors: [] };
 
-    for (const sessionId of sessionIds) {
+    for (const sessionPage of sessionPages) {
+      const sessionId = sessionPage.id;
       try {
         // Já sincronizada antes — nunca sobrescreve.
         const { data: alreadySynced } = await supabase
@@ -390,11 +362,20 @@ serve(async (req) => {
 
         let contentHtml = "";
         let status: "revisado" | "rascunho" = "rascunho";
-        let sessionDate: string | null = null;
+        let sessionDate: string | null = sessionPage.properties?.["Data da Sessão"]?.date?.start ?? null;
 
-        const resumoRow = resumoBySessionId.get(sessionId);
+        // Acha a linha de "Resumos de Sessão" que cobre essa sessão (se
+        // já existir — normalmente ainda não existe pra sessão do dia,
+        // já que essa tabela costuma ser preenchida depois por outra
+        // automação, mas checamos assim mesmo pra aproveitar quando já
+        // estiver pronta).
+        const resumoQuery = await queryDataSource(RESUMOS_SESSAO_DATA_SOURCE_ID, {
+          filter: { property: "Sessão", relation: { contains: sessionId } },
+        });
+        const resumoRow = resumoQuery.results?.[0];
+
         if (resumoRow) {
-          sessionDate = resumoRow.properties["Data da sessão"]?.date?.start ?? null;
+          sessionDate = resumoRow.properties["Data da sessão"]?.date?.start ?? sessionDate;
           const resumoClinico = richTextToPlain(resumoRow.properties["Resumo Clínico"]);
 
           if (!isPlaceholder(resumoClinico)) {
@@ -413,10 +394,6 @@ serve(async (req) => {
         }
 
         if (!contentHtml) {
-          const page = await getPage(sessionId);
-          await sleep(150);
-          sessionDate = sessionDate ?? page.properties?.["Data da Sessão"]?.date?.start ?? null;
-          if (!sessionDate) { result.errors.push(`Sessão ${sessionId} sem "Data da Sessão" preenchida — pulada.`); continue; }
           const rawText = await getPageText(sessionId);
           await sleep(150);
           contentHtml = rawText ? cleanAll(rawText) : "";
