@@ -4,17 +4,21 @@ import Anthropic from "https://esm.sh/@anthropic-ai/sdk";
 
 // === Gera o Relatório Clínico de Fechamento de Mês via Claude ===
 //
-// Recebe { client_id, period_start, period_end } (period_start/end no
-// formato YYYY-MM-DD, cobrindo um mês corrido), busca as session_reports
-// já revisadas/publicadas do cliente nesse período, manda pro Claude com
-// o prompt clínico da terapeuta, e grava o resultado em `reports`
-// (content_text, published=false — a terapeuta decide quando publicar).
+// Recebe { client_id, period_start, period_end, session_report_ids? }
+// (period_start/end no formato YYYY-MM-DD). Por padrão busca as
+// session_reports já revisadas/publicadas do cliente nesse período; se
+// `session_report_ids` vier preenchido, usa exatamente essas sessões em
+// vez de buscar por data (permite escolher manualmente quais sessões
+// entram, ex: pela tela de Relatórios). Manda pro Claude com o prompt
+// clínico da terapeuta, e grava o resultado em `reports` (content_text,
+// published=false — a terapeuta decide quando publicar).
 //
 // Idempotente: se já existir um relatório pra esse client_id + período
 // exato, atualiza em vez de duplicar.
 //
-// Pensado pra ser chamado por um script local (histórico) ou por uma
-// automação no fim do mês — não por um clique direto na tela do cliente.
+// Chamada tanto pelo botão "Gerar Fechamento com IA" na tela de
+// Relatórios (sessão autenticada da terapeuta) quanto pelo script local
+// generate-monthly-reports.js (chave de serviço).
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -122,7 +126,30 @@ serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    const { client_id, period_start, period_end } = await req.json();
+    // A Supabase já verificou a assinatura do JWT antes de chamar esta
+    // function (verify_jwt=true no config), então dá pra confiar nas
+    // claims sem reverificar aqui. Chamada de terapeuta autenticada
+    // (role="authenticated") exige perfil therapist; chamada com a chave
+    // de serviço (role="service_role", usada pelo script local) passa
+    // direto, como as outras functions de automação do projeto.
+    const authHeader = req.headers.get("Authorization");
+    const jwt = authHeader?.replace(/^Bearer\s+/i, "");
+    if (!jwt) return json({ error: "Não autenticado" }, 401);
+
+    let claims: { role?: string; sub?: string };
+    try {
+      const payload = jwt.split(".")[1];
+      claims = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    } catch {
+      return json({ error: "Token inválido" }, 401);
+    }
+
+    if (claims.role !== "service_role") {
+      const { data: callerProfile } = await supabase.from("profiles").select("role").eq("id", claims.sub).single();
+      if (callerProfile?.role !== "therapist") return json({ error: "Só a terapeuta pode gerar o fechamento" }, 403);
+    }
+
+    const { client_id, period_start, period_end, session_report_ids } = await req.json();
     if (!client_id || !period_start || !period_end) {
       return json({ error: "client_id, period_start e period_end são obrigatórios" }, 400);
     }
@@ -135,18 +162,20 @@ serve(async (req) => {
       .single();
     if (clientError || !client) return json({ error: "Cliente não encontrado" }, 404);
 
-    const { data: sessions, error: sessionsError } = await supabase
+    const sessionsQuery = supabase
       .from("session_reports")
       .select("session_date, content_html, status")
       .eq("client_id", client_id)
-      .gte("session_date", period_start)
-      .lte("session_date", period_end)
       .in("status", ["revisado", "publicado"])
       .order("session_date");
+
+    const { data: sessions, error: sessionsError } = Array.isArray(session_report_ids) && session_report_ids.length > 0
+      ? await sessionsQuery.in("id", session_report_ids)
+      : await sessionsQuery.gte("session_date", period_start).lte("session_date", period_end);
     if (sessionsError) throw sessionsError;
 
     if (!sessions?.length) {
-      return json({ error: `Nenhuma sessão revisada/publicada de ${client.name} entre ${period_start} e ${period_end}.` }, 404);
+      return json({ error: `Nenhuma sessão revisada/publicada de ${client.name} encontrada pra gerar o fechamento.` }, 404);
     }
 
     const sessionsText = sessions
