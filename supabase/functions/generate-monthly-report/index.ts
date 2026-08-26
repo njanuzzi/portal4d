@@ -4,14 +4,19 @@ import Anthropic from "https://esm.sh/@anthropic-ai/sdk";
 
 // === Gera o Relatório Clínico de Fechamento de Mês via Claude ===
 //
-// Recebe { client_id, period_start, period_end, session_report_ids? }
-// (period_start/end no formato YYYY-MM-DD). Por padrão busca as
-// session_reports já revisadas/publicadas do cliente nesse período; se
-// `session_report_ids` vier preenchido, usa exatamente essas sessões em
-// vez de buscar por data (permite escolher manualmente quais sessões
-// entram, ex: pela tela de Relatórios). Manda pro Claude com o prompt
-// clínico da terapeuta, e grava o resultado em `reports` (content_text,
-// published=false — a terapeuta decide quando publicar).
+// Recebe { client_id, period_start, period_end, session_report_ids?,
+// include_schema_report? } (period_start/end no formato YYYY-MM-DD). Por
+// padrão busca as session_reports já revisadas/publicadas do cliente
+// nesse período; se `session_report_ids` vier preenchido, usa exatamente
+// essas sessões em vez de buscar por data (permite escolher manualmente
+// quais sessões entram, ex: pela tela de Relatórios). Se
+// `include_schema_report` for true, busca também o relatório técnico
+// (não a devolutiva simplificada) mais recente do Inventário de Esquemas
+// desse cliente — já revisado — e manda como contexto extra pro Claude,
+// pra enriquecer a leitura sem citar jargão técnico na saída (mesma regra
+// de voz sistêmica vale pra esse contexto). Manda tudo pro Claude com o
+// prompt clínico da terapeuta, e grava o resultado em `reports`
+// (content_text, published=false — a terapeuta decide quando publicar).
 //
 // Idempotente: se já existir um relatório pra esse client_id + período
 // exato, atualiza em vez de duplicar.
@@ -79,6 +84,12 @@ nos relacionamentos e na vida — um papel que aprendeu a exercer, uma forma
 de se proteger, uma crença sobre si mesma ou sobre os outros. A base
 teórica acima orienta o que você observa e a estrutura da sua leitura, mas
 não deve aparecer como jargão no texto entregue à cliente.
+
+Se a mensagem trouxer um bloco "PERFIL DE ESQUEMAS (contexto interno)",
+use-o só como pano de fundo pra entender os padrões da cliente com mais
+profundidade — nunca cite, resuma ou faça referência direta a esse bloco
+no texto final, e nunca use os nomes técnicos dos esquemas que aparecem
+nele. A mesma regra de voz sistêmica vale integralmente pra esse contexto.
 
 FORMATO DE SAÍDA: responda em Markdown simples. Cada uma das 6 seções
 numeradas acima deve virar um título markdown ("## 1) Movimentos do Mês",
@@ -149,7 +160,7 @@ serve(async (req) => {
       if (callerProfile?.role !== "therapist") return json({ error: "Só a terapeuta pode gerar o fechamento" }, 403);
     }
 
-    const { client_id, period_start, period_end, session_report_ids } = await req.json();
+    const { client_id, period_start, period_end, session_report_ids, include_schema_report } = await req.json();
     if (!client_id || !period_start || !period_end) {
       return json({ error: "client_id, period_start e period_end são obrigatórios" }, 400);
     }
@@ -185,9 +196,26 @@ serve(async (req) => {
       })
       .join("\n\n");
 
-    const userMessage = `Cliente: ${client.name}\n\nSessões do período (${sessions.length} sessão${sessions.length !== 1 ? "ões" : ""}):\n\n${sessionsText}`;
+    let schemaReportBlock = "";
+    if (include_schema_report) {
+      const { data: schemaReport } = await supabase
+        .from("client_schema_reports")
+        .select("technical_content, created_at")
+        .eq("client_id", client_id)
+        .in("status", ["reviewed", "published"])
+        .not("technical_content", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    console.log(`[generate-monthly-report] Gerando fechamento de ${client.name} (${period_start} a ${period_end}), ${sessions.length} sessões`);
+      if (schemaReport?.technical_content) {
+        schemaReportBlock = `\n\nPERFIL DE ESQUEMAS (contexto interno, não citar diretamente):\n${stripHtml(schemaReport.technical_content)}`;
+      }
+    }
+
+    const userMessage = `Cliente: ${client.name}\n\nSessões do período (${sessions.length} sessão${sessions.length !== 1 ? "ões" : ""}):\n\n${sessionsText}${schemaReportBlock}`;
+
+    console.log(`[generate-monthly-report] Gerando fechamento de ${client.name} (${period_start} a ${period_end}), ${sessions.length} sessões${schemaReportBlock ? ", com perfil de esquemas" : ""}`);
 
     const stream = anthropic.messages.stream({
       model: MODEL,
@@ -241,6 +269,7 @@ serve(async (req) => {
       report_id: reportId,
       client_name: client.name,
       sessions_used: sessions.length,
+      schema_report_included: Boolean(schemaReportBlock),
       updated_existing: Boolean(existing),
       usage: response.usage,
     });
