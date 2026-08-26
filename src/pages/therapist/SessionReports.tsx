@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ArrowLeft, CalendarClock, ChevronRight, Plus, RefreshCw } from 'lucide-react';
+import { ArrowLeft, CalendarClock, ChevronDown, ChevronRight, Plus, RefreshCw } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -63,6 +63,17 @@ export function SessionReports() {
   const [adding, setAdding] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
+  const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
+  const [initializedCollapse, setInitializedCollapse] = useState(false);
+
+  const toggleMonth = (key: string) => {
+    setCollapsedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const loadReports = async () => {
     if (!clientId) return null;
@@ -84,12 +95,19 @@ export function SessionReports() {
       setLoading(true);
       setError('');
 
-      const [{ data: clientRow, error: clientError }] = await Promise.all([
+      const [{ data: clientRow, error: clientError }, reportsData] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', clientId).eq('role', 'client').maybeSingle(),
         loadReports(),
       ]);
 
       if (cancelled) return;
+
+      if (!initializedCollapse) {
+        const monthKeys = Array.from(new Set((reportsData ?? []).map((r: SessionReportRow) => monthYearKey(r.session_date))));
+        // Mês mais recente já vem aberto; o resto começa fechado pra a tela não ficar gigante.
+        setCollapsedMonths(new Set(monthKeys.slice(1)));
+        setInitializedCollapse(true);
+      }
 
       setClient((clientRow ?? null) as ClientProfile | null);
       setError(clientError?.message || '');
@@ -217,32 +235,51 @@ export function SessionReports() {
           }
         />
       ) : (
-        <div className="space-y-6">
-          {Array.from(groups.entries()).map(([key, groupReports]) => (
-            <div key={key}>
-              <h2 className="text-sm font-semibold text-dark/60 font-serif mb-2">{monthYearLabel(key)}</h2>
-              <Card>
-                <div className="divide-y divide-beige-200">
-                  {groupReports.map((report) => (
-                    <Link
-                      key={report.id}
-                      to={`/reports/${client.id}/sessions/${report.id}`}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-beige-50 transition-colors group"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-dark">{formatDate(report.session_date)}</div>
-                        {report.title && report.title !== formatDate(report.session_date) && (
-                          <div className="text-xs text-dark/40 truncate mt-0.5">{report.title}</div>
-                        )}
-                      </div>
-                      <Badge variant={STATUS_VARIANT[report.status]}>{STATUS_LABEL[report.status]}</Badge>
-                      <ChevronRight size={16} className="text-dark/20 group-hover:text-dark/50 transition-colors shrink-0" />
-                    </Link>
-                  ))}
-                </div>
-              </Card>
-            </div>
-          ))}
+        <div className="space-y-3">
+          {Array.from(groups.entries()).map(([key, groupReports]) => {
+            const isOpen = !collapsedMonths.has(key);
+            return (
+              <div key={key}>
+                <button
+                  type="button"
+                  onClick={() => toggleMonth(key)}
+                  className="flex items-center gap-2 w-full text-left mb-2 group"
+                >
+                  {isOpen ? (
+                    <ChevronDown size={16} className="text-dark/40 shrink-0" />
+                  ) : (
+                    <ChevronRight size={16} className="text-dark/40 shrink-0" />
+                  )}
+                  <h2 className="text-sm font-semibold text-dark/60 font-serif group-hover:text-dark/80 transition-colors">
+                    {monthYearLabel(key)}
+                  </h2>
+                  <span className="text-xs text-dark/30">({groupReports.length})</span>
+                </button>
+                {isOpen && (
+                  <Card>
+                    <div className="divide-y divide-beige-200">
+                      {groupReports.map((report) => (
+                        <Link
+                          key={report.id}
+                          to={`/reports/${client.id}/sessions/${report.id}`}
+                          className="flex items-center gap-4 px-6 py-4 hover:bg-beige-50 transition-colors group"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-dark">{formatDate(report.session_date)}</div>
+                            {report.title && report.title !== formatDate(report.session_date) && (
+                              <div className="text-xs text-dark/40 truncate mt-0.5">{report.title}</div>
+                            )}
+                          </div>
+                          <Badge variant={STATUS_VARIANT[report.status]}>{STATUS_LABEL[report.status]}</Badge>
+                          <ChevronRight size={16} className="text-dark/20 group-hover:text-dark/50 transition-colors shrink-0" />
+                        </Link>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
