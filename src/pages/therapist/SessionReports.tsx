@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ArrowLeft, CalendarClock, ChevronDown, ChevronRight, Plus, RefreshCw } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CheckCircle2, CheckSquare, ChevronDown, ChevronRight, Plus, RefreshCw, Square, X } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -65,6 +65,10 @@ export function SessionReports() {
   const [syncMessage, setSyncMessage] = useState('');
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
   const [initializedCollapse, setInitializedCollapse] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkError, setBulkError] = useState('');
 
   const toggleMonth = (key: string) => {
     setCollapsedMonths((prev) => {
@@ -161,6 +165,64 @@ export function SessionReports() {
     navigate(`/reports/${clientId}/sessions/${data.id}`);
   };
 
+  const toggleSelectMode = () => {
+    setSelectMode((prev) => !prev);
+    setSelectedIds(new Set());
+    setBulkError('');
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectMonth = (monthReports: SessionReportRow[]) => {
+    const ids = monthReports.map((r) => r.id);
+    const allSelected = ids.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) ids.forEach((id) => next.delete(id));
+      else ids.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelectedIds(new Set(reports.map((r) => r.id)));
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkMarkReviewed = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkUpdating(true);
+    setBulkError('');
+
+    // Nunca rebaixa uma sessão já publicada — o cliente pode estar vendo
+    // ela agora, e "revisado" some da tela dele.
+    const ids = reports.filter((r) => selectedIds.has(r.id) && r.status !== 'publicado').map((r) => r.id);
+
+    if (ids.length === 0) {
+      setBulkUpdating(false);
+      setSelectMode(false);
+      setSelectedIds(new Set());
+      return;
+    }
+
+    const { error: updateError } = await untypedSupabase
+      .from('session_reports')
+      .update({ status: 'revisado', reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .in('id', ids);
+
+    setBulkUpdating(false);
+    if (updateError) { setBulkError(updateError.message); return; }
+
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    await loadReports();
+  };
+
   if (loading) return <PageSpinner />;
 
   if (!client) {
@@ -202,6 +264,10 @@ export function SessionReports() {
               <RefreshCw size={16} />
               Sincronizar
             </Button>
+            <Button variant="ghost" onClick={toggleSelectMode}>
+              {selectMode ? <X size={16} /> : <CheckSquare size={16} />}
+              {selectMode ? 'Cancelar seleção' : 'Selecionar'}
+            </Button>
             <Button onClick={() => { setNewDate(todayISO()); setAddOpen(true); }}>
               <Plus size={16} />
               Nova sessão
@@ -209,6 +275,28 @@ export function SessionReports() {
           </div>
         </div>
       </div>
+
+      {selectMode && (
+        <div className="mb-4 flex items-center justify-between gap-3 flex-wrap rounded-lg border border-petrol-200 bg-petrol-50 px-4 py-3">
+          <div className="text-sm text-dark/70">
+            {selectedIds.size} sessão{selectedIds.size !== 1 ? 'ões' : ''} selecionada{selectedIds.size !== 1 ? 's' : ''}
+            <button type="button" onClick={selectAll} className="ml-3 text-petrol-700 hover:underline">Selecionar todas</button>
+            {selectedIds.size > 0 && (
+              <button type="button" onClick={clearSelection} className="ml-3 text-dark/50 hover:underline">Limpar</button>
+            )}
+          </div>
+          <Button size="sm" loading={bulkUpdating} disabled={selectedIds.size === 0} onClick={handleBulkMarkReviewed}>
+            <CheckCircle2 size={14} />
+            Marcar como revisado
+          </Button>
+        </div>
+      )}
+
+      {bulkError && (
+        <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {bulkError}
+        </div>
+      )}
 
       {syncMessage && (
         <div className="mb-4 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
@@ -238,42 +326,79 @@ export function SessionReports() {
         <div className="space-y-3">
           {Array.from(groups.entries()).map(([key, groupReports]) => {
             const isOpen = !collapsedMonths.has(key);
+            const monthAllSelected = selectMode && groupReports.every((r) => selectedIds.has(r.id));
             return (
               <div key={key}>
-                <button
-                  type="button"
-                  onClick={() => toggleMonth(key)}
-                  className="flex items-center gap-2 w-full text-left mb-2 group"
-                >
-                  {isOpen ? (
-                    <ChevronDown size={16} className="text-dark/40 shrink-0" />
-                  ) : (
-                    <ChevronRight size={16} className="text-dark/40 shrink-0" />
+                <div className="flex items-center gap-2 mb-2">
+                  {selectMode && (
+                    <button
+                      type="button"
+                      onClick={() => toggleSelectMonth(groupReports)}
+                      className="shrink-0 text-dark/40 hover:text-petrol-700 transition-colors"
+                      title="Selecionar o mês inteiro"
+                    >
+                      {monthAllSelected ? <CheckSquare size={16} className="text-petrol-700" /> : <Square size={16} />}
+                    </button>
                   )}
-                  <h2 className="text-sm font-semibold text-dark/60 font-serif group-hover:text-dark/80 transition-colors">
-                    {monthYearLabel(key)}
-                  </h2>
-                  <span className="text-xs text-dark/30">({groupReports.length})</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleMonth(key)}
+                    className="flex items-center gap-2 flex-1 text-left group"
+                  >
+                    {isOpen ? (
+                      <ChevronDown size={16} className="text-dark/40 shrink-0" />
+                    ) : (
+                      <ChevronRight size={16} className="text-dark/40 shrink-0" />
+                    )}
+                    <h2 className="text-sm font-semibold text-dark/60 font-serif group-hover:text-dark/80 transition-colors">
+                      {monthYearLabel(key)}
+                    </h2>
+                    <span className="text-xs text-dark/30">({groupReports.length})</span>
+                  </button>
+                </div>
                 {isOpen && (
                   <Card>
                     <div className="divide-y divide-beige-200">
-                      {groupReports.map((report) => (
-                        <Link
-                          key={report.id}
-                          to={`/reports/${client.id}/sessions/${report.id}`}
-                          className="flex items-center gap-4 px-6 py-4 hover:bg-beige-50 transition-colors group"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-dark">{formatDate(report.session_date)}</div>
-                            {report.title && report.title !== formatDate(report.session_date) && (
-                              <div className="text-xs text-dark/40 truncate mt-0.5">{report.title}</div>
+                      {groupReports.map((report) => {
+                        const rowContent = (
+                          <>
+                            {selectMode && (
+                              selectedIds.has(report.id)
+                                ? <CheckSquare size={16} className="text-petrol-700 shrink-0" />
+                                : <Square size={16} className="text-dark/30 shrink-0" />
                             )}
-                          </div>
-                          <Badge variant={STATUS_VARIANT[report.status]}>{STATUS_LABEL[report.status]}</Badge>
-                          <ChevronRight size={16} className="text-dark/20 group-hover:text-dark/50 transition-colors shrink-0" />
-                        </Link>
-                      ))}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-dark">{formatDate(report.session_date)}</div>
+                              {report.title && report.title !== formatDate(report.session_date) && (
+                                <div className="text-xs text-dark/40 truncate mt-0.5">{report.title}</div>
+                              )}
+                            </div>
+                            <Badge variant={STATUS_VARIANT[report.status]}>{STATUS_LABEL[report.status]}</Badge>
+                            {!selectMode && (
+                              <ChevronRight size={16} className="text-dark/20 group-hover:text-dark/50 transition-colors shrink-0" />
+                            )}
+                          </>
+                        );
+
+                        return selectMode ? (
+                          <button
+                            key={report.id}
+                            type="button"
+                            onClick={() => toggleSelected(report.id)}
+                            className="flex items-center gap-4 px-6 py-4 hover:bg-beige-50 transition-colors group w-full text-left"
+                          >
+                            {rowContent}
+                          </button>
+                        ) : (
+                          <Link
+                            key={report.id}
+                            to={`/reports/${client.id}/sessions/${report.id}`}
+                            className="flex items-center gap-4 px-6 py-4 hover:bg-beige-50 transition-colors group"
+                          >
+                            {rowContent}
+                          </Link>
+                        );
+                      })}
                     </div>
                   </Card>
                 )}
