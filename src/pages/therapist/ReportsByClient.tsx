@@ -220,6 +220,8 @@ export function ReportsByClient() {
   const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null);
   const [checkedSessionIds, setCheckedSessionIds] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
+  const [schemaReportAvailable, setSchemaReportAvailable] = useState(false);
+  const [includeSchemaReport, setIncludeSchemaReport] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -447,19 +449,31 @@ export function ReportsByClient() {
     setMonthlyModalOpen(true);
     setMonthlyLoading(true);
     setMonthlyError('');
+    setIncludeSchemaReport(false);
 
-    const { data, error: sessionsError } = await untypedSupabase
-      .from('session_reports')
-      .select('id, session_date, title, status')
-      .eq('client_id', clientId)
-      .in('status', ['revisado', 'publicado'])
-      .order('session_date', { ascending: false });
+    const [{ data, error: sessionsError }, { data: schemaReports, error: schemaError }] = await Promise.all([
+      untypedSupabase
+        .from('session_reports')
+        .select('id, session_date, title, status')
+        .eq('client_id', clientId)
+        .in('status', ['revisado', 'publicado'])
+        .order('session_date', { ascending: false }),
+      untypedSupabase
+        .from('client_schema_reports')
+        .select('id')
+        .eq('client_id', clientId)
+        .in('status', ['reviewed', 'published'])
+        .not('technical_content', 'is', null)
+        .limit(1),
+    ]);
 
     if (sessionsError) {
       setMonthlyError(sessionsError.message);
       setMonthlyLoading(false);
       return;
     }
+
+    setSchemaReportAvailable(!schemaError && (schemaReports ?? []).length > 0);
 
     const sessions = (data ?? []) as SessionOption[];
     const groups = sessions.reduce<Map<string, SessionOption[]>>((acc, session) => {
@@ -513,6 +527,7 @@ export function ReportsByClient() {
         period_start: periodStart,
         period_end: periodEnd,
         session_report_ids: Array.from(checkedSessionIds),
+        include_schema_report: includeSchemaReport,
       },
     });
 
@@ -779,6 +794,21 @@ export function ReportsByClient() {
                   ))}
                 </div>
               </div>
+
+              {schemaReportAvailable && (
+                <label className="flex items-center gap-3 rounded-lg border border-beige-300 bg-white px-3 py-2.5 cursor-pointer hover:bg-beige-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={includeSchemaReport}
+                    onChange={(e) => setIncludeSchemaReport(e.target.checked)}
+                    className="h-4 w-4 rounded border-beige-300 text-petrol-700 focus:ring-petrol-400"
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-dark">Incluir devolutiva de esquemas</div>
+                    <div className="text-xs text-dark/40">Usa o relatório técnico do Inventário de Esquemas como contexto extra — sem citar jargão no texto final</div>
+                  </div>
+                </label>
+              )}
             </>
           )}
 
