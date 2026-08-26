@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarClock, Download, Eye, FileText, Pencil, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { ArrowLeft, CalendarClock, Download, Eye, FileText, Pencil, Plus, Sparkles, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -11,6 +12,37 @@ import { formatDate } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
 import DOMPurify from 'dompurify';
 import type { Profile, Report } from '../../lib/database.types';
+
+// session_reports não está no database.types.ts (tabela nova) — mesmo padrão
+// de client não tipado usado em SessionReports.tsx.
+const untypedSupabase = supabase as unknown as SupabaseClient;
+
+type SessionReportStatus = 'rascunho' | 'revisado' | 'publicado';
+interface SessionOption {
+  id: string;
+  session_date: string;
+  title: string;
+  status: SessionReportStatus;
+}
+
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+function monthYearKey(dateStr: string) {
+  return dateStr.slice(0, 7); // "AAAA-MM"
+}
+
+function monthYearLabel(key: string) {
+  const [year, month] = key.split('-').map(Number);
+  return `${MONTH_NAMES[month - 1]} de ${year}`;
+}
+
+function lastDayOfMonth(key: string) {
+  const [year, month] = key.split('-').map(Number);
+  return String(new Date(year, month, 0).getDate()).padStart(2, '0');
+}
 
 type ClientProfile = Profile & { diary_id?: string | null };
 type ReportRow = Pick<Report, 'id' | 'user_id' | 'period_start' | 'period_end' | 'content_text' | 'published' | 'created_at'> & {
@@ -165,6 +197,7 @@ function downloadCsv(filename: string, csvContent: string) {
 
 export function ReportsByClient() {
   const { clientId } = useParams<{ clientId: string }>();
+  const navigate = useNavigate();
   const [client, setClient] = useState<ClientProfile | null>(null);
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,6 +212,14 @@ export function ReportsByClient() {
   const [csvMessage, setCsvMessage] = useState('');
   const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
   const [selectedWeekNumber, setSelectedWeekNumber] = useState<number | null>(null);
+
+  const [monthlyModalOpen, setMonthlyModalOpen] = useState(false);
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
+  const [monthlyError, setMonthlyError] = useState('');
+  const [sessionsByMonth, setSessionsByMonth] = useState<Map<string, SessionOption[]>>(new Map());
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null);
+  const [checkedSessionIds, setCheckedSessionIds] = useState<Set<string>>(new Set());
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -400,6 +441,92 @@ export function ReportsByClient() {
     setDeleteLoading(false);
   };
 
+  const openMonthlyModal = async () => {
+    if (!clientId) return;
+
+    setMonthlyModalOpen(true);
+    setMonthlyLoading(true);
+    setMonthlyError('');
+
+    const { data, error: sessionsError } = await untypedSupabase
+      .from('session_reports')
+      .select('id, session_date, title, status')
+      .eq('client_id', clientId)
+      .in('status', ['revisado', 'publicado'])
+      .order('session_date', { ascending: false });
+
+    if (sessionsError) {
+      setMonthlyError(sessionsError.message);
+      setMonthlyLoading(false);
+      return;
+    }
+
+    const sessions = (data ?? []) as SessionOption[];
+    const groups = sessions.reduce<Map<string, SessionOption[]>>((acc, session) => {
+      const key = monthYearKey(session.session_date);
+      const list = acc.get(key) ?? [];
+      list.push(session);
+      acc.set(key, list);
+      return acc;
+    }, new Map());
+
+    setSessionsByMonth(groups);
+
+    if (groups.size === 0) {
+      setSelectedMonthKey(null);
+      setCheckedSessionIds(new Set());
+    } else {
+      const mostRecentKey = Array.from(groups.keys())[0];
+      setSelectedMonthKey(mostRecentKey);
+      setCheckedSessionIds(new Set((groups.get(mostRecentKey) ?? []).map((s) => s.id)));
+    }
+
+    setMonthlyLoading(false);
+  };
+
+  const handleMonthChange = (key: string) => {
+    setSelectedMonthKey(key);
+    setCheckedSessionIds(new Set((sessionsByMonth.get(key) ?? []).map((s) => s.id)));
+  };
+
+  const toggleSessionChecked = (id: string) => {
+    setCheckedSessionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleGenerateMonthlyReport = async () => {
+    if (!clientId || !selectedMonthKey || checkedSessionIds.size === 0) return;
+
+    setGenerating(true);
+    setMonthlyError('');
+
+    const periodStart = `${selectedMonthKey}-01`;
+    const periodEnd = `${selectedMonthKey}-${lastDayOfMonth(selectedMonthKey)}`;
+
+    const { data, error: fnError } = await supabase.functions.invoke('generate-monthly-report', {
+      body: {
+        client_id: clientId,
+        period_start: periodStart,
+        period_end: periodEnd,
+        session_report_ids: Array.from(checkedSessionIds),
+      },
+    });
+
+    setGenerating(false);
+
+    if (fnError || data?.error) {
+      setMonthlyError(data?.error || fnError?.message || 'Não foi possível gerar o fechamento agora.');
+      return;
+    }
+
+    setMonthlyModalOpen(false);
+    navigate(`/reports/${clientId}/edit/${data.report_id}`);
+  };
+
   if (loading) return <PageSpinner />;
 
   if (!client) {
@@ -440,6 +567,10 @@ export function ReportsByClient() {
             <Button variant="ghost" onClick={openCsvModal}>
               <Download size={16} />
               Exportar CSV
+            </Button>
+            <Button variant="ghost" onClick={openMonthlyModal}>
+              <Sparkles size={16} />
+              Gerar Fechamento com IA
             </Button>
             <Link to={`/reports/${client.id}/new`}>
               <Button>
@@ -588,6 +719,89 @@ export function ReportsByClient() {
             </Button>
             <Button type="button" variant="ghost" onClick={() => setCsvModalOpen(false)}>Cancelar</Button>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={monthlyModalOpen}
+        onClose={() => setMonthlyModalOpen(false)}
+        title="Gerar Fechamento com IA"
+        size="md"
+      >
+        <div className="space-y-4">
+          {monthlyLoading ? (
+            <div className="text-sm text-dark/40 py-4">Carregando sessões...</div>
+          ) : sessionsByMonth.size === 0 ? (
+            <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Este cliente não tem nenhuma sessão revisada ou publicada ainda. Revise ao menos uma sessão em Relatórios de Sessão antes de gerar o fechamento.
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="text-sm font-medium text-dark/80 mb-1.5 block">Mês</label>
+                <select
+                  value={selectedMonthKey ?? ''}
+                  onChange={(e) => handleMonthChange(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-beige-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 text-dark"
+                >
+                  {Array.from(sessionsByMonth.keys()).map((key) => (
+                    <option key={key} value={key}>{monthYearLabel(key)}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <p className="text-sm text-dark/60 mb-2">
+                  Escolha quais sessões entram no fechamento — todas do mês vêm marcadas por padrão.
+                </p>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {(sessionsByMonth.get(selectedMonthKey ?? '') ?? []).map((session) => (
+                    <label
+                      key={session.id}
+                      className="flex items-center gap-3 rounded-lg border border-beige-300 bg-white px-3 py-2.5 cursor-pointer hover:bg-beige-50 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checkedSessionIds.has(session.id)}
+                        onChange={() => toggleSessionChecked(session.id)}
+                        className="h-4 w-4 rounded border-beige-300 text-petrol-700 focus:ring-petrol-400"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-dark">{formatDate(session.session_date)}</div>
+                        {session.title && session.title !== formatDate(session.session_date) && (
+                          <div className="text-xs text-dark/40 truncate">{session.title}</div>
+                        )}
+                      </div>
+                      <Badge variant={session.status === 'publicado' ? 'success' : 'warning'}>
+                        {session.status === 'publicado' ? 'Publicado' : 'Revisado'}
+                      </Badge>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {monthlyError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {monthlyError}
+            </div>
+          )}
+
+          {sessionsByMonth.size > 0 && (
+            <div className="flex gap-3 pt-2">
+              <Button
+                onClick={handleGenerateMonthlyReport}
+                loading={generating}
+                disabled={monthlyLoading || checkedSessionIds.size === 0}
+                className="flex-1"
+              >
+                <Sparkles size={16} />
+                Gerar ({checkedSessionIds.size} sessão{checkedSessionIds.size !== 1 ? 'ões' : ''})
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setMonthlyModalOpen(false)}>Cancelar</Button>
+            </div>
+          )}
         </div>
       </Modal>
 
