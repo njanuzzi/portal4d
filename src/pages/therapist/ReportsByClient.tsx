@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Download, Eye, FileText, Pencil, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Download, Eye, FileText, Pencil, Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -431,6 +431,12 @@ export function ReportsByClient() {
             <p className="text-dark/50 text-sm mt-1">{reports.length} relatório{reports.length !== 1 ? 's' : ''} cadastrado{reports.length !== 1 ? 's' : ''}</p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
+            <Link to={`/reports/${client.id}/sessions`}>
+              <Button variant="ghost">
+                <CalendarClock size={16} />
+                Relatórios de Sessão
+              </Button>
+            </Link>
             <Button variant="ghost" onClick={openCsvModal}>
               <Download size={16} />
               Exportar CSV

@@ -20,6 +20,8 @@ import { NewDiary } from './pages/therapist/NewDiary';
 import { DiaryDetail } from './pages/therapist/DiaryDetail';
 import { Reports } from './pages/therapist/Reports';
 import { ReportsByClient } from './pages/therapist/ReportsByClient';
+import { SessionReports } from './pages/therapist/SessionReports';
+import { SessionReportDetail } from './pages/therapist/SessionReportDetail';
 import { ClientSchemaAnalysis } from './pages/therapist/ClientSchemaAnalysis';
 import { SchemaReportDetail } from './pages/therapist/SchemaReportDetail';
 import { ClientFacingReportPreview } from './pages/therapist/ClientFacingReportPreview';
@@ -168,6 +170,8 @@ function AppRoutes() {
           <Route path="/diaries/:id" element={<DiaryDetail />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/:clientId" element={<ReportsByClient />} />
+          <Route path="/reports/:clientId/sessions" element={<SessionReports />} />
+          <Route path="/reports/:clientId/sessions/:sessionReportId" element={<SessionReportDetail />} />
           <Route path="/reports/:clientId/new" element={<NewReport />} />
           <Route path="/reports/:clientId/edit/:reportId" element={<EditReport />} />
           <Route path="/scheduling" element={<Scheduling />} />

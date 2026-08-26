@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { FileText, Eye, Sparkles, CheckCircle2 } from 'lucide-react';
 
 function stripHtml(html: string) {
@@ -18,6 +19,18 @@ import { EsquemasBarChart } from '../../components/EsquemasBarChart';
 import { ReportObservations } from '../../components/ReportObservations';
 import { formatDate } from '../../lib/format';
 import type { Report } from '../../lib/database.types';
+
+// session_reports não está no database.types.ts (tabela nova) — mesmo padrão
+// de client não tipado usado em outras tabelas recentes.
+const untypedSupabase = supabase as unknown as SupabaseClient;
+
+interface SessionReportRow {
+  id: string;
+  session_date: string;
+  title: string;
+  content_html: string;
+  published_at: string | null;
+}
 
 interface PadraoEsquema {
   nome: string;
@@ -51,9 +64,11 @@ export function ClientReports() {
   const [reports, setReports] = useState<Report[]>([]);
   const [padroes, setPadroes] = useState<PadraoRow[]>([]);
   const [domains, setDomains] = useState<SchemaDomain[]>([]);
+  const [sessionReports, setSessionReports] = useState<SessionReportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewReport, setPreviewReport] = useState<Report | null>(null);
   const [previewPadrao, setPreviewPadrao] = useState<PadraoRow | null>(null);
+  const [previewSessionReport, setPreviewSessionReport] = useState<SessionReportRow | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
 
   useEffect(() => {
@@ -70,10 +85,17 @@ export function ClientReports() {
         .eq('client_id', user!.id)
         .order('published_at', { ascending: false }),
       supabase.from('schema_domains').select('id, friendly_name, wiki_description'),
-    ]).then(([{ data: reportRows }, { data: padraoRows }, { data: domainRows }]) => {
+      untypedSupabase
+        .from('session_reports')
+        .select('id, session_date, title, content_html, published_at')
+        .eq('client_id', user!.id)
+        .eq('status', 'publicado')
+        .order('session_date', { ascending: false }),
+    ]).then(([{ data: reportRows }, { data: padraoRows }, { data: domainRows }, { data: sessionReportRows }]) => {
       setReports(reportRows || []);
       setPadroes((padraoRows ?? []) as unknown as PadraoRow[]);
       setDomains((domainRows ?? []) as SchemaDomain[]);
+      setSessionReports((sessionReportRows ?? []) as SessionReportRow[]);
       setLoading(false);
     });
   }, [user]);
@@ -105,7 +127,7 @@ export function ClientReports() {
 
   if (loading) return <PageSpinner />;
 
-  const isEmpty = reports.length === 0 && padroes.length === 0;
+  const isEmpty = reports.length === 0 && padroes.length === 0 && sessionReports.length === 0;
 
   return (
     <div>
@@ -138,6 +160,33 @@ export function ClientReports() {
                     </div>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setPreviewPadrao(padrao)} className="shrink-0">
+                    <Eye size={14} />
+                    Ler
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          ))}
+
+          {sessionReports.map((sessionReport) => (
+            <Card key={sessionReport.id}>
+              <CardBody>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="gold">Relatório de sessão</Badge>
+                    </div>
+                    <div className="text-sm font-medium text-dark">
+                      {formatDate(sessionReport.session_date)}
+                    </div>
+                    {sessionReport.published_at && (
+                      <div className="text-xs text-dark/40 mt-0.5">
+                        Disponível desde {formatDate(sessionReport.published_at)}
+                      </div>
+                    )}
+                    <p className="text-sm text-dark/60 mt-2 line-clamp-3">{stripHtml(sessionReport.content_html)}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setPreviewSessionReport(sessionReport)} className="shrink-0">
                     <Eye size={14} />
                     Ler
                   </Button>
@@ -183,6 +232,25 @@ export function ClientReports() {
           className="prose prose-sm max-w-none text-dark/80 leading-relaxed [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-dark [&_h2]:mb-3 [&_p]:mb-2 [&_ul]:pl-4 [&_li]:mb-1"
           dangerouslySetInnerHTML={{ __html: previewReport?.content_text ?? '' }}
         />
+      </Modal>
+
+      <Modal
+        open={!!previewSessionReport}
+        onClose={() => setPreviewSessionReport(null)}
+        title={`Relatório da sessão — ${previewSessionReport ? formatDate(previewSessionReport.session_date) : ''}`}
+        size="lg"
+      >
+        {previewSessionReport && (
+          <div className="space-y-4">
+            <div
+              className="prose prose-sm max-w-none text-dark/80 leading-relaxed [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-dark [&_h2]:mb-3 [&_p]:mb-2 [&_ul]:pl-4 [&_li]:mb-1"
+              dangerouslySetInnerHTML={{ __html: previewSessionReport.content_html }}
+            />
+            <div className="border-t border-beige-300 pt-4">
+              <ReportObservations sessionReportId={previewSessionReport.id} clientId={user!.id} viewerRole="client" />
+            </div>
+          </div>
+        )}
       </Modal>
 
       <Modal
