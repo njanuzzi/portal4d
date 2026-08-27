@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { SupabaseClient } from '@supabase/supabase-js';
 import {
   ArrowLeft, Bold, Italic, List, ListOrdered, Quote, Eraser, Save,
-  Sparkles, CheckCircle2, Send, Trash2,
+  Sparkles, CheckCircle2, Send, Trash2, ClipboardCheck,
 } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -26,6 +26,7 @@ interface SessionReportRow {
   title: string;
   content_html: string;
   status: SessionReportStatus;
+  qa_notes: string | null;
 }
 
 const STATUS_VARIANT: Record<SessionReportStatus, 'neutral' | 'warning' | 'success'> = {
@@ -62,6 +63,7 @@ export function SessionReportDetail() {
   const [sessionDate, setSessionDate] = useState('');
   const [contentHtml, setContentHtml] = useState('');
   const [initialContentHtml, setInitialContentHtml] = useState('');
+  const [qaNotes, setQaNotes] = useState('');
   const [initLoading, setInitLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -81,7 +83,7 @@ export function SessionReportDetail() {
       supabase.from('profiles').select('*').eq('id', clientId).eq('role', 'client').maybeSingle(),
       untypedSupabase
         .from('session_reports')
-        .select('id, client_id, session_date, title, content_html, status')
+        .select('id, client_id, session_date, title, content_html, status, qa_notes')
         .eq('id', sessionReportId)
         .eq('client_id', clientId)
         .maybeSingle(),
@@ -94,6 +96,7 @@ export function SessionReportDetail() {
     setSessionDate(loadedReport?.session_date ?? '');
     setContentHtml(loadedReport?.content_html ?? '');
     setInitialContentHtml(loadedReport?.content_html ?? '');
+    setQaNotes(loadedReport?.qa_notes ?? '');
     if (reportError) setError(reportError.message);
     setInitLoading(false);
   };
@@ -121,14 +124,21 @@ export function SessionReportDetail() {
     setSaving(true);
 
     const sanitized = sanitizeHtml(contentHtml);
+    const trimmedQaNotes = qaNotes.trim() || null;
     const { error: updateError } = await untypedSupabase
       .from('session_reports')
-      .update({ title: title.trim() || report.title, session_date: sessionDate, content_html: sanitized, updated_at: new Date().toISOString() })
+      .update({
+        title: title.trim() || report.title,
+        session_date: sessionDate,
+        content_html: sanitized,
+        qa_notes: trimmedQaNotes,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', report.id);
 
     setSaving(false);
     if (updateError) { setError(updateError.message); return; }
-    setReport({ ...report, title: title.trim() || report.title, session_date: sessionDate, content_html: sanitized });
+    setReport({ ...report, title: title.trim() || report.title, session_date: sessionDate, content_html: sanitized, qa_notes: trimmedQaNotes });
     setInitialContentHtml(sanitized);
   };
 
@@ -237,6 +247,22 @@ export function SessionReportDetail() {
                   Em branco — ainda não sincronizado ou refinado a partir da transcrição.
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <ClipboardCheck size={14} className="text-dark/40" />
+                <label className="text-sm font-medium text-dark/80">Notas de QA</label>
+              </div>
+              <p className="text-xs text-dark/40">
+                Interno — só a terapeuta vê. Não aparece pro cliente.
+              </p>
+              <Textarea
+                value={qaNotes}
+                onChange={(e) => setQaNotes(e.target.value)}
+                placeholder="Inconsistências na fonte, nomes trocados, cortes, etc."
+                rows={3}
+              />
             </div>
 
             {error && (
