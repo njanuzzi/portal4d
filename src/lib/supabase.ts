@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://ojmaxsskczukdbxpaull.supabase.co';
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXAiLCJyZWYiOiJvam1heHNza3NjemlrZGJ4cGF1bGwiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc3Nzc2NzM1MSwiZXhwIjoyMDkzMzQzMzUxfQ.CL9IxI31OrDcZuTBh711TQjb8A5Ep0jveG7df58-dws';
+export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbWF4c3NrY3p1a2RieHBhdWxsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NjczNTEsImV4cCI6MjA5MzM0MzM1MX0.CL9IxI31OrDcZuTBh711TQjb8A5Ep0jveG7df58-dws';
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
