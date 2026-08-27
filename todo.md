@@ -32,8 +32,8 @@
 
 ## Hero e produto principal aprovados
 
-- [ ] Usar a foto real já existente da Núbia como imagem provisória do hero.
-- [ ] Exibir a assinatura `Núbia Januzzi — Especialista em Desbloqueio Comportamental` na primeira dobra.
-- [ ] Manter o Protocolo 4D como produto principal na narrativa, com autoria explícita da Núbia.
-- [ ] Atualizar CTAs, navegação, página Sobre, Biblioteca e metadados para refletir a hierarquia aprovada.
+- [x] Usar a foto real já existente da Núbia como imagem provisória do hero.
+- [x] Exibir a assinatura `Núbia Januzzi — Especialista em Desbloqueio Comportamental` na primeira dobra.
+- [x] Manter o Protocolo 4D como produto principal na narrativa, com autoria explícita da Núbia.
+- [x] Atualizar CTAs, navegação, página Sobre, Biblioteca e metadados para refletir a hierarquia aprovada.
 - [ ] Publicar somente na branch de prévia e validar desktop/mobile antes de qualquer merge.
