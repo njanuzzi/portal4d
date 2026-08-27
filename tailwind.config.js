@@ -41,10 +41,17 @@ export default {
           900: '#5e4832',
         },
         dark: '#2C2C2C',
+        coral: {
+          50: '#fff2ef',
+          100: '#f8d8d2',
+          300: '#dc9286',
+          500: '#bf675b',
+          700: '#93463d',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Playfair Display', 'Georgia', 'serif'],
+        serif: ['DM Serif Display', 'Georgia', 'serif'],
       },
     },
   },

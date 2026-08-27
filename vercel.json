@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/roteiro-video", "destination": "/roteiro-video.html" },
     { "source": "/briefing-video", "destination": "/briefing-video.html" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }

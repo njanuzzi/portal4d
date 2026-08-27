@@ -5,13 +5,13 @@ import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { createClient } from '@supabase/supabase-js';
-import { supabase, resetPasswordUrl, appUrl } from '../../lib/supabase';
+import { supabase, resetPasswordUrl, appUrl, supabaseUrl, supabaseAnonKey } from '../../lib/supabase';
 
 // Isolated client for creating user accounts — session is never persisted,
 // so it won't replace the therapist's active session.
 const supabaseSignup = createClient(
-  import.meta.env.VITE_SUPABASE_URL as string,
-  import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+  supabaseUrl,
+  supabaseAnonKey,
   { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
 );
 

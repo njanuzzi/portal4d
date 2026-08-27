@@ -1,0 +1,43 @@
+# Diagnóstico de prévia local
+
+## 2026-08-27 — Renderização inicial
+
+A build de produção concluiu depois da correção da ordem de estilos, mas a prévia Vite abriu com o elemento `#root` vazio. A inspeção do navegador confirmou que o HTML e os módulos foram carregados, sem erro visível no console, porém o aplicativo não montou conteúdo. A próxima correção deve investigar a decisão de rota e o estado inicial do `AppContent`, mantendo a produção sem alterações.
+
+## 2026-08-27 — Validação da home Atlas
+
+Após centralizar a configuração do Supabase usada por um módulo privado carregado no bundle, a build de produção renderizou corretamente. A home apresenta as imagens humanas editoriais, a espiral isolada para os quatro movimentos do método, e o percurso isolado em seis etapas. A seleção da estação **Direcionar** atualizou apenas o painel do método, confirmando que não há mais repetição entre método e atendimento.
+
+## 2026-08-27 — Interação do percurso e página Sobre
+
+A seleção de **Execução** alterou exclusivamente o painel do percurso, mostrando que a lógica de seis etapas é independente da espiral do método. A rota pública `/sobre` renderizou com a fotografia original da Núbia, a apresentação institucional, a formação e uma chamada para a sessão de avaliação. A navegação principal e o rodapé apontam corretamente para o novo destino.
+
+## 2026-08-27 — Biblioteca e rastreamento
+
+A rota pública `/conteudos` renderiza um estado editorial de início sem inventar artigos, como esperado antes da primeira publicação no painel privado. O novo arquivo `/robots.txt` responde como texto simples, permite rastreamento da área pública e referencia corretamente o sitemap, substituindo o comportamento anterior que redirecionava para a área de membros.
+
+## 2026-08-27 — Limites de validação local
+
+As novas rotas, funções de Vercel e componentes foram compilados. A tipagem global do repositório ainda acusa 75 erros preexistentes em telas privadas relacionadas a tipos de banco ausentes ou defasados; a filtragem específica das novas rotas e do editor não retornou erros. A migration da Biblioteca e as variáveis de servidor da Vercel ainda precisam ser configuradas antes de testar criação, upload e publicação de artigos com uma conta de terapeuta.
+
+## 2026-08-27 — Ativação autenticada
+
+O acesso à Vercel e ao projeto Supabase `Portal4D` foi confirmado no navegador conectado da usuária. O editor SQL exibiu a migration, mas a primeira tentativa de execução retornou uma validação de consulta vazia da própria interface. Nenhuma alteração de banco foi confirmada nesta tentativa; a próxima ação é registrar o texto no editor nativo antes de executar novamente.
+
+O editor SQL da Supabase usa Monaco. A automação de preenchimento exibiu o texto, mas não atualizou o estado interno da consulta; inclusive a consulta de leitura `select 1;` foi recusada como vazia. A migration ainda não foi aplicada. A próxima tentativa utilizará o campo `textarea` interno do editor para disparar o evento nativo de entrada antes de executar.
+
+## Configuração da Vercel
+
+A página de configurações Git confirma que o projeto `portal4d` ainda não possui Deploy Hooks. O hook a criar será nomeado `publicar-biblioteca-4d` e ficará vinculado à branch `main`; ele não será acionado durante esta configuração e não modifica a produção até que uma publicação editorial o invoque.
+
+O hook `publicar-biblioteca-4d` foi criado com sucesso para a branch `main`. A usuária aplicou a migration no Supabase e salvou as variáveis `VERCEL_CONTENT_DEPLOY_HOOK_URL` e `SUPABASE_SERVICE_ROLE_KEY` nos ambientes Production e Preview. A Vercel confirma que a prévia da branch `ui/atlas-de-padroes` está pronta, no commit `cbf71c0`; o próximo passo é gerar uma nova prévia após essas variáveis para validar o fluxo editorial.
+
+## Validação autenticada da Biblioteca 4D
+
+A prévia foi redeployada com sucesso após as variáveis serem salvas. A Biblioteca pública em `/conteudos` exibiu corretamente o estado inicial sem artigos. Após autenticação manual da usuária na prévia como terapeuta, `/gestao-conteudos` carregou a gestão protegida e o formulário `novo` abriu com os campos editoriais e a barra Tiptap. Um texto temporário foi inserido apenas no estado local do editor para confirmar a entrada; nenhum rascunho ou artigo foi salvo, nenhuma imagem foi enviada e nenhum hook de publicação foi acionado.
+
+## Ajustes de orientação e validação
+
+O erro relatado no primeiro teste de artigo ocorreu porque o campo `Resumo` recebeu cinco caracteres, enquanto a regra editorial do banco exige entre 20 e 360. A validação da interface foi atualizada para antecipar essa regra, apresentar contagem de caracteres e traduzir quaisquer restrições remanescentes para mensagens compreensíveis. Também foram adicionadas instruções de exploração nos blocos interativos do Método e do Percurso. O deploy do commit `b5c1575` concluiu com sucesso na prévia da branch `ui/atlas-de-padroes`.
+
+Na prévia atualizada, o editor passou a exibir imediatamente a orientação “Escreva pelo menos 20 caracteres. Faltam 20.” para o campo Resumo, e informa o endereço automático, o texto alternativo e a descrição de busca. Um título temporário de cinco caracteres foi preenchido apenas para preparar o teste de bloqueio do resumo curto; nenhum artigo foi salvo ou publicado.
