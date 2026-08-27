@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Send, Sparkles, History } from 'lucide-react';
+import { ArrowLeft, Send, Sparkles, History, CheckCircle2 } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -42,6 +42,7 @@ export function SchemaReportDetail() {
   const [revising, setRevising] = useState(false);
   const [revisionError, setRevisionError] = useState('');
   const [showDiff, setShowDiff] = useState(false);
+  const [statusBusy, setStatusBusy] = useState(false);
 
   const load = async () => {
     if (!clientId || !reportId) { setLoading(false); return; }
@@ -88,6 +89,18 @@ export function SchemaReportDetail() {
     setRevising(false);
   };
 
+  const markReviewed = async () => {
+    if (!reportId) return;
+    setStatusBusy(true);
+    const { error: updateError } = await supabase
+      .from('client_schema_reports')
+      .update({ status: 'reviewed', updated_at: new Date().toISOString() })
+      .eq('id', reportId);
+    setStatusBusy(false);
+    if (updateError) { setError(updateError.message); return; }
+    await load();
+  };
+
   const formatDateTime = (iso: string) =>
     new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -119,14 +132,27 @@ export function SchemaReportDetail() {
             <h1 className="text-2xl font-semibold text-dark font-serif">Relatório Técnico</h1>
             <p className="text-dark/50 text-sm mt-0.5">{client?.name}</p>
           </div>
-          <Badge variant={statusVariant[report.status] ?? 'neutral'}>
-            {statusLabel[report.status] ?? report.status}
-          </Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant={statusVariant[report.status] ?? 'neutral'}>
+              {statusLabel[report.status] ?? report.status}
+            </Badge>
+            {report.status === 'draft' && (
+              <Button size="sm" variant="ghost" loading={statusBusy} onClick={markReviewed}>
+                <CheckCircle2 size={14} />
+                Marcar como revisado
+              </Button>
+            )}
+          </div>
         </div>
         <p className="text-xs text-dark/40 mt-2">
           Última atualização em {formatDateTime(report.updated_at)}
           {report.generated_with ? ` · gerado com ${report.generated_with}` : ''}
         </p>
+        {report.status === 'draft' && (
+          <p className="text-xs text-gold-700 bg-gold-50 border border-gold-200 rounded-lg px-3 py-2 mt-2">
+            Enquanto estiver em rascunho, esse relatório não fica disponível para incluir no Fechamento de Ciclo — marque como revisado quando conferir o conteúdo.
+          </p>
+        )}
       </div>
 
       {/* Conteúdo do relatório */}
