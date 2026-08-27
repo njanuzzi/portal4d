@@ -17,9 +17,20 @@ import Anthropic from "https://esm.sh/@anthropic-ai/sdk";
 // Em qualquer caso, manda o relatório técnico (não a devolutiva
 // simplificada) como contexto extra pro Claude, pra enriquecer a leitura
 // sem citar jargão técnico na saída (mesma regra de voz sistêmica vale pra
-// esse contexto). Manda tudo pro Claude com o prompt clínico da terapeuta,
-// e grava o resultado em `reports` (content_text, published=false — a
-// terapeuta decide quando publicar).
+// esse contexto).
+//
+// Também busca, sem precisar de nenhum parâmetro extra: (a) a evolução do
+// perfil de esquemas entre a primeira e a mais recente versão revisada do
+// inventário (se houver 2+), e (b) o fechamento do ciclo anterior já
+// publicado desse cliente (se existir). Os dois alimentam a seção 7
+// ("Evolução entre ciclos") do prompt — só aparece quando pelo menos um dos
+// dois está disponível. O fechamento anterior pode ser citado naturalmente
+// (é a própria fala da terapeuta); a evolução de esquemas segue a mesma
+// regra de não citar termos técnicos.
+//
+// Manda tudo pro Claude com o prompt clínico da terapeuta, e grava o
+// resultado em `reports` (content_text, published=false — a terapeuta
+// decide quando publicar).
 //
 // Idempotente: se já existir um relatório pra esse client_id + período
 // exato, atualiza em vez de duplicar.
@@ -73,6 +84,16 @@ ESTRUTURA FIXA:
    sem cobrança.
 6) ENCERRAMENTO — fechamento simbólico/poético, metáforas naturais,
    tom de integração e esperança.
+7) EVOLUÇÃO ENTRE CICLOS — só escreva esta seção se a mensagem trouxer um
+   bloco "EVOLUÇÃO DO PERFIL DE ESQUEMAS" e/ou "FECHAMENTO DO CICLO
+   ANTERIOR"; se nenhum dos dois vier, pare na seção 6 e não mencione que
+   uma seção 7 poderia existir. Quando disponível, compare com o que já foi
+   observado antes:
+   - Continuidade: o que ficou marcado como "ainda pede cuidado" no ciclo
+     anterior voltou a aparecer, mudou de forma, ou não apareceu mais?
+   - Novidade: algo emergiu nesse ciclo que não estava presente antes.
+   - Ritmo: a mudança parece rápida (vale atenção) ou gradual e consistente
+     (sinal de processo saudável) — descreva sem julgar se é bom ou ruim.
 
 Base teórica implícita: Terapia do Esquema (Young), ACT (Hayes),
 Neurociência e Trauma (Siegel, van der Kolk), Psicologia Positiva.
@@ -88,18 +109,25 @@ de se proteger, uma crença sobre si mesma ou sobre os outros. A base
 teórica acima orienta o que você observa e a estrutura da sua leitura, mas
 não deve aparecer como jargão no texto entregue à cliente.
 
-Se a mensagem trouxer um bloco "PERFIL DE ESQUEMAS (contexto interno)",
-use-o só como pano de fundo pra entender os padrões da cliente com mais
-profundidade — nunca cite, resuma ou faça referência direta a esse bloco
-no texto final, e nunca use os nomes técnicos dos esquemas que aparecem
-nele. A mesma regra de voz sistêmica vale integralmente pra esse contexto.
+Se a mensagem trouxer um bloco "PERFIL DE ESQUEMAS (contexto interno)" e/ou
+"EVOLUÇÃO DO PERFIL DE ESQUEMAS (contexto interno)", use-os só como pano de
+fundo pra entender os padrões da cliente com mais profundidade — nunca
+cite, resuma ou faça referência direta a esses blocos no texto final, e
+nunca use os nomes técnicos dos esquemas ou os percentuais que aparecem
+neles. A mesma regra de voz sistêmica vale integralmente pra esse contexto.
 
-FORMATO DE SAÍDA: responda em Markdown simples. Cada uma das 6 seções
-numeradas acima deve virar um título markdown ("## 1) Movimentos do Mês",
-etc — mantenha o título exatamente como está na estrutura fixa, incluindo
-o número). Parágrafos separados por linha em branco. Não use JSON, não
-use \`\`\`, não escreva nada antes do primeiro título nem depois do
-fechamento da seção 6.`;
+Já o bloco "FECHAMENTO DO CICLO ANTERIOR", quando presente, PODE ser
+citado naturalmente ("desde o mês passado...", "como eu vinha
+percebendo...") — é a sua própria fala de um ciclo anterior, não jargão
+técnico.
+
+FORMATO DE SAÍDA: responda em Markdown simples. Cada seção da estrutura
+acima que você escrever deve virar um título markdown ("## 1) Movimentos
+do Mês", etc — mantenha o título exatamente como está na estrutura fixa,
+incluindo o número). As seções 1 a 6 são sempre obrigatórias; a seção 7 só
+aparece nas condições descritas nela. Parágrafos separados por linha em
+branco. Não use JSON, não use \`\`\`, não escreva nada antes do primeiro
+título nem depois do fechamento da última seção escrita.`;
 
 function stripHtml(html: string): string {
   return html
@@ -232,9 +260,79 @@ serve(async (req) => {
       }
     }
 
-    const userMessage = `Cliente: ${client.name}\n\nSessões do período (${sessions.length} sessão${sessions.length !== 1 ? "ões" : ""}):\n\n${sessionsText}${schemaReportBlock}`;
+    // Evolução do perfil de esquemas: compara a primeira com a mais recente
+    // versão revisada/publicada do inventário desse cliente (não depende de
+    // qual versão foi escolhida acima pro bloco "PERFIL DE ESQUEMAS" — usa
+    // todo o histórico disponível). Só entra se houver 2+ versões revisadas.
+    let schemaEvolutionBlock = "";
+    {
+      const { data: reviewedReports } = await supabase
+        .from("client_schema_reports")
+        .select("assessment_id, client_assessments(version, submitted_at)")
+        .eq("client_id", client_id)
+        .in("status", ["reviewed", "published"]);
 
-    console.log(`[generate-monthly-report] Gerando fechamento de ${client.name} (${period_start} a ${period_end}), ${sessions.length} sessões${schemaReportBlock ? ", com perfil de esquemas" : ""}`);
+      const versions = ((reviewedReports ?? []) as unknown as Array<{
+        assessment_id: string;
+        client_assessments: { version: number; submitted_at: string } | { version: number; submitted_at: string }[] | null;
+      }>)
+        .map((r) => {
+          const assessment = Array.isArray(r.client_assessments) ? r.client_assessments[0] : r.client_assessments;
+          return { assessment_id: r.assessment_id, version: assessment?.version, submitted_at: assessment?.submitted_at };
+        })
+        .filter((v) => v.version != null)
+        .sort((a, b) => a.version - b.version);
+
+      if (versions.length >= 2) {
+        const earliest = versions[0];
+        const latest = versions[versions.length - 1];
+        const [{ data: earlyScores }, { data: lateScores }, { data: domains }] = await Promise.all([
+          supabase.from("client_schema_scores").select("domain_id, percentual").eq("assessment_id", earliest.assessment_id),
+          supabase.from("client_schema_scores").select("domain_id, percentual, classification").eq("assessment_id", latest.assessment_id),
+          supabase.from("schema_domains").select("id, name"),
+        ]);
+        const domainName = new Map((domains ?? []).map((d) => [d.id, d.name]));
+        const earlyMap = new Map((earlyScores ?? []).map((s) => [s.domain_id, Number(s.percentual)]));
+
+        const lines = (lateScores ?? [])
+          .filter((late) => earlyMap.has(late.domain_id))
+          .map((late) => {
+            const earlyPct = earlyMap.get(late.domain_id)!;
+            const latePct = Number(late.percentual);
+            return { name: domainName.get(late.domain_id) ?? "?", earlyPct, latePct, delta: latePct - earlyPct, classification: late.classification };
+          })
+          .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+          .map((d) => `- ${d.name}: ${d.earlyPct}% → ${d.latePct}% (${d.delta >= 0 ? "+" : ""}${d.delta.toFixed(1)}pp, ${d.classification})`)
+          .join("\n");
+
+        if (lines) {
+          schemaEvolutionBlock = `\n\nEVOLUÇÃO DO PERFIL DE ESQUEMAS entre v${earliest.version} (${String(earliest.submitted_at).slice(0, 10)}) e v${latest.version} (${String(latest.submitted_at).slice(0, 10)}) — contexto interno, não citar diretamente:\n${lines}`;
+        }
+      }
+    }
+
+    // Fechamento do ciclo anterior já publicado desse cliente, se existir —
+    // dá continuidade real ao invés de só resumir o mês de novo.
+    let previousCycleBlock = "";
+    {
+      const { data: previousReport } = await supabase
+        .from("reports")
+        .select("content_text, period_start, period_end")
+        .eq("user_id", client_id)
+        .eq("published", true)
+        .lt("period_end", period_start)
+        .order("period_end", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (previousReport?.content_text) {
+        previousCycleBlock = `\n\nFECHAMENTO DO CICLO ANTERIOR (${previousReport.period_start} a ${previousReport.period_end}) — pode ser citado naturalmente, é a sua própria fala de um ciclo anterior:\n${stripHtml(previousReport.content_text)}`;
+      }
+    }
+
+    const userMessage = `Cliente: ${client.name}\n\nSessões do período (${sessions.length} sessão${sessions.length !== 1 ? "ões" : ""}):\n\n${sessionsText}${schemaReportBlock}${schemaEvolutionBlock}${previousCycleBlock}`;
+
+    console.log(`[generate-monthly-report] Gerando fechamento de ${client.name} (${period_start} a ${period_end}), ${sessions.length} sessões${schemaReportBlock ? ", com perfil de esquemas" : ""}${schemaEvolutionBlock ? ", com evolução de esquemas" : ""}${previousCycleBlock ? ", com ciclo anterior" : ""}`);
 
     const stream = anthropic.messages.stream({
       model: MODEL,
@@ -289,6 +387,8 @@ serve(async (req) => {
       client_name: client.name,
       sessions_used: sessions.length,
       schema_report_included: Boolean(schemaReportBlock),
+      schema_evolution_included: Boolean(schemaEvolutionBlock),
+      previous_cycle_included: Boolean(previousCycleBlock),
       updated_existing: Boolean(existing),
       usage: response.usage,
     });
