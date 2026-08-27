@@ -19,8 +19,9 @@ export function AtlasJourney() {
 
   return (
     <div className="atlas-journey__layout">
-      <div className="atlas-stages" role="tablist" aria-label="Etapas do atendimento individual">
-        <div className="atlas-stages__head"><span>6 ETAPAS DO ATENDIMENTO</span><span>EXPLORE A ROTA</span></div>
+      <div className="atlas-stages" role="tablist" aria-label="Etapas do atendimento individual" aria-describedby="atlas-journey-hint">
+        <div className="atlas-stages__head"><span>6 ETAPAS DO ATENDIMENTO</span><span>CLIQUE PARA EXPLORAR</span></div>
+        <p id="atlas-journey-hint" className="atlas-interaction-hint"><span aria-hidden="true">↗</span> Selecione uma etapa da rota para entender seu foco e sua pergunta-guia.</p>
         <div className="mt-5">
           {stages.map((item, index) => (
             <button key={item.name} type="button" role="tab" aria-selected={active === index} onClick={() => setActive(index)} className={`atlas-stage ${active === index ? 'atlas-stage--active' : ''}`}>

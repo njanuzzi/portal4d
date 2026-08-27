@@ -9,8 +9,9 @@ export function AtlasSpiral() {
 
   return (
     <div className="atlas-spiral">
-      <div className="atlas-spiral__visual" role="tablist" aria-label="Movimentos do Protocolo 4D">
+      <div className="atlas-spiral__visual" role="tablist" aria-label="Movimentos do Protocolo 4D" aria-describedby="atlas-spiral-hint">
         <img src="/protocolo4d-espiral.png" alt="Espiral que apresenta os quatro movimentos do Protocolo 4D" />
+        <p id="atlas-spiral-hint" className="atlas-interaction-hint atlas-interaction-hint--overlay"><span aria-hidden="true">↗</span> Clique em um movimento da espiral para ler como ele atua.</p>
         {PILARES.map((item, index) => {
           const StepIcon = item.icon;
           return (
