@@ -41,3 +41,7 @@ A prévia foi redeployada com sucesso após as variáveis serem salvas. A Biblio
 O erro relatado no primeiro teste de artigo ocorreu porque o campo `Resumo` recebeu cinco caracteres, enquanto a regra editorial do banco exige entre 20 e 360. A validação da interface foi atualizada para antecipar essa regra, apresentar contagem de caracteres e traduzir quaisquer restrições remanescentes para mensagens compreensíveis. Também foram adicionadas instruções de exploração nos blocos interativos do Método e do Percurso. O deploy do commit `b5c1575` concluiu com sucesso na prévia da branch `ui/atlas-de-padroes`.
 
 Na prévia atualizada, o editor passou a exibir imediatamente a orientação “Escreva pelo menos 20 caracteres. Faltam 20.” para o campo Resumo, e informa o endereço automático, o texto alternativo e a descrição de busca. Um título temporário de cinco caracteres foi preenchido apenas para preparar o teste de bloqueio do resumo curto; nenhum artigo foi salvo ou publicado.
+
+## Revisão mobile — hero e interações
+
+A captura em viewport de 390 px confirmou que a primeira dobra inicia com respiro consistente abaixo do cabeçalho fixo. A assinatura, o título, a descrição e os CTAs permanecem legíveis e não competem com a barra de navegação; a foto da autora continua abaixo dos indicadores de formato, preservando a ordem de leitura. Ainda falta confirmar visualmente a abertura do painel deslizante da espiral e do acordeão de etapas nessa mesma viewport antes do envio à prévia.

@@ -37,3 +37,11 @@
 - [x] Manter o Protocolo 4D como produto principal na narrativa, com autoria explícita da Núbia.
 - [x] Atualizar CTAs, navegação, página Sobre, Biblioteca e metadados para refletir a hierarquia aprovada.
 - [ ] Publicar somente na branch de prévia e validar desktop/mobile antes de qualquer merge.
+
+## Ajustes de interação no mobile
+
+- [x] Aumentar o respiro superior do hero mobile, preservando a composição desktop.
+- [x] Abrir o detalhe do movimento da espiral em painel deslizante no mobile.
+- [x] Abrir o detalhe de cada etapa do percurso em acordeão no próprio item selecionado no mobile.
+- [x] Manter o painel de detalhes lateral nas interações desktop.
+- [ ] Validar toque, fechamento, foco e leitura em tela estreita na prévia.

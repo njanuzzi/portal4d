@@ -1,4 +1,4 @@
-/** Atlas de Padrões — o percurso explica somente as seis etapas do atendimento. */
+/** Atlas de Padrões — seis etapas do atendimento com acordeão no mobile e painel lateral no desktop. */
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -11,37 +11,19 @@ const stages = [
   { name: 'Autonomia', window: 'Fechamento', description: 'O encerramento devolve direção e critérios próprios, sem dependência do acompanhamento.', focus: [['FERRAMENTAS', 'Recursos integrados'], ['CRITÉRIO', 'Continuidade escolhida'], ['PRÓXIMO CICLO', 'Direção própria']], question: 'Como você vai reconhecer que tem direção mesmo quando não tem certeza?' },
 ] as const;
 
+type JourneyDetailProps = { index: number; onPrevious: () => void; onNext: () => void; className?: string; };
+
+function JourneyDetail({ index, onPrevious, onNext, className = '' }: JourneyDetailProps) {
+  const stage = stages[index];
+  return <article className={`atlas-journey__detail ${className}`} aria-live="polite"><span className="atlas-journey__number">ETAPA 0{index + 1} · {stage.window.toUpperCase()}</span><h3>{stage.name}</h3><p>{stage.description}</p><div className="atlas-journey__focus">{stage.focus.map(([label, value]) => <span key={label}><b>{label}</b>{value}</span>)}</div><blockquote>“{stage.question}”</blockquote><div className="atlas-journey__controls"><button type="button" onClick={onPrevious}><ChevronLeft size={16} /> Anterior</button><span>{index + 1} / {stages.length}</span><button type="button" onClick={onNext}>Próxima <ChevronRight size={16} /></button></div></article>;
+}
+
 export function AtlasJourney() {
   const [active, setActive] = useState(0);
-  const stage = stages[active];
+  const [mobileExpanded, setMobileExpanded] = useState<number | null>(null);
   const previous = () => setActive((current) => (current + stages.length - 1) % stages.length);
   const next = () => setActive((current) => (current + 1) % stages.length);
+  const activateStage = (index: number) => { setActive(index); setMobileExpanded((expanded) => expanded === index ? null : index); };
 
-  return (
-    <div className="atlas-journey__layout">
-      <div className="atlas-stages" role="tablist" aria-label="Etapas do atendimento individual" aria-describedby="atlas-journey-hint">
-        <div className="atlas-stages__head"><span>6 ETAPAS DO ATENDIMENTO</span><span>CLIQUE PARA EXPLORAR</span></div>
-        <p id="atlas-journey-hint" className="atlas-interaction-hint"><span aria-hidden="true">↗</span> Selecione uma etapa da rota para entender seu foco e sua pergunta-guia.</p>
-        <div className="mt-5">
-          {stages.map((item, index) => (
-            <button key={item.name} type="button" role="tab" aria-selected={active === index} onClick={() => setActive(index)} className={`atlas-stage ${active === index ? 'atlas-stage--active' : ''}`}>
-              <span>0{index + 1}</span><div><strong>{item.name}</strong><small>{item.window}</small></div><i />
-            </button>
-          ))}
-        </div>
-      </div>
-      <article className="atlas-journey__detail" aria-live="polite">
-        <span className="atlas-journey__number">ETAPA 0{active + 1} · {stage.window.toUpperCase()}</span>
-        <h3>{stage.name}</h3>
-        <p>{stage.description}</p>
-        <div className="atlas-journey__focus">
-          {stage.focus.map(([label, value]) => <span key={label}><b>{label}</b>{value}</span>)}
-        </div>
-        <blockquote className="mt-7 border-l-2 border-gold-500 pl-4 font-serif text-xl leading-snug text-petrol-900">“{stage.question}”</blockquote>
-        <div className="atlas-journey__controls">
-          <button type="button" onClick={previous}><ChevronLeft size={16} /> Anterior</button><span>{active + 1} / {stages.length}</span><button type="button" onClick={next}>Próxima <ChevronRight size={16} /></button>
-        </div>
-      </article>
-    </div>
-  );
+  return <div className="atlas-journey__layout"><div className="atlas-stages" role="tablist" aria-label="Etapas do atendimento individual" aria-describedby="atlas-journey-hint"><div className="atlas-stages__head"><span>6 ETAPAS DO ATENDIMENTO</span><span>TOQUE PARA ABRIR</span></div><p id="atlas-journey-hint" className="atlas-interaction-hint"><span aria-hidden="true">↗</span> Toque em uma etapa para abrir seu foco e sua pergunta-guia.</p><div className="mt-5">{stages.map((item, index) => <div className="atlas-stage__item" key={item.name}><button type="button" role="tab" aria-selected={active === index} aria-expanded={mobileExpanded === index} aria-controls={`mobile-stage-${index}`} onClick={() => activateStage(index)} className={`atlas-stage ${active === index ? 'atlas-stage--active' : ''}`}><span>0{index + 1}</span><div><strong>{item.name}</strong><small>{item.window}</small></div><i /></button>{mobileExpanded === index && <div id={`mobile-stage-${index}`} className="atlas-stage__mobile-detail"><JourneyDetail index={index} onPrevious={() => { previous(); setMobileExpanded((index + stages.length - 1) % stages.length); }} onNext={() => { next(); setMobileExpanded((index + 1) % stages.length); }} /></div>}</div>)}</div></div><JourneyDetail index={active} onPrevious={previous} onNext={next} className="atlas-journey__detail--desktop" /></div>;
 }
