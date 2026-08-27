@@ -44,4 +44,5 @@
 - [x] Abrir o detalhe do movimento da espiral em painel deslizante no mobile.
 - [x] Abrir o detalhe de cada etapa do percurso em acordeão no próprio item selecionado no mobile.
 - [x] Manter o painel de detalhes lateral nas interações desktop.
-- [ ] Validar toque, fechamento, foco e leitura em tela estreita na prévia.
+- [x] Validar toque, fechamento, foco e leitura em tela estreita em ambiente de prévia local.
+- [ ] Enviar a revisão para a branch de prévia e aguardar a validação final da usuária.

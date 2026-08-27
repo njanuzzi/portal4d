@@ -45,3 +45,5 @@ Na prévia atualizada, o editor passou a exibir imediatamente a orientação “
 ## Revisão mobile — hero e interações
 
 A captura em viewport de 390 px confirmou que a primeira dobra inicia com respiro consistente abaixo do cabeçalho fixo. A assinatura, o título, a descrição e os CTAs permanecem legíveis e não competem com a barra de navegação; a foto da autora continua abaixo dos indicadores de formato, preservando a ordem de leitura. Ainda falta confirmar visualmente a abertura do painel deslizante da espiral e do acordeão de etapas nessa mesma viewport antes do envio à prévia.
+
+O teste automatizado em viewport móvel confirmou os dois comportamentos aprovados: ao tocar em **Desacelerar**, a espiral abre imediatamente um painel deslizante com o respectivo título e conteúdo, e o botão de fechar encerra o painel; ao tocar em **Regulação**, o percurso expande os detalhes no próprio ponto da rota. As capturas mostram que a resposta visual ocorre dentro da área observada, sem depender de um painel fora da dobra.
