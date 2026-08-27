@@ -230,7 +230,7 @@ export function SessionReportDetail() {
                 suppressContentEditableWarning
                 dangerouslySetInnerHTML={{ __html: initialContentHtml }}
                 onInput={(e) => setContentHtml(e.currentTarget.innerHTML)}
-                className="min-h-64 w-full rounded-lg border border-beige-300 bg-white px-3 py-2.5 text-sm text-dark focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent leading-relaxed"
+                className="prose prose-sm max-w-none min-h-64 w-full rounded-lg border border-beige-300 bg-white px-3 py-2.5 text-sm text-dark focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent leading-relaxed [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-dark [&_h2]:mb-3 [&_p]:mb-2 [&_ul]:pl-4 [&_li]:mb-1"
               />
               {!contentHtml.trim() && (
                 <p className="text-xs text-dark/40">
