@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { FileText, Eye, Sparkles, CheckCircle2 } from 'lucide-react';
+import { FileText, Eye, Sparkles, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
 
 function stripHtml(html: string) {
   const div = document.createElement('div');
@@ -61,6 +61,33 @@ interface SchemaDomain {
 }
 
 type ReportRow = Report & { first_viewed_at?: string | null };
+type ReportsTabKey = 'sessions' | 'fechamento' | 'esquemas';
+
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+function monthYearKey(dateStr: string) {
+  return dateStr.slice(0, 7); // "AAAA-MM"
+}
+
+function monthYearLabel(key: string) {
+  const [year, month] = key.split('-').map(Number);
+  return `${MONTH_NAMES[month - 1]} de ${year}`;
+}
+
+function groupByMonth<T>(items: T[], getDate: (item: T) => string) {
+  return Array.from(
+    items.reduce<Map<string, T[]>>((acc, item) => {
+      const key = monthYearKey(getDate(item));
+      const list = acc.get(key) ?? [];
+      list.push(item);
+      acc.set(key, list);
+      return acc;
+    }, new Map())
+  );
+}
 
 export function ClientReports() {
   const { user } = useAuth();
@@ -73,6 +100,9 @@ export function ClientReports() {
   const [previewPadrao, setPreviewPadrao] = useState<PadraoRow | null>(null);
   const [previewSessionReport, setPreviewSessionReport] = useState<SessionReportRow | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
+  const [activeTab, setActiveTab] = useState<ReportsTabKey>('sessions');
+  const [collapsedSessionMonths, setCollapsedSessionMonths] = useState<Set<string>>(new Set());
+  const [collapsedFechamentoMonths, setCollapsedFechamentoMonths] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     Promise.all([
@@ -95,10 +125,20 @@ export function ClientReports() {
         .eq('status', 'publicado')
         .order('session_date', { ascending: false }),
     ]).then(([{ data: reportRows }, { data: padraoRows }, { data: domainRows }, { data: sessionReportRows }]) => {
-      setReports(reportRows || []);
+      const loadedReports = (reportRows ?? []) as ReportRow[];
+      const loadedSessionReports = (sessionReportRows ?? []) as SessionReportRow[];
+
+      setReports(loadedReports);
       setPadroes((padraoRows ?? []) as unknown as PadraoRow[]);
       setDomains((domainRows ?? []) as SchemaDomain[]);
-      setSessionReports((sessionReportRows ?? []) as SessionReportRow[]);
+      setSessionReports(loadedSessionReports);
+
+      // Mês mais recente de cada lista já vem aberto; o resto começa fechado.
+      const sessionMonthKeys = groupByMonth(loadedSessionReports, (r) => r.session_date).map(([key]) => key);
+      setCollapsedSessionMonths(new Set(sessionMonthKeys.slice(1)));
+      const fechamentoMonthKeys = groupByMonth(loadedReports, (r) => r.period_start).map(([key]) => key);
+      setCollapsedFechamentoMonths(new Set(fechamentoMonthKeys.slice(1)));
+
       setLoading(false);
     });
   }, [user]);
@@ -146,14 +186,57 @@ export function ClientReports() {
 
   if (loading) return <PageSpinner />;
 
+  const toggleSessionMonth = (key: string) => {
+    setCollapsedSessionMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleFechamentoMonth = (key: string) => {
+    setCollapsedFechamentoMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const TABS: { key: ReportsTabKey; label: string; count: number }[] = [
+    { key: 'sessions', label: 'Sessões', count: sessionReports.length },
+    { key: 'fechamento', label: 'Fechamento do Ciclo', count: reports.length },
+    { key: 'esquemas', label: 'Esquemas', count: padroes.length },
+  ];
+
   const isEmpty = reports.length === 0 && padroes.length === 0 && sessionReports.length === 0;
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-xl font-semibold text-dark font-serif">Meus Relatórios</h1>
         <p className="text-dark/50 text-sm mt-1">Relatórios e devolutivas que sua terapeuta compartilhou com você</p>
       </div>
+
+      {!isEmpty && (
+        <div className="flex gap-1 border-b border-beige-300 mb-6">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                activeTab === tab.key
+                  ? 'border-petrol-700 text-petrol-700'
+                  : 'border-transparent text-dark/50 hover:text-dark/80'
+              }`}
+            >
+              {tab.label} {tab.count > 0 && <span className="text-xs opacity-60">({tab.count})</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
       {isEmpty ? (
         <EmptyState
@@ -161,6 +244,116 @@ export function ClientReports() {
           title="Nenhum relatório disponível"
           description="Quando sua terapeuta publicar um relatório, ele aparecerá aqui"
         />
+      ) : activeTab === 'sessions' ? (
+        sessionReports.length === 0 ? (
+          <EmptyState icon={<FileText size={40} />} title="Nenhum relatório de sessão ainda" />
+        ) : (
+          <div className="space-y-3">
+            {groupByMonth(sessionReports, (r) => r.session_date).map(([monthKey, monthReports]) => {
+              const isOpen = !collapsedSessionMonths.has(monthKey);
+              return (
+                <div key={monthKey}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSessionMonth(monthKey)}
+                    className="flex items-center gap-2 w-full text-left mb-2 group"
+                  >
+                    {isOpen ? <ChevronDown size={16} className="text-dark/40 shrink-0" /> : <ChevronRight size={16} className="text-dark/40 shrink-0" />}
+                    <h2 className="text-sm font-semibold text-dark/60 font-serif group-hover:text-dark/80 transition-colors">
+                      {monthYearLabel(monthKey)}
+                    </h2>
+                    <span className="text-xs text-dark/30">({monthReports.length})</span>
+                  </button>
+                  {isOpen && (
+                    <div className="space-y-3">
+                      {monthReports.map((sessionReport) => (
+                        <Card key={sessionReport.id}>
+                          <CardBody>
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge variant="gold">Relatório de sessão</Badge>
+                                </div>
+                                <div className="text-sm font-medium text-dark">
+                                  {formatDate(sessionReport.session_date)}
+                                </div>
+                                {sessionReport.published_at && (
+                                  <div className="text-xs text-dark/40 mt-0.5">
+                                    Disponível desde {formatDate(sessionReport.published_at)}
+                                  </div>
+                                )}
+                                <p className="text-sm text-dark/60 mt-2 line-clamp-3">{stripHtml(sessionReport.content_html)}</p>
+                              </div>
+                              <Button variant="ghost" size="sm" onClick={() => setPreviewSessionReport(sessionReport)} className="shrink-0">
+                                <Eye size={14} />
+                                Ler
+                              </Button>
+                            </div>
+                          </CardBody>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : activeTab === 'fechamento' ? (
+        reports.length === 0 ? (
+          <EmptyState icon={<FileText size={40} />} title="Nenhum fechamento de ciclo ainda" />
+        ) : (
+          <div className="space-y-3">
+            {groupByMonth(reports, (r) => r.period_start).map(([monthKey, monthReports]) => {
+              const isOpen = !collapsedFechamentoMonths.has(monthKey);
+              return (
+                <div key={monthKey}>
+                  <button
+                    type="button"
+                    onClick={() => toggleFechamentoMonth(monthKey)}
+                    className="flex items-center gap-2 w-full text-left mb-2 group"
+                  >
+                    {isOpen ? <ChevronDown size={16} className="text-dark/40 shrink-0" /> : <ChevronRight size={16} className="text-dark/40 shrink-0" />}
+                    <h2 className="text-sm font-semibold text-dark/60 font-serif group-hover:text-dark/80 transition-colors">
+                      {monthYearLabel(monthKey)}
+                    </h2>
+                    <span className="text-xs text-dark/30">({monthReports.length})</span>
+                  </button>
+                  {isOpen && (
+                    <div className="space-y-3">
+                      {monthReports.map((report) => (
+                        <Card key={report.id}>
+                          <CardBody>
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge variant="gold">Relatório</Badge>
+                                </div>
+                                <div className="text-sm font-medium text-dark">
+                                  {formatDate(report.period_start)} — {formatDate(report.period_end)}
+                                </div>
+                                <div className="text-xs text-dark/40 mt-0.5">
+                                  Disponível desde {formatDate(report.created_at)}
+                                </div>
+                                <p className="text-sm text-dark/60 mt-2 line-clamp-3">{stripHtml(report.content_text)}</p>
+                              </div>
+                              <Button variant="ghost" size="sm" onClick={() => setPreviewReport(report)} className="shrink-0">
+                                <Eye size={14} />
+                                Ler
+                              </Button>
+                            </div>
+                          </CardBody>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : padroes.length === 0 ? (
+        <EmptyState icon={<FileText size={40} />} title="Nenhuma devolutiva de esquemas ainda" />
       ) : (
         <div className="space-y-3">
           {padroes.map((padrao) => (
@@ -179,58 +372,6 @@ export function ClientReports() {
                     </div>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => setPreviewPadrao(padrao)} className="shrink-0">
-                    <Eye size={14} />
-                    Ler
-                  </Button>
-                </div>
-              </CardBody>
-            </Card>
-          ))}
-
-          {sessionReports.map((sessionReport) => (
-            <Card key={sessionReport.id}>
-              <CardBody>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="gold">Relatório de sessão</Badge>
-                    </div>
-                    <div className="text-sm font-medium text-dark">
-                      {formatDate(sessionReport.session_date)}
-                    </div>
-                    {sessionReport.published_at && (
-                      <div className="text-xs text-dark/40 mt-0.5">
-                        Disponível desde {formatDate(sessionReport.published_at)}
-                      </div>
-                    )}
-                    <p className="text-sm text-dark/60 mt-2 line-clamp-3">{stripHtml(sessionReport.content_html)}</p>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => setPreviewSessionReport(sessionReport)} className="shrink-0">
-                    <Eye size={14} />
-                    Ler
-                  </Button>
-                </div>
-              </CardBody>
-            </Card>
-          ))}
-
-          {reports.map((report) => (
-            <Card key={report.id}>
-              <CardBody>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="gold">Relatório</Badge>
-                    </div>
-                    <div className="text-sm font-medium text-dark">
-                      {formatDate(report.period_start)} — {formatDate(report.period_end)}
-                    </div>
-                    <div className="text-xs text-dark/40 mt-0.5">
-                      Disponível desde {formatDate(report.created_at)}
-                    </div>
-                    <p className="text-sm text-dark/60 mt-2 line-clamp-3">{stripHtml(report.content_text)}</p>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => setPreviewReport(report)} className="shrink-0">
                     <Eye size={14} />
                     Ler
                   </Button>
