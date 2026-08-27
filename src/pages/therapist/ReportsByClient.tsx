@@ -27,6 +27,12 @@ interface SessionOption {
   status: SessionReportStatus;
 }
 
+interface SchemaReportOption {
+  id: string;
+  version: number;
+  submitted_at: string;
+}
+
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
@@ -223,8 +229,8 @@ export function ReportsByClient() {
   const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null);
   const [checkedSessionIds, setCheckedSessionIds] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
-  const [schemaReportAvailable, setSchemaReportAvailable] = useState(false);
-  const [includeSchemaReport, setIncludeSchemaReport] = useState(false);
+  const [schemaReportOptions, setSchemaReportOptions] = useState<SchemaReportOption[]>([]);
+  const [selectedSchemaReportId, setSelectedSchemaReportId] = useState('');
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
   const [initializedCollapse, setInitializedCollapse] = useState(false);
 
@@ -473,7 +479,7 @@ export function ReportsByClient() {
     setMonthlyModalOpen(true);
     setMonthlyLoading(true);
     setMonthlyError('');
-    setIncludeSchemaReport(false);
+    setSelectedSchemaReportId('');
 
     const [{ data, error: sessionsError }, { data: schemaReports, error: schemaError }] = await Promise.all([
       untypedSupabase
@@ -484,11 +490,10 @@ export function ReportsByClient() {
         .order('session_date', { ascending: false }),
       untypedSupabase
         .from('client_schema_reports')
-        .select('id')
+        .select('id, client_assessments(version, submitted_at)')
         .eq('client_id', clientId)
         .in('status', ['reviewed', 'published'])
-        .not('technical_content', 'is', null)
-        .limit(1),
+        .not('technical_content', 'is', null),
     ]);
 
     if (sessionsError) {
@@ -497,7 +502,14 @@ export function ReportsByClient() {
       return;
     }
 
-    setSchemaReportAvailable(!schemaError && (schemaReports ?? []).length > 0);
+    const schemaOptions: SchemaReportOption[] = schemaError ? [] : ((schemaReports ?? []) as unknown as Array<{
+      id: string;
+      client_assessments: { version: number; submitted_at: string } | { version: number; submitted_at: string }[] | null;
+    }>).map((r) => {
+      const assessment = Array.isArray(r.client_assessments) ? r.client_assessments[0] : r.client_assessments;
+      return { id: r.id, version: assessment?.version ?? 0, submitted_at: assessment?.submitted_at ?? '' };
+    }).sort((a, b) => b.version - a.version);
+    setSchemaReportOptions(schemaOptions);
 
     const sessions = (data ?? []) as SessionOption[];
     const groups = sessions.reduce<Map<string, SessionOption[]>>((acc, session) => {
@@ -551,7 +563,7 @@ export function ReportsByClient() {
         period_start: periodStart,
         period_end: periodEnd,
         session_report_ids: Array.from(checkedSessionIds),
-        include_schema_report: includeSchemaReport,
+        schema_report_id: selectedSchemaReportId || undefined,
       },
     });
 
@@ -849,19 +861,23 @@ export function ReportsByClient() {
                 </div>
               </div>
 
-              {schemaReportAvailable && (
-                <label className="flex items-center gap-3 rounded-lg border border-beige-300 bg-white px-3 py-2.5 cursor-pointer hover:bg-beige-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={includeSchemaReport}
-                    onChange={(e) => setIncludeSchemaReport(e.target.checked)}
-                    className="h-4 w-4 rounded border-beige-300 text-petrol-700 focus:ring-petrol-400"
-                  />
-                  <div>
-                    <div className="text-sm font-medium text-dark">Incluir devolutiva de esquemas</div>
-                    <div className="text-xs text-dark/40">Usa o relatório técnico do Inventário de Esquemas como contexto extra — sem citar jargão no texto final</div>
-                  </div>
-                </label>
+              {schemaReportOptions.length > 0 && (
+                <div className="rounded-lg border border-beige-300 bg-white px-3 py-2.5">
+                  <div className="text-sm font-medium text-dark mb-0.5">Incluir devolutiva de esquemas</div>
+                  <div className="text-xs text-dark/40 mb-2">Usa o relatório técnico do Inventário de Esquemas como contexto extra — sem citar jargão no texto final</div>
+                  <select
+                    value={selectedSchemaReportId}
+                    onChange={(e) => setSelectedSchemaReportId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-beige-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 text-dark"
+                  >
+                    <option value="">Não incluir</option>
+                    {schemaReportOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        Versão {opt.version}{opt.submitted_at ? ` (${formatDate(opt.submitted_at)})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               )}
             </>
           )}

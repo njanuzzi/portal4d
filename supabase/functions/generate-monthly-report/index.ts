@@ -5,18 +5,21 @@ import Anthropic from "https://esm.sh/@anthropic-ai/sdk";
 // === Gera o Relatório Clínico de Fechamento de Mês via Claude ===
 //
 // Recebe { client_id, period_start, period_end, session_report_ids?,
-// include_schema_report? } (period_start/end no formato YYYY-MM-DD). Por
-// padrão busca as session_reports já revisadas/publicadas do cliente
-// nesse período; se `session_report_ids` vier preenchido, usa exatamente
-// essas sessões em vez de buscar por data (permite escolher manualmente
-// quais sessões entram, ex: pela tela de Relatórios). Se
-// `include_schema_report` for true, busca também o relatório técnico
-// (não a devolutiva simplificada) mais recente do Inventário de Esquemas
-// desse cliente — já revisado — e manda como contexto extra pro Claude,
-// pra enriquecer a leitura sem citar jargão técnico na saída (mesma regra
-// de voz sistêmica vale pra esse contexto). Manda tudo pro Claude com o
-// prompt clínico da terapeuta, e grava o resultado em `reports`
-// (content_text, published=false — a terapeuta decide quando publicar).
+// include_schema_report?, schema_report_id? } (period_start/end no formato
+// YYYY-MM-DD). Por padrão busca as session_reports já revisadas/publicadas
+// do cliente nesse período; se `session_report_ids` vier preenchido, usa
+// exatamente essas sessões em vez de buscar por data (permite escolher
+// manualmente quais sessões entram, ex: pela tela de Relatórios). Se
+// `schema_report_id` vier preenchido, usa exatamente esse relatório técnico
+// do Inventário de Esquemas (cliente pode ter respondido mais de uma vez —
+// a terapeuta escolhe a versão na tela). Sem isso, `include_schema_report`
+// true cai no comportamento antigo: pega a revisada/publicada mais recente.
+// Em qualquer caso, manda o relatório técnico (não a devolutiva
+// simplificada) como contexto extra pro Claude, pra enriquecer a leitura
+// sem citar jargão técnico na saída (mesma regra de voz sistêmica vale pra
+// esse contexto). Manda tudo pro Claude com o prompt clínico da terapeuta,
+// e grava o resultado em `reports` (content_text, published=false — a
+// terapeuta decide quando publicar).
 //
 // Idempotente: se já existir um relatório pra esse client_id + período
 // exato, atualiza em vez de duplicar.
@@ -160,7 +163,7 @@ serve(async (req) => {
       if (callerProfile?.role !== "therapist") return json({ error: "Só a terapeuta pode gerar o fechamento" }, 403);
     }
 
-    const { client_id, period_start, period_end, session_report_ids, include_schema_report } = await req.json();
+    const { client_id, period_start, period_end, session_report_ids, include_schema_report, schema_report_id } = await req.json();
     if (!client_id || !period_start || !period_end) {
       return json({ error: "client_id, period_start e period_end são obrigatórios" }, 400);
     }
@@ -197,7 +200,23 @@ serve(async (req) => {
       .join("\n\n");
 
     let schemaReportBlock = "";
-    if (include_schema_report) {
+    if (schema_report_id) {
+      // A terapeuta escolheu explicitamente qual versão do Inventário de
+      // Esquemas usar (cliente pode ter respondido mais de uma vez) — busca
+      // exatamente essa, validando que é desse mesmo cliente.
+      const { data: schemaReport } = await supabase
+        .from("client_schema_reports")
+        .select("technical_content, client_id")
+        .eq("id", schema_report_id)
+        .not("technical_content", "is", null)
+        .maybeSingle();
+
+      if (schemaReport && schemaReport.client_id === client_id && schemaReport.technical_content) {
+        schemaReportBlock = `\n\nPERFIL DE ESQUEMAS (contexto interno, não citar diretamente):\n${stripHtml(schemaReport.technical_content)}`;
+      }
+    } else if (include_schema_report) {
+      // Compatibilidade com chamadas antigas (ex: script local) que não
+      // escolhem uma versão específica — pega a revisada/publicada mais recente.
       const { data: schemaReport } = await supabase
         .from("client_schema_reports")
         .select("technical_content, created_at")
