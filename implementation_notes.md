@@ -35,3 +35,9 @@ O hook `publicar-biblioteca-4d` foi criado com sucesso para a branch `main`. A u
 ## Validação autenticada da Biblioteca 4D
 
 A prévia foi redeployada com sucesso após as variáveis serem salvas. A Biblioteca pública em `/conteudos` exibiu corretamente o estado inicial sem artigos. Após autenticação manual da usuária na prévia como terapeuta, `/gestao-conteudos` carregou a gestão protegida e o formulário `novo` abriu com os campos editoriais e a barra Tiptap. Um texto temporário foi inserido apenas no estado local do editor para confirmar a entrada; nenhum rascunho ou artigo foi salvo, nenhuma imagem foi enviada e nenhum hook de publicação foi acionado.
+
+## Ajustes de orientação e validação
+
+O erro relatado no primeiro teste de artigo ocorreu porque o campo `Resumo` recebeu cinco caracteres, enquanto a regra editorial do banco exige entre 20 e 360. A validação da interface foi atualizada para antecipar essa regra, apresentar contagem de caracteres e traduzir quaisquer restrições remanescentes para mensagens compreensíveis. Também foram adicionadas instruções de exploração nos blocos interativos do Método e do Percurso. O deploy do commit `b5c1575` concluiu com sucesso na prévia da branch `ui/atlas-de-padroes`.
+
+Na prévia atualizada, o editor passou a exibir imediatamente a orientação “Escreva pelo menos 20 caracteres. Faltam 20.” para o campo Resumo, e informa o endereço automático, o texto alternativo e a descrição de busca. Um título temporário de cinco caracteres foi preenchido apenas para preparar o teste de bloqueio do resumo curto; nenhum artigo foi salvo ou publicado.
