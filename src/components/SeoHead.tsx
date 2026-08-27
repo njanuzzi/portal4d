@@ -21,7 +21,7 @@ function upsertMeta(selector: string, attribute: 'name' | 'property', key: strin
 
 export function SeoHead({ title, description, image, canonicalPath, type = 'website' }: SeoHeadProps) {
   useEffect(() => {
-    const fullTitle = `${title} | Núbia Januzzi`;
+    const fullTitle = title.includes('Núbia Januzzi') ? title : `${title} | Núbia Januzzi`;
     const canonicalUrl = canonicalPath ? `https://www.nubiajanuzzi.com${canonicalPath}` : window.location.href;
     document.title = fullTitle;
     upsertMeta('meta[name="description"]', 'name', 'description', description);
