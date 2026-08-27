@@ -8,3 +8,10 @@
 - [x] Testar o bloqueio de erro sem criar nem publicar conteúdo de teste.
 - [x] Enviar os ajustes para a prévia da Vercel e aguardar revisão da usuária.
 - [ ] Validar o salvamento e a publicação com o primeiro artigo real aprovado pela usuária.
+
+## Handoff para Claude Code
+
+- [x] Consolidar a implantação aprovada em documento técnico copiável.
+- [x] Incluir regras de branch, preview e proibição de merge/publicação sem aprovação.
+- [x] Listar alterações de UI, Biblioteca, Supabase, Vercel, SEO e critérios de aceite.
+- [ ] Entregar o documento para encaminhamento ao Claude Code.
