@@ -48,10 +48,13 @@ import { SessaoAvaliacao } from './pages/SessaoAvaliacao';
 import { Inscricao } from './pages/Inscricao';
 import { Produtos } from './pages/Produtos';
 import { QuizInstagram } from './pages/QuizInstagram';
-// Desativado até a Núbia criar um Substack direcionado ao Protocolo 4D.
-// import { Blog } from './pages/Blog';
+import { About } from './pages/About';
+import { Contents } from './pages/Contents';
+import { ContentArticlePage } from './pages/ContentArticle';
+import { ContentManager } from './pages/therapist/ContentManager';
+import { ContentEditor } from './pages/therapist/ContentEditor';
 
-const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram'];
+const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog'];
 
 function AppRoutes() {
   const location = useLocation();
@@ -86,8 +89,8 @@ function AppRoutes() {
     );
   }
 
-  // Marketing pages (method explainers, products, blog) are always public
-  if (ALWAYS_PUBLIC_MARKETING_ROUTES.includes(location.pathname)) {
+  // Marketing pages are always public. Individual articles have their own public route.
+  if (ALWAYS_PUBLIC_MARKETING_ROUTES.includes(location.pathname) || /^\/conteudos\/[^/]+$/.test(location.pathname)) {
     return (
       <Routes>
         <Route path="/protocolo4d" element={<Protocolo4D />} />
@@ -96,7 +99,10 @@ function AppRoutes() {
         <Route path="/inscricao" element={<Inscricao />} />
         <Route path="/produtos" element={<Produtos />} />
         <Route path="/quizinstagram" element={<QuizInstagram />} />
-        {/* <Route path="/blog" element={<Blog />} /> */}
+        <Route path="/sobre" element={<About />} />
+        <Route path="/conteudos" element={<Contents />} />
+        <Route path="/conteudos/:slug" element={<ContentArticlePage />} />
+        <Route path="/blog" element={<Navigate to="/conteudos" replace />} />
       </Routes>
     );
   }
@@ -175,6 +181,9 @@ function AppRoutes() {
           <Route path="/reports/:clientId/new" element={<NewReport />} />
           <Route path="/reports/:clientId/edit/:reportId" element={<EditReport />} />
           <Route path="/scheduling" element={<Scheduling />} />
+          <Route path="/gestao-conteudos" element={<ContentManager />} />
+          <Route path="/gestao-conteudos/novo" element={<ContentEditor />} />
+          <Route path="/gestao-conteudos/:id" element={<ContentEditor />} />
           <Route path="/areamembros" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Navigate to="/dashboard" replace />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

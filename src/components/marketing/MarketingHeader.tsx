@@ -1,6 +1,5 @@
-import { Link } from 'react-router-dom';
-import { Menu } from 'lucide-react';
-import { Button } from '../ui/Button';
+import { Link, NavLink } from 'react-router-dom';
+import { ArrowUpRight, Menu } from 'lucide-react';
 
 interface MarketingHeaderProps {
   onOpenMenu: () => void;
@@ -8,25 +7,11 @@ interface MarketingHeaderProps {
 
 export function MarketingHeader({ onOpenMenu }: MarketingHeaderProps) {
   return (
-    <header className="sticky top-0 z-40 bg-petrol-700 text-white">
-      <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3">
-          <img src="/logosistema.png" alt="Logo" className="w-10 h-10 rounded-full object-cover shrink-0" />
-          <div className="font-serif text-sm leading-tight">Núbia Januzzi</div>
-        </Link>
-
-        <div className="flex items-center gap-3">
-          <Link to="/areamembros" className="hidden sm:block">
-            <Button variant="secondary" size="sm">Área de Membros</Button>
-          </Link>
-          <button
-            onClick={onOpenMenu}
-            className="text-white"
-            aria-label="Abrir menu"
-          >
-            <Menu size={22} />
-          </button>
-        </div>
+    <header className="atlas-header">
+      <div className="atlas-frame atlas-header__inner">
+        <Link to="/" className="atlas-brand"><span className="atlas-brand__mark"><img src="/logosistema.png" alt="Símbolo Núbia Januzzi" /></span><span><strong>Núbia Januzzi</strong><small>PROTOCOLO 4D</small></span></Link>
+        <nav className="atlas-nav" aria-label="Navegação principal"><NavLink to="/protocolo4d"><span>01</span>O método</NavLink><NavLink to="/atendimento"><span>02</span>Atendimento</NavLink><NavLink to="/conteudos"><span>03</span>Conteúdos</NavLink><NavLink to="/sobre"><span>04</span>Sobre a Núbia</NavLink></nav>
+        <div className="atlas-header__actions"><Link to="/areamembros" className="atlas-member-link">Área de membros <ArrowUpRight size={13} className="inline" /></Link><Link to="/sessao-avaliacao" className="atlas-button">Sessão de avaliação <ArrowUpRight size={14} /></Link><button onClick={onOpenMenu} className="atlas-menu-button" aria-label="Abrir menu"><Menu size={23} /></button></div>
       </div>
     </header>
   );
