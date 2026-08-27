@@ -11,6 +11,8 @@ import { PageSpinner } from '../../components/ui/Spinner';
 import { Modal } from '../../components/ui/Modal';
 import { formatDate, todayISO } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
+import { ReportsTabs } from '../../components/ReportsTabs';
+import { ReadStatusBadge } from '../../components/ReadStatusBadge';
 import type { Profile } from '../../lib/database.types';
 
 // session_reports não está no database.types.ts (tabela nova) — mesmo padrão
@@ -24,6 +26,7 @@ interface SessionReportRow {
   session_date: string;
   title: string;
   status: SessionReportStatus;
+  first_viewed_at?: string | null;
 }
 
 const STATUS_VARIANT: Record<SessionReportStatus, 'neutral' | 'warning' | 'success'> = {
@@ -83,7 +86,7 @@ export function SessionReports() {
     if (!clientId) return null;
     const { data, error: reportsError } = await untypedSupabase
       .from('session_reports')
-      .select('id, session_date, title, status')
+      .select('id, session_date, title, status, first_viewed_at')
       .eq('client_id', clientId)
       .order('session_date', { ascending: false });
     setReports((data ?? []) as SessionReportRow[]);
@@ -252,9 +255,10 @@ export function SessionReports() {
           <ArrowLeft size={16} />
           Voltar para Relatórios
         </Link>
+        <ReportsTabs clientId={client.id} active="sessions" />
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-dark font-serif">Relatórios de Sessão — {client.name}</h1>
+            <h1 className="text-2xl font-semibold text-dark font-serif">Sessões — {client.name}</h1>
             <p className="text-dark/50 text-sm mt-1">
               {reports.length} sessão{reports.length !== 1 ? 'ões' : ''} registrada{reports.length !== 1 ? 's' : ''}
             </p>
@@ -374,6 +378,7 @@ export function SessionReports() {
                               )}
                             </div>
                             <Badge variant={STATUS_VARIANT[report.status]}>{STATUS_LABEL[report.status]}</Badge>
+                            {report.status === 'publicado' && <ReadStatusBadge firstViewedAt={report.first_viewed_at} />}
                             {!selectMode && (
                               <ChevronRight size={16} className="text-dark/20 group-hover:text-dark/50 transition-colors shrink-0" />
                             )}

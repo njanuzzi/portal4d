@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ArrowLeft, CalendarClock, Download, Eye, FileText, Pencil, Plus, Sparkles, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, Download, Eye, FileText, Pencil, Plus, Sparkles, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -10,6 +10,8 @@ import { PageSpinner } from '../../components/ui/Spinner';
 import { Modal } from '../../components/ui/Modal';
 import { formatDate } from '../../lib/format';
 import { supabase } from '../../lib/supabase';
+import { ReportsTabs } from '../../components/ReportsTabs';
+import { ReadStatusBadge } from '../../components/ReadStatusBadge';
 import DOMPurify from 'dompurify';
 import type { Profile, Report } from '../../lib/database.types';
 
@@ -47,6 +49,7 @@ function lastDayOfMonth(key: string) {
 type ClientProfile = Profile & { diary_id?: string | null };
 type ReportRow = Pick<Report, 'id' | 'user_id' | 'period_start' | 'period_end' | 'content_text' | 'published' | 'created_at'> & {
   active?: boolean | null;
+  first_viewed_at?: string | null;
 };
 type WeekOption = {
   weekNumber: number;
@@ -73,7 +76,7 @@ type DayNoteRow = {
   emotions: { label: string; intensity: number }[] | null;
 };
 
-const REPORT_SELECT = 'id, user_id, period_start, period_end, content_text, published, active, created_at';
+const REPORT_SELECT = 'id, user_id, period_start, period_end, content_text, published, active, created_at, first_viewed_at';
 const CSV_HEADERS = ['data', 'horario', 'secao', 'pergunta_ou_conteudo', 'tipo', 'resposta_texto', 'resposta_valor', 'emocoes'];
 
 function stripHtml(value: string) {
@@ -222,6 +225,17 @@ export function ReportsByClient() {
   const [generating, setGenerating] = useState(false);
   const [schemaReportAvailable, setSchemaReportAvailable] = useState(false);
   const [includeSchemaReport, setIncludeSchemaReport] = useState(false);
+  const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
+  const [initializedCollapse, setInitializedCollapse] = useState(false);
+
+  const toggleMonth = (key: string) => {
+    setCollapsedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -243,13 +257,22 @@ export function ReportsByClient() {
           .from('reports')
           .select(REPORT_SELECT)
           .eq('user_id', clientId)
-          .order('created_at', { ascending: false }),
+          .order('period_start', { ascending: false }),
       ]);
 
       if (cancelled) return;
 
+      const loadedReports = (reportRows ?? []) as ReportRow[];
+
+      if (!initializedCollapse) {
+        const monthKeys = Array.from(new Set(loadedReports.map((r) => monthYearKey(r.period_start))));
+        // Mês mais recente já vem aberto; o resto começa fechado.
+        setCollapsedMonths(new Set(monthKeys.slice(1)));
+        setInitializedCollapse(true);
+      }
+
       setClient((clientRow ?? null) as ClientProfile | null);
-      setReports((reportRows ?? []) as ReportRow[]);
+      setReports(loadedReports);
       setError(clientError?.message || reportsError?.message || '');
       setLoading(false);
     };
@@ -259,6 +282,7 @@ export function ReportsByClient() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId]);
 
   const selectedWeek = weekOptions.find((week) => week.weekNumber === selectedWeekNumber) ?? null;
@@ -567,18 +591,13 @@ export function ReportsByClient() {
           <ArrowLeft size={16} />
           Voltar para Relatórios
         </Link>
+        <ReportsTabs clientId={client.id} active="fechamento" />
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-dark font-serif">Relatórios - {client.name}</h1>
+            <h1 className="text-2xl font-semibold text-dark font-serif">Fechamento do Ciclo - {client.name}</h1>
             <p className="text-dark/50 text-sm mt-1">{reports.length} relatório{reports.length !== 1 ? 's' : ''} cadastrado{reports.length !== 1 ? 's' : ''}</p>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
-            <Link to={`/reports/${client.id}/sessions`}>
-              <Button variant="ghost">
-                <CalendarClock size={16} />
-                Relatórios de Sessão
-              </Button>
-            </Link>
             <Button variant="ghost" onClick={openCsvModal}>
               <Download size={16} />
               Exportar CSV
@@ -616,55 +635,90 @@ export function ReportsByClient() {
         />
       ) : (
         <div className="space-y-3">
-          {reports.map((report) => {
-            const isInactive = report.active === false;
-
+          {Array.from(
+            reports.reduce<Map<string, ReportRow[]>>((acc, report) => {
+              const key = monthYearKey(report.period_start);
+              const list = acc.get(key) ?? [];
+              list.push(report);
+              acc.set(key, list);
+              return acc;
+            }, new Map())
+          ).map(([monthKey, monthReports]) => {
+            const isOpen = !collapsedMonths.has(monthKey);
             return (
-              <Card key={report.id} className={isInactive ? 'opacity-70 bg-beige-50' : ''}>
-                <CardBody className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <div className={`font-medium text-sm ${isInactive ? 'text-dark/50' : 'text-dark'}`}>{getReportTitle(report.content_text)}</div>
-                      <Badge variant={report.published ? 'success' : 'neutral'}>
-                        {report.published ? 'Publicado' : 'Rascunho'}
-                      </Badge>
-                      <Badge variant={isInactive ? 'neutral' : 'success'}>
-                        {isInactive ? 'Inativo' : 'Ativo'}
-                      </Badge>
-                    </div>
-                    <div className="text-xs text-dark/50">
-                      {formatDate(report.period_start)} — {formatDate(report.period_end)}
-                    </div>
-                    <div className="text-xs text-dark/35 mt-1">Criado em {formatDate(report.created_at)}</div>
-                  </div>
+              <div key={monthKey}>
+                <button
+                  type="button"
+                  onClick={() => toggleMonth(monthKey)}
+                  className="flex items-center gap-2 w-full text-left mb-2 group"
+                >
+                  {isOpen ? (
+                    <ChevronDown size={16} className="text-dark/40 shrink-0" />
+                  ) : (
+                    <ChevronRight size={16} className="text-dark/40 shrink-0" />
+                  )}
+                  <h2 className="text-sm font-semibold text-dark/60 font-serif group-hover:text-dark/80 transition-colors">
+                    {monthYearLabel(monthKey)}
+                  </h2>
+                  <span className="text-xs text-dark/30">({monthReports.length})</span>
+                </button>
+                {isOpen && (
+                  <div className="space-y-3">
+                    {monthReports.map((report) => {
+                      const isInactive = report.active === false;
 
-                  <div className="flex flex-wrap justify-end gap-2 shrink-0">
-                    <Button variant="ghost" size="sm" onClick={() => setPreviewReport(report)}>
-                      <Eye size={14} />
-                      Ver
-                    </Button>
-                    <Link to={`/reports/${client.id}/edit/${report.id}`}>
-                      <Button variant="ghost" size="sm">
-                        <Pencil size={14} />
-                        Editar
-                      </Button>
-                    </Link>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      loading={togglingReportId === report.id}
-                      onClick={() => handleToggleActive(report)}
-                    >
-                      {isInactive ? <ToggleLeft size={14} /> : <ToggleRight size={14} className="text-emerald-500" />}
-                      {isInactive ? 'Ativar' : 'Desativar'}
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDeleteReport(report)}>
-                      <Trash2 size={14} className="text-red-400" />
-                      Excluir
-                    </Button>
+                      return (
+                        <Card key={report.id} className={isInactive ? 'opacity-70 bg-beige-50' : ''}>
+                          <CardBody className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <div className={`font-medium text-sm ${isInactive ? 'text-dark/50' : 'text-dark'}`}>{getReportTitle(report.content_text)}</div>
+                                <Badge variant={report.published ? 'success' : 'neutral'}>
+                                  {report.published ? 'Publicado' : 'Rascunho'}
+                                </Badge>
+                                <Badge variant={isInactive ? 'neutral' : 'success'}>
+                                  {isInactive ? 'Inativo' : 'Ativo'}
+                                </Badge>
+                                {report.published && <ReadStatusBadge firstViewedAt={report.first_viewed_at} />}
+                              </div>
+                              <div className="text-xs text-dark/50">
+                                {formatDate(report.period_start)} — {formatDate(report.period_end)}
+                              </div>
+                              <div className="text-xs text-dark/35 mt-1">Criado em {formatDate(report.created_at)}</div>
+                            </div>
+
+                            <div className="flex flex-wrap justify-end gap-2 shrink-0">
+                              <Button variant="ghost" size="sm" onClick={() => setPreviewReport(report)}>
+                                <Eye size={14} />
+                                Ver
+                              </Button>
+                              <Link to={`/reports/${client.id}/edit/${report.id}`}>
+                                <Button variant="ghost" size="sm">
+                                  <Pencil size={14} />
+                                  Editar
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                loading={togglingReportId === report.id}
+                                onClick={() => handleToggleActive(report)}
+                              >
+                                {isInactive ? <ToggleLeft size={14} /> : <ToggleRight size={14} className="text-emerald-500" />}
+                                {isInactive ? 'Ativar' : 'Desativar'}
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => setDeleteReport(report)}>
+                                <Trash2 size={14} className="text-red-400" />
+                                Excluir
+                              </Button>
+                            </div>
+                          </CardBody>
+                        </Card>
+                      );
+                    })}
                   </div>
-                </CardBody>
-              </Card>
+                )}
+              </div>
             );
           })}
         </div>
