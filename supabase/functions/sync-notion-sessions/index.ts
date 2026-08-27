@@ -1,17 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// === Sincroniza a sessão DE HOJE do Notion pra Relatórios de Sessão ===
+// === Sincroniza as sessões RECENTES do Notion pra Relatórios de Sessão ===
 //
 // Recebe { client_id }, casa o cliente no Notion pelo NOME (a terapeuta se
 // comprometeu a manter o nome do cadastro do Notion igual ao nome do
-// cliente no portal) e busca só a(s) sessão(ões) de HOJE dele em
-// "🗓️ Todas as Sessões" — não varre o histórico inteiro. Carga histórica
-// (cliente novo, sessões de dias atrás que ainda não entraram) é
-// responsabilidade do script rodado localmente (backfill-client.js), não
-// desse botão.
+// cliente no portal) e busca as sessões dele nos últimos 5 dias (hoje
+// incluído) em "🗓️ Todas as Sessões" — não varre o histórico inteiro. A
+// janela de 5 dias existe porque a automação que registra a sessão no
+// Notion às vezes grava com a data de um dia antes do esperado (fuso
+// horário), então "só hoje" perdia sessão. Carga histórica mais antiga
+// (cliente novo, sessões de semanas atrás que ainda não entraram) continua
+// sendo responsabilidade do script rodado localmente (backfill-client.js),
+// não desse botão.
 //
-// Pra cada sessão de hoje, resolve o conteúdo em 4 níveis de prioridade
+// Pra cada sessão encontrada, resolve o conteúdo em 4 níveis de prioridade
 // (do mais pronto pro mais bruto):
 //
 //   1. "Resumos de Sessão" tem uma linha pra essa sessão com o campo
@@ -329,22 +332,25 @@ serve(async (req) => {
 
     const clienteRow = clienteRows[0];
 
-    // 2. Busca só a(s) sessão(ões) de HOJE desse cliente — não o histórico.
-    // Carga histórica é feita pelo script (backfill-client.js), não por
-    // esse botão, então não precisamos paginar a relação inteira aqui.
+    // 2. Busca as sessões dos últimos 5 dias (hoje incluído) desse
+    // cliente — não o histórico inteiro. Carga histórica mais antiga é
+    // feita pelo script (backfill-client.js), não por esse botão, então
+    // não precisamos paginar a relação inteira aqui.
     const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-    const todaysSessions = await queryDataSource(TODAS_SESSOES_DATA_SOURCE_ID, {
+    const sinceStr = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    const recentSessions = await queryDataSource(TODAS_SESSOES_DATA_SOURCE_ID, {
       filter: {
         and: [
           { property: "Cliente", relation: { contains: clienteRow.id } },
-          { property: "Data da Sessão", date: { equals: todayStr } },
+          { property: "Data da Sessão", date: { on_or_after: sinceStr } },
+          { property: "Data da Sessão", date: { on_or_before: todayStr } },
         ],
       },
     });
-    const sessionPages = todaysSessions.results ?? [];
+    const sessionPages = recentSessions.results ?? [];
 
     if (sessionPages.length === 0) {
-      return json({ synced: 0, adopted: 0, skipped: 0, errors: [], message: "Nenhuma sessão de hoje encontrada pra esse cliente no Notion." });
+      return json({ synced: 0, adopted: 0, skipped: 0, errors: [], message: "Nenhuma sessão dos últimos 5 dias encontrada pra esse cliente no Notion." });
     }
 
     const result: SyncResult = { synced: 0, adopted: 0, skipped: 0, errors: [] };
