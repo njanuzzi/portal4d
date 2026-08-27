@@ -30,6 +30,7 @@ interface SessionReportRow {
   title: string;
   content_html: string;
   published_at: string | null;
+  first_viewed_at?: string | null;
 }
 
 interface PadraoEsquema {
@@ -59,14 +60,16 @@ interface SchemaDomain {
   wiki_description: string | null;
 }
 
+type ReportRow = Report & { first_viewed_at?: string | null };
+
 export function ClientReports() {
   const { user } = useAuth();
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<ReportRow[]>([]);
   const [padroes, setPadroes] = useState<PadraoRow[]>([]);
   const [domains, setDomains] = useState<SchemaDomain[]>([]);
   const [sessionReports, setSessionReports] = useState<SessionReportRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [previewReport, setPreviewReport] = useState<Report | null>(null);
+  const [previewReport, setPreviewReport] = useState<ReportRow | null>(null);
   const [previewPadrao, setPreviewPadrao] = useState<PadraoRow | null>(null);
   const [previewSessionReport, setPreviewSessionReport] = useState<SessionReportRow | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
@@ -87,7 +90,7 @@ export function ClientReports() {
       supabase.from('schema_domains').select('id, friendly_name, wiki_description'),
       untypedSupabase
         .from('session_reports')
-        .select('id, session_date, title, content_html, published_at')
+        .select('id, session_date, title, content_html, published_at, first_viewed_at')
         .eq('client_id', user!.id)
         .eq('status', 'publicado')
         .order('session_date', { ascending: false }),
@@ -108,6 +111,22 @@ export function ClientReports() {
       .rpc('record_report_view', { p_assessment_id: previewPadrao.assessment_id })
       .then(() => {}, () => {});
   }, [previewPadrao]);
+
+  // Mesma marcação passiva pros outros dois tipos de relatório — sempre
+  // automática, sem depender de nenhuma opção.
+  useEffect(() => {
+    if (!previewReport) return;
+    void supabase
+      .rpc('record_monthly_report_view', { p_report_id: previewReport.id })
+      .then(() => {}, () => {});
+  }, [previewReport]);
+
+  useEffect(() => {
+    if (!previewSessionReport) return;
+    void supabase
+      .rpc('record_session_report_view', { p_session_report_id: previewSessionReport.id })
+      .then(() => {}, () => {});
+  }, [previewSessionReport]);
 
   const handleAcknowledge = async () => {
     if (!previewPadrao) return;
