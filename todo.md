@@ -15,3 +15,25 @@
 - [x] Incluir regras de branch, preview e proibição de merge/publicação sem aprovação.
 - [x] Listar alterações de UI, Biblioteca, Supabase, Vercel, SEO e critérios de aceite.
 - [ ] Entregar o documento para encaminhamento ao Claude Code.
+
+## Comparação de referência visual
+
+- [ ] Avaliar a home pública de www.nubiajanuzzi.com e a prévia Atlas de Padrões.
+- [ ] Avaliar a home pública de www.drsauloverissimo.com, com foco na foto de entrada e na narrativa de autoridade.
+- [ ] Comparar hierarquia, fotografia, conteúdo, confiança, conversão e identidade visual sem copiar o site de referência.
+- [ ] Propor ajustes específicos e autorais para a entrada do Portal 4D.
+
+## Reposicionamento de marca
+
+- [ ] Reordenar a identidade do hero para que Núbia Januzzi seja a marca principal e o Protocolo 4D apareça como método autoral.
+- [ ] Definir a fotografia real, assinatura profissional e prova de autoridade da primeira dobra.
+- [ ] Ajustar menu, títulos, rodapé e página Sobre à nova hierarquia de marca.
+- [ ] Manter a Biblioteca como produção de conhecimento da Núbia e o Protocolo 4D como tema/método próprio.
+
+## Hero e produto principal aprovados
+
+- [x] Usar a foto real já existente da Núbia como imagem provisória do hero.
+- [x] Exibir a assinatura `Núbia Januzzi — Especialista em Desbloqueio Comportamental` na primeira dobra.
+- [x] Manter o Protocolo 4D como produto principal na narrativa, com autoria explícita da Núbia.
+- [x] Atualizar CTAs, navegação, página Sobre, Biblioteca e metadados para refletir a hierarquia aprovada.
+- [ ] Publicar somente na branch de prévia e validar desktop/mobile antes de qualquer merge.
