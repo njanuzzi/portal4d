@@ -23,6 +23,7 @@ interface ReportRow {
   assessment_id: string;
   status: 'draft' | 'reviewed' | 'published';
   client_content: unknown;
+  client_content_status: 'draft' | 'reviewed' | 'published';
 }
 
 const reportStatusLabel: Record<string, string> = {
@@ -33,6 +34,17 @@ const reportStatusLabel: Record<string, string> = {
 const reportStatusVariant: Record<string, 'warning' | 'success' | 'neutral'> = {
   draft: 'warning',
   reviewed: 'success',
+  published: 'success',
+};
+
+const clientStatusLabel: Record<string, string> = {
+  draft: 'Cliente: rascunho',
+  reviewed: 'Cliente: revisado',
+  published: 'Cliente: versão final',
+};
+const clientStatusVariant: Record<string, 'warning' | 'success' | 'neutral'> = {
+  draft: 'warning',
+  reviewed: 'neutral',
   published: 'success',
 };
 
@@ -73,7 +85,7 @@ export function ClientSchemaAnalysis() {
       const [{ data: reportRows }, { data: publishedRows }] = await Promise.all([
         supabase
           .from('client_schema_reports')
-          .select('id, assessment_id, status, client_content')
+          .select('id, assessment_id, status, client_content, client_content_status')
           .in('assessment_id', rows.map((r) => r.id)),
         supabase
           .from('client_published_reports')
@@ -175,6 +187,11 @@ export function ClientSchemaAnalysis() {
                       {report && (
                         <Badge variant={reportStatusVariant[report.status] ?? 'neutral'}>
                           {reportStatusLabel[report.status] ?? report.status}
+                        </Badge>
+                      )}
+                      {report?.client_content != null && (
+                        <Badge variant={clientStatusVariant[report.client_content_status] ?? 'neutral'}>
+                          {clientStatusLabel[report.client_content_status] ?? report.client_content_status}
                         </Badge>
                       )}
                       {report?.client_content != null && (
