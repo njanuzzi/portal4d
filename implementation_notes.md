@@ -19,3 +19,19 @@ A rota pública `/conteudos` renderiza um estado editorial de início sem invent
 ## 2026-08-27 — Limites de validação local
 
 As novas rotas, funções de Vercel e componentes foram compilados. A tipagem global do repositório ainda acusa 75 erros preexistentes em telas privadas relacionadas a tipos de banco ausentes ou defasados; a filtragem específica das novas rotas e do editor não retornou erros. A migration da Biblioteca e as variáveis de servidor da Vercel ainda precisam ser configuradas antes de testar criação, upload e publicação de artigos com uma conta de terapeuta.
+
+## 2026-08-27 — Ativação autenticada
+
+O acesso à Vercel e ao projeto Supabase `Portal4D` foi confirmado no navegador conectado da usuária. O editor SQL exibiu a migration, mas a primeira tentativa de execução retornou uma validação de consulta vazia da própria interface. Nenhuma alteração de banco foi confirmada nesta tentativa; a próxima ação é registrar o texto no editor nativo antes de executar novamente.
+
+O editor SQL da Supabase usa Monaco. A automação de preenchimento exibiu o texto, mas não atualizou o estado interno da consulta; inclusive a consulta de leitura `select 1;` foi recusada como vazia. A migration ainda não foi aplicada. A próxima tentativa utilizará o campo `textarea` interno do editor para disparar o evento nativo de entrada antes de executar.
+
+## Configuração da Vercel
+
+A página de configurações Git confirma que o projeto `portal4d` ainda não possui Deploy Hooks. O hook a criar será nomeado `publicar-biblioteca-4d` e ficará vinculado à branch `main`; ele não será acionado durante esta configuração e não modifica a produção até que uma publicação editorial o invoque.
+
+O hook `publicar-biblioteca-4d` foi criado com sucesso para a branch `main`. A usuária aplicou a migration no Supabase e salvou as variáveis `VERCEL_CONTENT_DEPLOY_HOOK_URL` e `SUPABASE_SERVICE_ROLE_KEY` nos ambientes Production e Preview. A Vercel confirma que a prévia da branch `ui/atlas-de-padroes` está pronta, no commit `cbf71c0`; o próximo passo é gerar uma nova prévia após essas variáveis para validar o fluxo editorial.
+
+## Validação autenticada da Biblioteca 4D
+
+A prévia foi redeployada com sucesso após as variáveis serem salvas. A Biblioteca pública em `/conteudos` exibiu corretamente o estado inicial sem artigos. Após autenticação manual da usuária na prévia como terapeuta, `/gestao-conteudos` carregou a gestão protegida e o formulário `novo` abriu com os campos editoriais e a barra Tiptap. Um texto temporário foi inserido apenas no estado local do editor para confirmar a entrada; nenhum rascunho ou artigo foi salvo, nenhuma imagem foi enviada e nenhum hook de publicação foi acionado.
