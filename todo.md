@@ -40,11 +40,11 @@
 
 ## Correção de regressão desktop
 
-- [ ] Reproduzir a desconfiguração em viewport desktop na prévia atual.
-- [ ] Identificar o seletor, importação ou layout responsável pelo conflito.
-- [ ] Corrigir o desktop sem remover o painel deslizante e acordeão exclusivos do mobile.
-- [ ] Testar home, método e percurso nas versões desktop e mobile.
-- [ ] Enviar a correção para a branch de prévia e solicitar nova revisão antes do merge.
+- [x] Reproduzir a desconfiguração em viewport desktop na prévia atual.
+- [x] Identificar o seletor, importação ou layout responsável pelo conflito.
+- [x] Corrigir o desktop sem remover o painel deslizante e acordeão exclusivos do mobile.
+- [x] Testar home, método e percurso nas versões desktop e mobile.
+- [x] Enviar a correção para a branch de prévia e solicitar nova revisão antes do merge.
 
 ## Ajustes de interação no mobile
 
