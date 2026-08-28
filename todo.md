@@ -51,7 +51,7 @@
 - [x] Remover a linha lateral decorativa da primeira dobra somente no mobile.
 - [x] Aumentar o respiro inicial e realinhar o título sem modificar a composição desktop.
 - [x] Verificar a leitura do hero em 390 px e em desktop antes de enviar à prévia.
-- [ ] Enviar o refinamento para a branch de prévia e aguardar a revisão da usuária.
+- [x] Enviar o refinamento para a branch de prévia; a Vercel concluiu a prévia com sucesso.
 
 ## Acesso móvel à prévia
 
