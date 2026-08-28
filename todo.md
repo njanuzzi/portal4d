@@ -53,6 +53,21 @@
 - [x] Verificar a leitura do hero em 390 px e em desktop antes de enviar à prévia.
 - [x] Enviar o refinamento para a branch de prévia; a Vercel concluiu a prévia com sucesso.
 
+## Promoção para produção autorizada
+
+- [x] Confirmar que a PR #46 já foi integrada na `main`.
+- [x] Localizar e confirmar o deploy de produção gerado após o merge.
+- [ ] Validar a home e as páginas Protocolo 4D, Atendimento, Sobre e Biblioteca no domínio público.
+- [ ] Revogar o Shareable Link da prévia depois da validação de produção.
+- [ ] Confirmar a conclusão para a usuária, sem alterar artigos do Blog.
+
+## Complemento de produção — refinamentos móveis
+
+- [x] Confirmar que os seis commits de interações e hero mobile ficaram pendentes após o merge anterior.
+- [ ] Abrir uma nova PR somente com os refinamentos móveis já aprovados.
+- [ ] Integrar essa PR na `main` após os checks de Vercel.
+- [ ] Verificar a home pública em desktop e mobile após o deploy final.
+
 ## Acesso móvel à prévia
 
 - [ ] Identificar se a senha vem da proteção de prévia da Vercel ou da camada de autenticação da aplicação.
