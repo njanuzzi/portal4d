@@ -65,11 +65,15 @@ export async function POST(req: Request): Promise<Response> {
   if (userError || !userData.user) {
     return new Response('Unauthorized', { status: 401 });
   }
-  const role = userData.user.user_metadata?.role ?? userData.user.app_metadata?.role;
-  if (role !== 'client') {
+  const clientId = userData.user.id;
+
+  // profiles.role é a fonte de verdade usada no resto do app (AuthContext.tsx, AppRoutes) — nem toda
+  // conta de cliente tem user_metadata.role setado (depende de qual fluxo criou a conta), então checar
+  // isso ali gerava 403 pra clientes legítimas.
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', clientId).maybeSingle();
+  if (profile?.role !== 'client') {
     return new Response('Forbidden', { status: 403 });
   }
-  const clientId = userData.user.id;
 
   const { data: subscription } = await supabase
     .from('bot_subscriptions')
