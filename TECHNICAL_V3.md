@@ -840,10 +840,17 @@ Fase 3 — Alerta de risco ✅ concluída em 2026-08-28 (com uma mudança de can
       em `bot_risk_alerts` com resumo apropriado, e-mail confirmado recebido em `contato@nubiajanuzzi.com`,
       e a cliente ainda recebeu o texto de acolhimento + CVV na mesma resposta
 
-Fase 4 — Metas via bot
-  [ ] Migration: client_goals.source / confirmed_at
-  [ ] api/chat.ts: tool proposeGoal
-  [ ] ClientHome.tsx: card de confirmação de meta sugerida
+Fase 4 — Metas via bot ✅ concluída em 2026-08-28
+  [x] Migration: client_goals.source / confirmed_at (com backfill: metas já existentes viram
+      confirmed_at = created_at, já que toda meta antiga foi criada pela própria cliente)
+  [x] api/chat.ts: tool proposeGoal — e adicionada a instrução no prompt (não existia ainda, foi escrita
+      só na Fase 2, antes dessa tool existir)
+  [x] DiaryPage.tsx e ClientHome.tsx: corrigida a query de "meta atual" pra ignorar propostas do bot ainda
+      não confirmadas (`.not('confirmed_at', 'is', null)`) — sem isso, uma sugestão pendente vazava como
+      se já fosse a meta oficial e bloqueava o diário antes da cliente decidir
+  [x] ClientHome.tsx: card "Seu assistente sugeriu uma meta" com Aceitar/Descartar. Aceitar também
+      recalcula `entry_count_at_creation` pra contar a partir da confirmação, não da sugestão — é isso que
+      o ciclo semanal de `DiaryPage.tsx` usa pra saber quando cobrar renovação
 ```
 
 ---
@@ -918,6 +925,13 @@ As credenciais do WhatsApp (`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`)
 Supabase, usadas por `whatsapp-send-reminder`/`whatsapp-send-invite`. Duplicar esses segredos também na
 Vercel só pra essa chamada aumentaria a superfície de vazamento sem necessidade — mais barato chamar a
 Edge Function que já tem acesso a eles.
+
+### Por que as queries de "meta atual" precisaram de `.not('confirmed_at', 'is', null)`?
+`DiaryPage.tsx` e `ClientHome.tsx` já buscavam a "meta atual" com `order by created_at desc limit 1`, sem
+filtrar por status nenhum — qualquer linha nova em `client_goals` virava a meta oficial na hora. Isso
+funcionava bem quando só a própria cliente inseria linhas ali. Adicionar o `proposeGoal` quebraria essa
+suposição: uma sugestão do bot ainda não aceita passaria a bloquear o diário como se já fosse a meta real.
+Sem esse ajuste, a Fase 4 teria um bug de dia zero.
 
 ### Por que o alerta de risco vai por e-mail, não WhatsApp (mudança do plano original)?
 O plano original (seção 8.5 mais acima) previa WhatsApp, reaproveitando o helper de `whatsapp-send-invite`.

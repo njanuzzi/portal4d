@@ -36,6 +36,8 @@ export function ClientHome() {
   const { user, profile } = useAuth();
   const [data, setData] = useState<HomeData | null>(null);
   const [currentGoal, setCurrentGoal] = useState<ClientGoal | null>(null);
+  const [pendingGoal, setPendingGoal] = useState<ClientGoal | null>(null);
+  const [respondingToPendingGoal, setRespondingToPendingGoal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const today = todayISO();
@@ -49,6 +51,7 @@ export function ClientHome() {
         { count: reportCount },
         { count: padraoCount },
         { data: goalRows },
+        { data: pendingGoalRows },
       ] = await Promise.all([
         supabase
           .from('diary_entries')
@@ -64,15 +67,27 @@ export function ClientHome() {
           .from('client_published_reports')
           .select('id', { count: 'exact', head: true })
           .eq('client_id', user.id),
-        supabase
-          .from('client_goals')
+        // Sugestões do bot ainda não confirmadas não contam como meta atual — só depois que a
+        // cliente confirma explicitamente pela tela (ver card de sugestão pendente abaixo).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('client_goals') as any)
           .select('id, goal_text')
           .eq('user_id', user.id)
+          .not('confirmed_at', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('client_goals') as any)
+          .select('id, goal_text')
+          .eq('user_id', user.id)
+          .eq('source', 'bot')
+          .is('confirmed_at', null)
           .order('created_at', { ascending: false })
           .limit(1),
       ]);
 
       setCurrentGoal((goalRows?.[0] as ClientGoal) ?? null);
+      setPendingGoal((pendingGoalRows?.[0] as ClientGoal) ?? null);
 
       const dates = (entries ?? []).map((e: { date: string }) => e.date);
       const todayFilled = dates.includes(today);
@@ -103,6 +118,28 @@ export function ClientHome() {
 
     load();
   }, [user, today]);
+
+  const handleConfirmPendingGoal = async () => {
+    if (!pendingGoal || !user) return;
+    setRespondingToPendingGoal(true);
+    // entry_count_at_creation conta a partir de agora (confirmação), não de quando o bot sugeriu —
+    // é isso que o ciclo semanal em DiaryPage.tsx usa pra saber quando cobrar renovação.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('client_goals') as any)
+      .update({ confirmed_at: new Date().toISOString(), entry_count_at_creation: data?.totalEntries ?? 0 })
+      .eq('id', pendingGoal.id);
+    setCurrentGoal(pendingGoal);
+    setPendingGoal(null);
+    setRespondingToPendingGoal(false);
+  };
+
+  const handleDiscardPendingGoal = async () => {
+    if (!pendingGoal) return;
+    setRespondingToPendingGoal(true);
+    await supabase.from('client_goals').delete().eq('id', pendingGoal.id);
+    setPendingGoal(null);
+    setRespondingToPendingGoal(false);
+  };
 
   if (loading) return <PageSpinner />;
 
@@ -167,6 +204,29 @@ export function ClientHome() {
             <Link to="/diary">
               <Button size="sm">Preencher</Button>
             </Link>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Meta sugerida pelo assistente — pendente de confirmação */}
+      {pendingGoal && (
+        <Card className="border-gold-300 bg-gold-50/40">
+          <CardBody>
+            <div className="flex items-start gap-3">
+              <Target size={18} className="text-gold-600 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gold-700 mb-0.5">Seu assistente sugeriu uma meta</p>
+                <p className="text-sm text-dark/70 leading-snug">{pendingGoal.goal_text}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <Button size="sm" loading={respondingToPendingGoal} onClick={handleConfirmPendingGoal}>
+                Aceitar
+              </Button>
+              <Button size="sm" variant="ghost" disabled={respondingToPendingGoal} onClick={handleDiscardPendingGoal}>
+                Descartar
+              </Button>
+            </div>
           </CardBody>
         </Card>
       )}

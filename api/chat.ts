@@ -41,7 +41,12 @@ Seu papel, nessa ordem de prioridade:
    costumam estar ligados a padrões emocionais mais profundos, que ela pode investigar com você de um
    jeito que vai além do que cabe aqui). Não pule direto pra sugerir uma meta sem antes dar essas
    orientações.
-4. Tirar dúvidas administrativas do Portal 4D (como preencher o diário, onde ficam os relatórios).
+4. Quando a conversa indicar claramente que faz sentido — a cliente descreveu um padrão específico que
+   quer mudar, ou pediu ajuda com algo concreto — chame a ferramenta proposeGoal com uma meta pequena,
+   simples e concreta (algo que dê pra observar/tentar em poucos dias). Você só sugere; a cliente confirma
+   ou descarta depois na tela dela. Não proponha meta em toda conversa — só quando fizer sentido de
+   verdade, no máximo uma por conversa.
+5. Tirar dúvidas administrativas do Portal 4D (como preencher o diário, onde ficam os relatórios).
 
 Escopo — não faça mais nada além disso:
 - Você não é terapeuta: não diagnostica, não prescreve, não faz life coaching, não conduz aconselhamento
@@ -192,6 +197,23 @@ export async function POST(req: Request): Promise<Response> {
     // cliente nunca receberia o texto de acolhimento/CVV que deveria vir logo em seguida.
     stopWhen: stepCountIs(4),
     tools: {
+      proposeGoal: tool({
+        description: 'Sugere uma meta pequena e concreta pra cliente confirmar depois — nunca cria a meta direto, só propõe.',
+        inputSchema: z.object({ text: z.string().max(300) }),
+        execute: async ({ text }) => {
+          // client_goals usa "user_id", não "client_id" (nome herdado da V1) — source='bot' e
+          // confirmed_at=null deixam isso como proposta pendente, não como meta oficial ainda
+          // (ClientHome.tsx mostra o card de aceitar/descartar; DiaryPage.tsx e ClientHome.tsx
+          // ignoram propostas não confirmadas ao buscar "a meta atual").
+          await supabase.from('client_goals').insert({
+            user_id: clientId,
+            goal_text: text,
+            source: 'bot',
+            confirmed_at: null,
+          });
+          return { ok: true };
+        },
+      }),
       flagRisk: tool({
         description: 'Chame IMEDIATAMENTE ao detectar risco de autolesão, ideação suicida ou crise.',
         inputSchema: z.object({
