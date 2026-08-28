@@ -6,6 +6,10 @@ import { supabase } from '../../lib/supabase';
 
 type SubscriptionState = 'loading' | 'inactive' | 'active';
 
+// Mesmo valor de api/chat.ts — só pra decidir quando mostrar o aviso de "nova conversa" na tela,
+// não afeta o que de fato é mandado pro modelo (isso é decidido no backend).
+const CONTEXT_WINDOW_HOURS = 4;
+
 async function authHeaders(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -57,7 +61,13 @@ function UpsellCard({
   );
 }
 
-function ChatPanel({ initialMessages }: { initialMessages: UIMessage[] }) {
+function ChatPanel({
+  initialMessages,
+  messageTimestamps,
+}: {
+  initialMessages: UIMessage[];
+  messageTimestamps: Record<string, string>;
+}) {
   const [input, setInput] = useState('');
   const [blocked, setBlocked] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -101,20 +111,36 @@ function ChatPanel({ initialMessages }: { initialMessages: UIMessage[] }) {
             Pergunte sobre sua entrada de diário de hoje, tire uma dúvida do portal, ou só desabafe um pouco.
           </p>
         )}
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
-              message.role === 'user'
-                ? 'ml-auto bg-petrol-700 text-white'
-                : 'mr-auto bg-white border border-beige-300 text-dark'
-            }`}
-          >
-            {message.parts.map((part, i) =>
-              part.type === 'text' ? <span key={i}>{part.text}</span> : null
-            )}
-          </div>
-        ))}
+        {messages.map((message, index) => {
+          const prevTimestamp = index > 0 ? messageTimestamps[messages[index - 1].id] : undefined;
+          const currentTimestamp = messageTimestamps[message.id];
+          const gapHours =
+            prevTimestamp && currentTimestamp
+              ? (new Date(currentTimestamp).getTime() - new Date(prevTimestamp).getTime()) / 3_600_000
+              : 0;
+          const showNewWindowNotice = index > 0 && gapHours > CONTEXT_WINDOW_HOURS;
+
+          return (
+            <div key={message.id}>
+              {showNewWindowNotice && (
+                <div className="text-center text-[11px] text-petrol-800/40 my-2">
+                  · nova conversa — o assistente não vai lembrar dos detalhes de antes daqui ·
+                </div>
+              )}
+              <div
+                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
+                  message.role === 'user'
+                    ? 'ml-auto bg-petrol-700 text-white'
+                    : 'mr-auto bg-white border border-beige-300 text-dark'
+                }`}
+              >
+                {message.parts.map((part, i) =>
+                  part.type === 'text' ? <span key={i}>{part.text}</span> : null
+                )}
+              </div>
+            </div>
+          );
+        })}
         {status === 'submitted' && (
           <div className="mr-auto flex items-center gap-2 text-petrol-800/50 text-sm">
             <Loader2 size={14} className="animate-spin" />
@@ -147,6 +173,7 @@ export function ClientChatbot() {
   const [open, setOpen] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionState>('loading');
   const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
+  const [messageTimestamps, setMessageTimestamps] = useState<Record<string, string>>({});
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const loadedRef = useRef(false);
@@ -169,14 +196,18 @@ export function ClientChatbot() {
           .order('created_at', { ascending: true }),
       ]);
 
+      type HistoryRow = { id: string; role: 'user' | 'assistant'; content: string; created_at: string };
+      const rows = (history ?? []) as HistoryRow[];
+
       setSubscription(sub?.status === 'active' ? 'active' : 'inactive');
       setInitialMessages(
-        (history ?? []).map((row: { id: string; role: 'user' | 'assistant'; content: string }) => ({
+        rows.map((row) => ({
           id: row.id,
           role: row.role,
           parts: [{ type: 'text', text: row.content }],
         }))
       );
+      setMessageTimestamps(Object.fromEntries(rows.map((row) => [row.id, row.created_at])));
     })();
   }, [open]);
 
@@ -210,7 +241,7 @@ export function ClientChatbot() {
               error={checkoutError}
             />
           ) : (
-            <ChatPanel initialMessages={initialMessages ?? []} />
+            <ChatPanel initialMessages={initialMessages ?? []} messageTimestamps={messageTimestamps} />
           )}
         </div>
       )}
