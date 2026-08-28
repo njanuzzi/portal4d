@@ -169,8 +169,11 @@ export function DiaryPage() {
           .gte('noted_at', dayStart)
           .lte('noted_at', dayEnd)
           .order('noted_at', { ascending: true }),
+        // Sugestões do bot ainda não confirmadas (confirmed_at is null) não contam como meta atual —
+        // sem isso, uma sugestão pendente bloquearia o diário antes da cliente decidir se aceita.
         supabase.from('client_goals').select('id, goal_text, entry_count_at_creation')
-          .eq('user_id', user!.id).order('created_at', { ascending: false }).limit(1),
+          .eq('user_id', user!.id).not('confirmed_at', 'is', null)
+          .order('created_at', { ascending: false }).limit(1),
         supabase.from('diary_entries').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
       ]);
 
