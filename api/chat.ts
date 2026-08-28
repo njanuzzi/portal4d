@@ -69,8 +69,32 @@ export default async function handler(req: Request): Promise<Response> {
   if (role !== 'client') {
     return new Response('Forbidden', { status: 403 });
   }
+  const clientId = userData.user.id;
+
+  const { data: subscription } = await supabase
+    .from('bot_subscriptions')
+    .select('status')
+    .eq('client_id', clientId)
+    .maybeSingle();
+  if (subscription?.status !== 'active') {
+    return new Response(JSON.stringify({ error: 'subscription_required' }), {
+      status: 402,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   const { messages }: { messages: UIMessage[] } = await req.json();
+
+  // Grava a mensagem que acabou de chegar da cliente (a última do array) — sem isso a conversa
+  // some ao recarregar a página, porque o useChat só guarda mensagens na memória do navegador.
+  const lastUserMessage = messages[messages.length - 1];
+  const lastUserText = lastUserMessage.parts
+    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+    .map((p) => p.text)
+    .join('\n');
+  if (lastUserText) {
+    await supabase.from('bot_messages').insert({ client_id: clientId, role: 'user', content: lastUserText });
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const { data: entry } = await supabase
@@ -98,6 +122,11 @@ export default async function handler(req: Request): Promise<Response> {
     model: 'anthropic/claude-haiku-4.5',
     system: `${SYSTEM_PROMPT}\n\nContexto do diário do cliente:\n${diaryContext}`,
     messages: await convertToModelMessages(messages),
+    onFinish: async ({ text }) => {
+      if (text) {
+        await supabase.from('bot_messages').insert({ client_id: clientId, role: 'assistant', content: text });
+      }
+    },
   });
 
   return result.toUIMessageStreamResponse();
