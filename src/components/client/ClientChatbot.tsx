@@ -12,20 +12,31 @@ async function authHeaders(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function startCheckout(setRedirecting: (v: boolean) => void) {
+async function startCheckout(setRedirecting: (v: boolean) => void, setError: (v: string | null) => void) {
   setRedirecting(true);
+  setError(null);
   try {
     const headers = await authHeaders();
     const res = await fetch('/api/create-checkout-session', { method: 'POST', headers });
-    if (!res.ok) throw new Error('Falha ao criar sessão de pagamento');
+    if (!res.ok) throw new Error(`Falha ao criar sessão de pagamento (${res.status})`);
     const { url } = (await res.json()) as { url: string };
     window.location.href = url;
-  } catch {
+  } catch (err) {
+    console.error('[ClientChatbot] startCheckout falhou:', err);
+    setError('Não consegui abrir o pagamento agora. Tenta de novo em instantes.');
     setRedirecting(false);
   }
 }
 
-function UpsellCard({ onSubscribe, loading }: { onSubscribe: () => void; loading: boolean }) {
+function UpsellCard({
+  onSubscribe,
+  loading,
+  error,
+}: {
+  onSubscribe: () => void;
+  loading: boolean;
+  error: string | null;
+}) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 py-8 text-center bg-beige-100">
       <MessageCircle size={32} className="text-petrol-700" />
@@ -41,6 +52,7 @@ function UpsellCard({ onSubscribe, loading }: { onSubscribe: () => void; loading
       >
         {loading ? 'Redirecionando...' : 'Assinar assistente'}
       </button>
+      {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
     </div>
   );
 }
@@ -48,6 +60,8 @@ function UpsellCard({ onSubscribe, loading }: { onSubscribe: () => void; loading
 function ChatPanel({ initialMessages }: { initialMessages: UIMessage[] }) {
   const [input, setInput] = useState('');
   const [blocked, setBlocked] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { messages, sendMessage, status } = useChat({
@@ -70,7 +84,13 @@ function ChatPanel({ initialMessages }: { initialMessages: UIMessage[] }) {
   };
 
   if (blocked) {
-    return <UpsellCard onSubscribe={() => startCheckout(() => {})} loading={false} />;
+    return (
+      <UpsellCard
+        onSubscribe={() => startCheckout(setCheckoutLoading, setCheckoutError)}
+        loading={checkoutLoading}
+        error={checkoutError}
+      />
+    );
   }
 
   return (
@@ -128,6 +148,7 @@ export function ClientChatbot() {
   const [subscription, setSubscription] = useState<SubscriptionState>('loading');
   const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -183,7 +204,11 @@ export function ClientChatbot() {
               <Loader2 size={20} className="animate-spin text-petrol-700/50" />
             </div>
           ) : subscription === 'inactive' ? (
-            <UpsellCard onSubscribe={() => startCheckout(setCheckoutLoading)} loading={checkoutLoading} />
+            <UpsellCard
+              onSubscribe={() => startCheckout(setCheckoutLoading, setCheckoutError)}
+              loading={checkoutLoading}
+              error={checkoutError}
+            />
           ) : (
             <ChatPanel initialMessages={initialMessages ?? []} />
           )}
