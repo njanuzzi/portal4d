@@ -810,12 +810,19 @@ Fase 1 — Gate de assinatura + memória de conversa
       manual porque o webhook estava temporariamente no preview
   [x] Webhook revertido pra `https://nubiajanuzzi.com/api/stripe-webhook` em 2026-08-28
 
-Fase 2 — Pipeline de contexto
-  [ ] Migration: client_bot_context
-  [ ] supabase/functions/generate-bot-context
-  [ ] pg_cron: bot-context-nightly
-  [ ] api/chat.ts: injetar summary_text no system prompt
-  [ ] Rodar manualmente pra 1 cliente de teste e revisar o resumo gerado antes de automatizar pra todo mundo
+Fase 2 — Pipeline de contexto ✅ concluída em 2026-08-28
+  [x] Migration: client_bot_context (BOT_ANTHROPIC_API_KEY também cadastrada como secret no Supabase,
+      além da Vercel — necessária aqui pra Edge Function)
+  [x] supabase/functions/generate-bot-context — sem verify_jwt, mesmo padrão dos outros crons do projeto
+      (send-diary-reminder-emails etc.), não expõe nada sensível na resposta
+  [x] pg_cron: generate-bot-context-nightly (3h UTC)
+  [x] api/chat.ts: injeta summary_text no system prompt + prompt expandido com base teórica e regra de
+      "assunto novo" (mesmo prompt validado em scripts/test-bot.mjs)
+  [x] Rodado manualmente pra Chiarelli Santucci (cliente de teste) e revisado — 2 bugs reais encontrados
+      e corrigidos: resposta cortada no meio da frase por max_tokens baixo demais (500→800, mais um
+      check de stop_reason pra nunca salvar resumo truncado), e o modelo usando um apelido/codinome que
+      aparece nas próprias anotações de sessão da terapeuta como se fosse o nome da cliente (prompt
+      reforçado: nunca usar nome nenhum, só "ela"/"a cliente")
 
 Fase 3 — Alerta de risco
   [ ] Migration: bot_risk_alerts
