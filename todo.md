@@ -37,3 +37,53 @@
 - [x] Manter o Protocolo 4D como produto principal na narrativa, com autoria explícita da Núbia.
 - [x] Atualizar CTAs, navegação, página Sobre, Biblioteca e metadados para refletir a hierarquia aprovada.
 - [ ] Publicar somente na branch de prévia e validar desktop/mobile antes de qualquer merge.
+
+## Correção de regressão desktop
+
+- [x] Reproduzir a desconfiguração em viewport desktop na prévia atual.
+- [x] Identificar o seletor, importação ou layout responsável pelo conflito.
+- [x] Corrigir o desktop sem remover o painel deslizante e acordeão exclusivos do mobile.
+- [x] Testar home, método e percurso nas versões desktop e mobile.
+- [ ] Enviar a correção para a branch de prévia e solicitar nova revisão antes do merge.
+
+## Refinamento final do hero mobile
+
+- [x] Remover a linha lateral decorativa da primeira dobra somente no mobile.
+- [x] Aumentar o respiro inicial e realinhar o título sem modificar a composição desktop.
+- [x] Verificar a leitura do hero em 390 px e em desktop antes de enviar à prévia.
+- [x] Enviar o refinamento para a branch de prévia; a Vercel concluiu a prévia com sucesso.
+
+## Promoção para produção autorizada
+
+- [x] Confirmar que a PR #46 já foi integrada na `main`.
+- [x] Localizar e confirmar o deploy de produção gerado após o merge.
+- [ ] Validar a home e as páginas Protocolo 4D, Atendimento, Sobre e Biblioteca no domínio público.
+- [ ] Revogar o Shareable Link da prévia depois da validação de produção.
+- [ ] Confirmar a conclusão para a usuária, sem alterar artigos do Blog.
+
+## Complemento de produção — refinamentos móveis
+
+- [x] Confirmar que os seis commits de interações e hero mobile ficaram pendentes após o merge anterior.
+- [ ] Abrir uma nova PR somente com os refinamentos móveis já aprovados.
+- [ ] Integrar essa PR na `main` após os checks de Vercel.
+- [ ] Verificar a home pública em desktop e mobile após o deploy final.
+
+## Acesso móvel à prévia
+
+- [ ] Identificar se a senha vem da proteção de prévia da Vercel ou da camada de autenticação da aplicação.
+- [ ] Configurar ou documentar uma forma segura de abrir a prévia em celular para revisão.
+- [ ] Confirmar que a solução não altera a proteção do domínio publicado.
+
+- [x] Identificar que a exigência vem da Vercel Authentication, não da aplicação.
+- [x] Criar um Shareable Link revogável somente para o deploy atual de prévia Atlas, substituindo o link anterior com autorização da usuária.
+- [ ] Testar o link fora da sessão autenticada e encaminhá-lo para a revisão no celular.
+- [x] Preservar a proteção do domínio publicado e da branch principal.
+
+## Ajustes de interação no mobile
+
+- [x] Aumentar o respiro superior do hero mobile, preservando a composição desktop.
+- [x] Abrir o detalhe do movimento da espiral em painel deslizante no mobile.
+- [x] Abrir o detalhe de cada etapa do percurso em acordeão no próprio item selecionado no mobile.
+- [x] Manter o painel de detalhes lateral nas interações desktop.
+- [x] Validar toque, fechamento, foco e leitura em tela estreita em ambiente de prévia local.
+- [ ] Enviar a revisão para a branch de prévia e aguardar a validação final da usuária.
