@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, BookOpen, FileText, TrendingUp, ChevronRight, CheckCircle, Clock, XCircle, MessageCircle } from 'lucide-react';
+import { Users, BookOpen, FileText, TrendingUp, ChevronRight, CheckCircle, Clock, XCircle, MessageCircle, AlertTriangle } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { PageSpinner } from '../../components/ui/Spinner';
@@ -21,6 +21,7 @@ interface ClientTodayStatus {
   lastEntryDate: string | null;
   daysSinceActivity: number;
   hasGoal: boolean;
+  hasRiskAlert: boolean;
 }
 
 interface Stats {
@@ -56,6 +57,7 @@ export function Dashboard() {
         recentReportsResult,
         allActiveClientsResult,
         lastLoginResult,
+        riskAlertsResult,
       ] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client'),
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'client').eq('active', true),
@@ -65,6 +67,8 @@ export function Dashboard() {
         supabase.from('reports').select('id, user_id, period_start, period_end, content_text, published, created_at').order('created_at', { ascending: false }).limit(5),
         supabase.from('profiles').select('id, name, created_at, whatsapp').eq('role', 'client').eq('active', true).order('name'),
         supabase.rpc('get_clients_last_login'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('bot_risk_alerts') as any).select('client_id').is('acknowledged_at', null),
       ]);
 
       if (cancelled) return;
@@ -108,6 +112,9 @@ export function Dashboard() {
           (todayEntryRows ?? []).map(e => [e.user_id, e.id])
         );
         const clientsWithGoal = new Set((goalRows ?? []).map(g => g.user_id));
+        const clientsWithRiskAlert = new Set(
+          ((riskAlertsResult.data ?? []) as { client_id: string }[]).map((a) => a.client_id)
+        );
 
         // Most recent entry date per client (first occurrence per user since sorted desc)
         const lastEntryMap = new Map<string, string>();
@@ -143,6 +150,7 @@ export function Dashboard() {
             lastEntryDate,
             daysSinceActivity,
             hasGoal: clientsWithGoal.has(c.id),
+            hasRiskAlert: clientsWithRiskAlert.has(c.id),
           };
         });
       }
@@ -275,6 +283,11 @@ export function Dashboard() {
                     {c.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm text-dark hover:text-petrol-700 transition-colors">{c.name}</span>
+                  {c.hasRiskAlert && (
+                    <span title="Alerta de risco do assistente — ver ficha da cliente">
+                      <AlertTriangle size={14} className="text-red-600" />
+                    </span>
+                  )}
                 </Link>
                 <div className="flex items-center gap-3">
                   {c.responded ? (

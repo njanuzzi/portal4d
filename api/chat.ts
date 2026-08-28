@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { streamText, type ModelMessage, type UIMessage } from 'ai';
+import { stepCountIs, streamText, tool, type ModelMessage, type UIMessage } from 'ai';
+import { z } from 'zod';
 
 export const config = { runtime: 'nodejs' };
 
@@ -48,9 +49,9 @@ Escopo — não faça mais nada além disso:
 - Não substitui a terapia nem antecipa conteúdo que deveria ser trabalhado em sessão com a Núbia.
 
 Protocolo de risco — se a cliente mencionar risco de se machucar, ideação suicida, ou qualquer sinal de
-crise: acolha em 1-2 frases IMEDIATAMENTE, e oriente com prioridade a procurar a Núbia diretamente ou, em
-emergência, o CVV (188) ou o serviço de emergência local. Não continue a conversa como bate-papo comum
-enquanto isso não for feito.
+crise: chame a ferramenta flagRisk IMEDIATAMENTE (antes de continuar a resposta), acolha em 1-2 frases, e
+oriente com prioridade a procurar a Núbia diretamente ou, em emergência, o CVV (188) ou o serviço de
+emergência local. Não continue a conversa como bate-papo comum enquanto isso não for feito.
 
 Seja breve, direto e caloroso. Português do Brasil.`;
 
@@ -187,6 +188,29 @@ export async function POST(req: Request): Promise<Response> {
     model: anthropic('claude-haiku-4-5'),
     system: `${SYSTEM_PROMPT}\n\nContexto de fundo (nunca citar literalmente):\n${backgroundContext}\n\nContexto do diário da cliente:\n${diaryContext}`,
     messages: await getContextWindow(supabase, clientId),
+    // Sem isso, o streamText para depois de 1 passo por padrão — se esse passo for a tool flagRisk, a
+    // cliente nunca receberia o texto de acolhimento/CVV que deveria vir logo em seguida.
+    stopWhen: stepCountIs(4),
+    tools: {
+      flagRisk: tool({
+        description: 'Chame IMEDIATAMENTE ao detectar risco de autolesão, ideação suicida ou crise.',
+        inputSchema: z.object({
+          category: z.enum(['ideacao_suicida', 'autolesao', 'risco_generico']),
+          safe_summary: z.string().max(300),
+        }),
+        execute: async ({ category, safe_summary }) => {
+          await supabase.from('bot_risk_alerts').insert({ client_id: clientId, category, safe_summary });
+          // Fire-and-forget — não bloqueia a resposta de acolhimento/crise pra cliente por causa de
+          // uma falha de e-mail; o alerta já está gravado em bot_risk_alerts de qualquer jeito.
+          fetch(`${process.env.VITE_SUPABASE_URL}/functions/v1/notify-therapist-risk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Bot-Internal-Secret': process.env.BOT_INTERNAL_SECRET! },
+            body: JSON.stringify({ client_id: clientId, category, safe_summary }),
+          }).catch((err) => console.error('[api/chat] Falha ao chamar notify-therapist-risk:', err));
+          return { ok: true };
+        },
+      }),
+    },
     onFinish: async ({ text }) => {
       if (text) {
         await supabase.from('bot_messages').insert({ client_id: clientId, role: 'assistant', content: text });

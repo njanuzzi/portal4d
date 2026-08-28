@@ -824,13 +824,21 @@ Fase 2 — Pipeline de contexto ✅ concluída em 2026-08-28
       aparece nas próprias anotações de sessão da terapeuta como se fosse o nome da cliente (prompt
       reforçado: nunca usar nome nenhum, só "ela"/"a cliente")
 
-Fase 3 — Alerta de risco
-  [ ] Migration: bot_risk_alerts
-  [ ] supabase/functions/notify-therapist-risk (+ BOT_INTERNAL_SECRET)
-  [ ] api/chat.ts: tool flagRisk
-  [ ] Dashboard.tsx: badge de alerta
-  [ ] ClientDetail.tsx: seção de alertas + "marcar como visto"
-  [ ] Testar com frase de risco simulada, confirmar WhatsApp chega
+Fase 3 — Alerta de risco ✅ concluída em 2026-08-28 (com uma mudança de canal — ver Decisões Técnicas)
+  [x] Migration: bot_risk_alerts
+  [x] supabase/functions/notify-therapist-risk (+ BOT_INTERNAL_SECRET) — **por e-mail (ZeptoMail), não
+      WhatsApp**: testado e confirmado que a API do WhatsApp Business rejeita (erro 200, permissions) por
+      causa da janela de 24h — só funciona quando é a cliente quem inicia o contato, não quando é o
+      sistema tentando mandar pra terapeuta
+  [x] api/chat.ts: tool flagRisk — e corrigido um bug crítico: `streamText` para depois de 1 passo por
+      padrão (`stopWhen` default `isStepCount(1)`), então sem `stopWhen: stepCountIs(4)` a cliente nunca
+      receberia o texto de acolhimento/CVV depois da tool chamar
+  [x] Dashboard.tsx: ícone de alerta por cliente na lista "Diário de Hoje" (não existia um padrão de
+      badge pra copiar — o que a doc do V2 descrevia nunca chegou a ser implementado)
+  [x] ClientDetail.tsx: seção "Alertas do assistente" (categoria + resumo curto) + "Marcar como visto"
+  [x] Testado com frase de risco real no chat (preview) — flagRisk disparou (`autolesao`), alerta gravado
+      em `bot_risk_alerts` com resumo apropriado, e-mail confirmado recebido em `contato@nubiajanuzzi.com`,
+      e a cliente ainda recebeu o texto de acolhimento + CVV na mesma resposta
 
 Fase 4 — Metas via bot
   [ ] Migration: client_goals.source / confirmed_at
@@ -910,6 +918,24 @@ As credenciais do WhatsApp (`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`)
 Supabase, usadas por `whatsapp-send-reminder`/`whatsapp-send-invite`. Duplicar esses segredos também na
 Vercel só pra essa chamada aumentaria a superfície de vazamento sem necessidade — mais barato chamar a
 Edge Function que já tem acesso a eles.
+
+### Por que o alerta de risco vai por e-mail, não WhatsApp (mudança do plano original)?
+O plano original (seção 8.5 mais acima) previa WhatsApp, reaproveitando o helper de `whatsapp-send-invite`.
+Testado direto contra a API real na Fase 3: a Meta rejeita com `(#200) You do not have the necessary
+permissions to send messages on behalf of this WhatsApp Business Account`. A causa é a janela de 24h do
+WhatsApp Business — só dá pra mandar mensagem de texto livre pra um número que mandou mensagem pra você
+nas últimas 24h. Isso funciona pros lembretes de diário (é a cliente quem inicia o contato), mas não
+funciona aqui: é o *sistema* tentando mandar pra terapeuta, que não tem essa janela aberta com o número do
+sistema. Resolver isso de verdade exigiria um template pré-aprovado pela Meta (processo de revisão à
+parte) — pra não bloquear a Fase 3 nisso, trocamos pra e-mail via ZeptoMail, que já é usado em outro
+lugar do projeto e não tem essa limitação.
+
+### Por que `stopWhen: stepCountIs(4)` no `streamText`?
+Descoberto lendo a documentação do tipo `stopWhen` durante a Fase 3: o `streamText` da versão da lib usada
+aqui **para depois de 1 passo por padrão** (`@default isStepCount(1)`). Sem isso, se o primeiro (e único)
+passo do modelo fosse chamar a tool `flagRisk`, a resposta terminaria ali — a cliente nunca receberia o
+texto de acolhimento com o CVV que deveria vir logo depois. `stepCountIs(4)` dá espaço pra tool call(s) +
+resposta final, com folga pra quando a tool `proposeGoal` da Fase 4 for somada.
 
 ### Por que `bot_messages` não tem NENHUMA policy pra terapeuta, nem opcional?
 Foi descoberto durante teste manual do prompt (rodando `scripts/test-bot.mjs`) que sem persistir as

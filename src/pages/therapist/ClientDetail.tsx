@@ -34,6 +34,20 @@ interface WaSession {
   invite_sent_at: string | null;
 }
 
+interface RiskAlert {
+  id: string;
+  category: 'ideacao_suicida' | 'autolesao' | 'risco_generico';
+  safe_summary: string;
+  acknowledged_at: string | null;
+  created_at: string;
+}
+
+const RISK_CATEGORY_LABEL: Record<RiskAlert['category'], string> = {
+  ideacao_suicida: 'Ideação suicida',
+  autolesao: 'Autolesão',
+  risco_generico: 'Risco genérico',
+};
+
 function lastSevenDaysStartISO() {
   const date = new Date();
   date.setDate(date.getDate() - 6);
@@ -82,6 +96,8 @@ export function ClientDetail() {
   const [manychatAlreadyExists, setManychatAlreadyExists] = useState(false);
   const [manualSubscriberId, setManualSubscriberId] = useState('');
   const [linkingManual, setLinkingManual] = useState(false);
+  const [riskAlerts, setRiskAlerts] = useState<RiskAlert[]>([]);
+  const [acknowledgingAlert, setAcknowledgingAlert] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
 
@@ -100,6 +116,7 @@ export function ClientDetail() {
       setInvites([]);
       setLastLogin(null);
       setGoals([]);
+      setRiskAlerts([]);
       setWaSession(null);
       setWaActivationLink(null);
       setSignupFeedback(null);
@@ -130,6 +147,7 @@ export function ClientDetail() {
         { data: waSessionRow },
         { data: activeDiaryRows },
         { data: feedbackRow },
+        { data: riskAlertRows },
       ] = await Promise.all([
         supabase.from('diary_entries').select('id, user_id, diary_id, date, created_at')
           .eq('user_id', id).order('date', { ascending: false }).limit(10),
@@ -151,6 +169,11 @@ export function ClientDetail() {
           .eq('is_active', true).order('created_at', { ascending: false }),
         supabase.from('client_signup_feedback').select('feedback')
           .eq('client_id', id).maybeSingle(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('bot_risk_alerts') as any)
+          .select('id, category, safe_summary, acknowledged_at, created_at')
+          .eq('client_id', id)
+          .order('created_at', { ascending: false }),
       ]);
 
       let diaryRow: Diary | null = null;
@@ -172,6 +195,7 @@ export function ClientDetail() {
       setWaSession(waRows.length > 0 ? waRows[0] : null);
       setActiveDiaries((activeDiaryRows ?? []) as Diary[]);
       setSignupFeedback((feedbackRow as { feedback: string } | null)?.feedback ?? null);
+      setRiskAlerts((riskAlertRows ?? []) as RiskAlert[]);
 
       const loadError = entriesError?.message || countError?.message;
       if (loadError) setError(loadError);
@@ -358,6 +382,19 @@ export function ClientDetail() {
     setLinkingManual(false);
   };
 
+  const handleAcknowledgeAlert = async (alertId: string) => {
+    setAcknowledgingAlert(alertId);
+    const now = new Date().toISOString();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: ackError } = await (supabase.from('bot_risk_alerts') as any)
+      .update({ acknowledged_at: now })
+      .eq('id', alertId);
+    if (!ackError) {
+      setRiskAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, acknowledged_at: now } : a)));
+    }
+    setAcknowledgingAlert(null);
+  };
+
   const copyWaLink = async () => {
     if (!waActivationLink) return;
     await navigator.clipboard.writeText(waActivationLink);
@@ -428,6 +465,47 @@ export function ClientDetail() {
       )}
       {error && (
         <div className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{error}</div>
+      )}
+
+      {/* Alertas de risco do assistente — categoria e resumo curto, nunca a conversa em si */}
+      {riskAlerts.length > 0 && (
+        <Card className="mb-4 border-red-200">
+          <div className="px-6 py-4 border-b border-red-100 bg-red-50 rounded-t-xl">
+            <h2 className="font-semibold text-red-700 text-sm">Alertas do assistente</h2>
+            <p className="text-xs text-red-600/70 mt-0.5">
+              Categoria e um resumo curto gerado pelo próprio bot — não é a conversa completa.
+            </p>
+          </div>
+          <div className="divide-y divide-beige-100">
+            {riskAlerts.map((alert) => (
+              <div key={alert.id} className="px-6 py-3 flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={alert.acknowledged_at ? 'neutral' : 'error'}>
+                      {RISK_CATEGORY_LABEL[alert.category]}
+                    </Badge>
+                    <span className="text-xs text-dark/40">{formatDateTime(alert.created_at)}</span>
+                  </div>
+                  <p className="text-sm text-dark/70 mt-1">{alert.safe_summary}</p>
+                  {alert.acknowledged_at && (
+                    <p className="text-xs text-dark/35 mt-1">Visto em {formatDateTime(alert.acknowledged_at)}</p>
+                  )}
+                </div>
+                {!alert.acknowledged_at && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    loading={acknowledgingAlert === alert.id}
+                    onClick={() => handleAcknowledgeAlert(alert.id)}
+                    className="shrink-0"
+                  >
+                    Marcar como visto
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
 
       {/* Info */}
