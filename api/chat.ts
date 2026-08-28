@@ -1,8 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import { streamText, type ModelMessage, type UIMessage } from 'ai';
 
 export const config = { runtime: 'nodejs' };
+
+// Depois desse tanto de horas sem mensagem, a próxima conversa não reenvia mais o histórico antigo pro
+// modelo — sem isso, cada mensagem reenviaria a conversa inteira desde sempre, crescendo o custo e a
+// latência de forma ilimitada. O histórico continua salvo e visível pra cliente (ClientChatbot.tsx
+// carrega tudo), só o que vai pro modelo é que fica limitado à janela atual.
+const CONTEXT_WINDOW_HOURS = 4;
 
 // Chave dedicada ao bot (separada da ANTHROPIC_API_KEY usada pelo fechamento mensal) — chama a
 // Anthropic direto, sem passar pelo AI Gateway da Vercel (que exigiria saldo/billing à parte só
@@ -41,6 +47,28 @@ interface EntryAnswerRow {
 function questionText(row: EntryAnswerRow): string {
   const q = Array.isArray(row.diary_questions) ? row.diary_questions[0] : row.diary_questions;
   return q?.text ?? 'Pergunta';
+}
+
+// Busca só a janela de conversa atual (desde a última pausa maior que CONTEXT_WINDOW_HOURS), não o
+// histórico inteiro. Limita a busca às últimas 200 mensagens como teto de segurança — uma única janela
+// contínua maior que isso é um caso extremo que fica pra tratar depois (ex: com resumo automático).
+async function getContextWindow(supabase: SupabaseClient, clientId: string): Promise<ModelMessage[]> {
+  const { data } = await supabase
+    .from('bot_messages')
+    .select('role, content, created_at')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  const rows = ((data ?? []) as { role: 'user' | 'assistant'; content: string; created_at: string }[]).reverse();
+
+  let windowStart = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const gapHours = (new Date(rows[i].created_at).getTime() - new Date(rows[i - 1].created_at).getTime()) / 3_600_000;
+    if (gapHours > CONTEXT_WINDOW_HOURS) windowStart = i;
+  }
+
+  return rows.slice(windowStart).map((row) => ({ role: row.role, content: row.content }));
 }
 
 export async function POST(req: Request): Promise<Response> {
@@ -131,7 +159,7 @@ export async function POST(req: Request): Promise<Response> {
   const result = streamText({
     model: anthropic('claude-haiku-4-5'),
     system: `${SYSTEM_PROMPT}\n\nContexto do diário do cliente:\n${diaryContext}`,
-    messages: await convertToModelMessages(messages),
+    messages: await getContextWindow(supabase, clientId),
     onFinish: async ({ text }) => {
       if (text) {
         await supabase.from('bot_messages').insert({ client_id: clientId, role: 'assistant', content: text });

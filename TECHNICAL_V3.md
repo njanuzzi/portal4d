@@ -833,6 +833,21 @@ Fase 4 — Metas via bot
 
 ## 13. Decisões Técnicas
 
+### Por que uma janela de contexto por inatividade (4h) em vez de mandar o histórico inteiro?
+Sem isso, `api/chat.ts` reenviaria pro modelo TODAS as mensagens já trocadas desde sempre, a cada nova
+mensagem — custo e latência crescendo sem limite, além de eventualmente esbarrar no limite de contexto do
+modelo. A regra: se passou mais de `CONTEXT_WINDOW_HOURS` (4h) desde a mensagem anterior, tudo antes disso
+para de ser reenviado pro modelo — mas continua salvo em `bot_messages` e visível pra cliente no
+`ClientChatbot.tsx` (ela pode rolar pra cima e ver o que já conversou). Preferimos isso a um corte fixo por
+dia-calendário (meia-noite) porque uma pausa de inatividade é um limite mais natural de conversa do que um
+horário arbitrário — uma cliente falando às 23h58 e de novo à 00h02 não devia perder o contexto por causa
+da virada do relógio.
+
+**Limite conhecido:** se uma única janela contínua (sem pausa de 4h) passar de 200 mensagens, o corte de
+segurança da consulta (`limit(200)`) vira o limite de fato. Não deve acontecer na prática pra esse tipo de
+uso, mas se acontecer, a solução é resumir automaticamente as mensagens mais antigas da janela em vez de
+só cortar — ficou de fora da Fase 1 por simplicidade.
+
 ### Por que chamar a Anthropic direto em vez do AI Gateway da Vercel?
 O desenho original (e o `api/chat.ts` que já existia antes da V3) usava `model: 'anthropic/claude-haiku-4.5'`
 — uma string que o AI SDK resolve automaticamente através do AI Gateway da Vercel. Isso só compensa quando
