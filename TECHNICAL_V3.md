@@ -824,7 +824,7 @@ Fase 2 — Pipeline de contexto ✅ concluída em 2026-08-28
       aparece nas próprias anotações de sessão da terapeuta como se fosse o nome da cliente (prompt
       reforçado: nunca usar nome nenhum, só "ela"/"a cliente")
 
-Fase 3 — Alerta de risco (com uma mudança de canal — ver Decisões Técnicas), falta o teste ponta a ponta
+Fase 3 — Alerta de risco ✅ concluída em 2026-08-28 (com uma mudança de canal — ver Decisões Técnicas)
   [x] Migration: bot_risk_alerts
   [x] supabase/functions/notify-therapist-risk (+ BOT_INTERNAL_SECRET) — **por e-mail (ZeptoMail), não
       WhatsApp**: testado e confirmado que a API do WhatsApp Business rejeita (erro 200, permissions) por
@@ -836,8 +836,9 @@ Fase 3 — Alerta de risco (com uma mudança de canal — ver Decisões Técnica
   [x] Dashboard.tsx: ícone de alerta por cliente na lista "Diário de Hoje" (não existia um padrão de
       badge pra copiar — o que a doc do V2 descrevia nunca chegou a ser implementado)
   [x] ClientDetail.tsx: seção "Alertas do assistente" (categoria + resumo curto) + "Marcar como visto"
-  [ ] Testar com frase de risco simulada no chat de verdade (preview) — notify-therapist-risk já foi
-      testada isolada via curl e confirmou envio do e-mail, falta o fluxo completo via flagRisk
+  [x] Testado com frase de risco real no chat (preview) — flagRisk disparou (`autolesao`), alerta gravado
+      em `bot_risk_alerts` com resumo apropriado, e-mail confirmado recebido em `contato@nubiajanuzzi.com`,
+      e a cliente ainda recebeu o texto de acolhimento + CVV na mesma resposta
 
 Fase 4 — Metas via bot
   [ ] Migration: client_goals.source / confirmed_at
