@@ -44,7 +44,25 @@
 - [x] Identificar o seletor, importação ou layout responsável pelo conflito.
 - [x] Corrigir o desktop sem remover o painel deslizante e acordeão exclusivos do mobile.
 - [x] Testar home, método e percurso nas versões desktop e mobile.
-- [x] Enviar a correção para a branch de prévia e solicitar nova revisão antes do merge.
+- [ ] Enviar a correção para a branch de prévia e solicitar nova revisão antes do merge.
+
+## Refinamento final do hero mobile
+
+- [x] Remover a linha lateral decorativa da primeira dobra somente no mobile.
+- [x] Aumentar o respiro inicial e realinhar o título sem modificar a composição desktop.
+- [x] Verificar a leitura do hero em 390 px e em desktop antes de enviar à prévia.
+- [ ] Enviar o refinamento para a branch de prévia e aguardar a revisão da usuária.
+
+## Acesso móvel à prévia
+
+- [ ] Identificar se a senha vem da proteção de prévia da Vercel ou da camada de autenticação da aplicação.
+- [ ] Configurar ou documentar uma forma segura de abrir a prévia em celular para revisão.
+- [ ] Confirmar que a solução não altera a proteção do domínio publicado.
+
+- [x] Identificar que a exigência vem da Vercel Authentication, não da aplicação.
+- [x] Criar um Shareable Link revogável somente para o deploy atual de prévia Atlas, substituindo o link anterior com autorização da usuária.
+- [ ] Testar o link fora da sessão autenticada e encaminhá-lo para a revisão no celular.
+- [x] Preservar a proteção do domínio publicado e da branch principal.
 
 ## Ajustes de interação no mobile
 
