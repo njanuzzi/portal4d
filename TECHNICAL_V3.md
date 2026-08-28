@@ -352,7 +352,7 @@ export const config = { runtime: 'nodejs' };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-export default async function handler(req: Request): Promise<Response> {
+export async function POST(req: Request): Promise<Response> {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   const accessToken = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
@@ -390,7 +390,7 @@ export const config = { runtime: 'nodejs' };
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const supabase = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-export default async function handler(req: Request): Promise<Response> {
+export async function POST(req: Request): Promise<Response> {
   const sig = req.headers.get('stripe-signature');
   const rawBody = await req.text();
 
@@ -453,7 +453,7 @@ export const config = { runtime: 'nodejs' };
 
 // ... SYSTEM_PROMPT definido na seção 11 ...
 
-export default async function handler(req: Request): Promise<Response> {
+export async function POST(req: Request): Promise<Response> {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   const accessToken = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '').trim();
@@ -888,3 +888,5 @@ de "limpar conversa" pra cliente.
 | `generate-bot-context` reprocessando cliente sem sessão nova | Cron roda todo dia mesmo sem sessão nova publicada | Aceitável no MVP (custo baixo); se virar problema, adicionar coluna `last_session_report_at` em `client_bot_context` e pular se não mudou desde a última geração |
 | Stripe webhook duplicado (retry automático da Stripe) | Stripe reenvia em caso de timeout | `upsert`/`update` por `stripe_subscription_id` já é idempotente — reprocessar o mesmo evento não duplica nada |
 | `notify-therapist-risk` chamado sem `BOT_INTERNAL_SECRET` configurado | Variável esquecida no deploy | Função retorna 403 e loga — testar manualmente na Fase 3 antes de considerar pronto |
+| Vercel Function em `api/*.ts` sempre retorna 500 (`req.headers.get is not a function`) | Este projeto (`/api` standalone, sem Next.js) espera **named export por método** (`export async function POST(req: Request)`), não `export default async function handler(req)`. Com `default export`, a Vercel invoca a function com a assinatura legada do Node (`req` sem `.headers.get()`). Descoberto na Fase 1 ao testar o checkout em preview — **`api/chat.ts` tinha esse mesmo bug desde antes da V3**, então o chat provavelmente nunca processou uma mensagem real em produção. | Sempre usar `export async function POST(req: Request): Promise<Response>` (ou `GET`, conforme o método), nunca `export default`. Os arquivos que já funcionavam no projeto (`api/inscricao-email.ts`, `api/quiz-result-email.ts`) já seguiam esse padrão — foi só comparar com eles que o bug apareceu. |
+| `success_url`/`cancel_url` do Stripe Checkout quebrado em Preview | `VITE_APP_URL` só está configurada no ambiente Production da Vercel — em Preview virava a string literal `"undefined/home"`, e o Stripe rejeitava com `url_invalid` | Montar a URL base a partir do header `Origin` da própria requisição em vez de uma env var fixa — funciona em qualquer ambiente sem configuração extra |

@@ -5,7 +5,7 @@ export const config = { runtime: 'nodejs' };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
-export default async function handler(req: Request): Promise<Response> {
+export async function POST(req: Request): Promise<Response> {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
 
   const accessToken = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '').trim();

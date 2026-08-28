@@ -39,7 +39,7 @@ async function upsertFromSubscription(subscription: Stripe.Subscription) {
   );
 }
 
-export default async function handler(req: Request): Promise<Response> {
+export async function POST(req: Request): Promise<Response> {
   const sig = req.headers.get('stripe-signature');
   const rawBody = await req.text();
 
