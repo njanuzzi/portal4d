@@ -802,11 +802,13 @@ Fase 1 — Gate de assinatura + memória de conversa
   [ ] api/stripe-webhook.ts
   [ ] api/chat.ts: gravar mensagens em bot_messages (user + onFinish do assistant)
   [ ] ClientChatbot.tsx: checar assinatura, upsell se inativa, carregar histórico como initialMessages
-  [ ] Decidir política de retenção de bot_messages (ver Decisões Técnicas)
-  [ ] Testar fluxo completo em modo teste do Stripe
-  [ ] ⚠️ LEMBRAR: o webhook endpoint (we_1U9ClYPos1yVUu5Z8ShMPXkI) foi apontado temporariamente pra URL
-      de preview da branch (`.../api/stripe-webhook`) pra testar o fluxo automático — reverter pra
-      `https://nubiajanuzzi.com/api/stripe-webhook` antes ou no momento do merge pra main
+  [x] Retenção de bot_messages: 90 dias — job `bot-messages-retention` via pg_cron, roda diariamente às
+      4h UTC, apaga mensagens mais velhas que 90 dias
+      (migration `20260828140000_bot_messages_retention.sql`)
+  [x] Testar fluxo completo em modo teste do Stripe — testado manualmente (assinatura, checkout,
+      chat respondendo, persistência de conversa, janela de contexto de 4h), com uma reconciliação
+      manual porque o webhook estava temporariamente no preview
+  [x] Webhook revertido pra `https://nubiajanuzzi.com/api/stripe-webhook` em 2026-08-28
 
 Fase 2 — Pipeline de contexto
   [ ] Migration: client_bot_context
@@ -909,10 +911,12 @@ teria acesso a esse histórico. A decisão de "terapeuta vê só alertas" (não 
 impossível de contornar no banco — por isso `bot_messages` não tem nenhuma policy que dê acesso a
 `role = 'therapist'`, diferente de `bot_subscriptions`/`client_bot_context` que ela pode auditar.
 
-**Em aberto:** por quanto tempo guardar `bot_messages`? Hoje o plano não define expiração — ficaria
-armazenado indefinidamente, igual a `diary_entries`/`session_reports`. Como é conteúdo pessoal sensível
-(LGPD), vale decidir se isso é aceitável ou se faz sentido um limite de retenção (ex: 90 dias) ou um botão
-de "limpar conversa" pra cliente.
+**Decidido — retenção de 90 dias.** Job `bot-messages-retention` via `pg_cron`, roda diariamente às 4h UTC
+e apaga mensagens mais velhas que 90 dias (`delete from bot_messages where created_at < now() - interval
+'90 days'`). Diferente do resto do app (`diary_entries`/`session_reports`, sem expiração) — decisão
+consciente de minimização de dados, dado que é conteúdo pessoal sensível (LGPD). Não há hoje um aviso na
+UI pra cliente sobre esse limite — se fizer sentido deixar isso explícito (mesmo espírito do aviso de
+"nova janela de contexto"), é um ajuste pequeno de adicionar depois.
 
 ---
 
