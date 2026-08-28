@@ -133,6 +133,40 @@ export type Database = {
         Insert: { therapist_id: string; name: string; phone: string; id?: string; created_at?: string };
         Update: Partial<{ name: string; phone: string }>;
       };
+      bot_subscriptions: {
+        Row: {
+          id: string;
+          client_id: string;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          status: 'active' | 'past_due' | 'canceled';
+          current_period_end: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          status: 'active' | 'past_due' | 'canceled';
+          current_period_end?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          status: 'active' | 'past_due' | 'canceled';
+          current_period_end: string | null;
+          updated_at: string;
+        }>;
+      };
+      bot_messages: {
+        Row: { id: string; client_id: string; role: 'user' | 'assistant'; content: string; created_at: string };
+        Insert: { id?: string; client_id: string; role: 'user' | 'assistant'; content: string; created_at?: string };
+        Update: Partial<{ content: string }>;
+      };
     };
   };
 };

@@ -1,7 +1,19 @@
-import { createClient } from '@supabase/supabase-js';
-import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { streamText, type ModelMessage, type UIMessage } from 'ai';
 
 export const config = { runtime: 'nodejs' };
+
+// Depois desse tanto de horas sem mensagem, a próxima conversa não reenvia mais o histórico antigo pro
+// modelo — sem isso, cada mensagem reenviaria a conversa inteira desde sempre, crescendo o custo e a
+// latência de forma ilimitada. O histórico continua salvo e visível pra cliente (ClientChatbot.tsx
+// carrega tudo), só o que vai pro modelo é que fica limitado à janela atual.
+const CONTEXT_WINDOW_HOURS = 4;
+
+// Chave dedicada ao bot (separada da ANTHROPIC_API_KEY usada pelo fechamento mensal) — chama a
+// Anthropic direto, sem passar pelo AI Gateway da Vercel (que exigiria saldo/billing à parte só
+// pra essa chamada, sem nenhum benefício real já que só usamos um provedor/modelo fixo aqui).
+const anthropic = createAnthropic({ apiKey: process.env.BOT_ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `Você é o assistente do Portal 4D, o espaço de acompanhamento entre sessões dos
 clientes da psicoterapeuta Núbia Januzzi, criadora do Protocolo 4D (Detectar, Desacelerar, Decodificar,
@@ -37,7 +49,29 @@ function questionText(row: EntryAnswerRow): string {
   return q?.text ?? 'Pergunta';
 }
 
-export default async function handler(req: Request): Promise<Response> {
+// Busca só a janela de conversa atual (desde a última pausa maior que CONTEXT_WINDOW_HOURS), não o
+// histórico inteiro. Limita a busca às últimas 200 mensagens como teto de segurança — uma única janela
+// contínua maior que isso é um caso extremo que fica pra tratar depois (ex: com resumo automático).
+async function getContextWindow(supabase: SupabaseClient, clientId: string): Promise<ModelMessage[]> {
+  const { data } = await supabase
+    .from('bot_messages')
+    .select('role, content, created_at')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  const rows = ((data ?? []) as { role: 'user' | 'assistant'; content: string; created_at: string }[]).reverse();
+
+  let windowStart = 0;
+  for (let i = 1; i < rows.length; i++) {
+    const gapHours = (new Date(rows[i].created_at).getTime() - new Date(rows[i - 1].created_at).getTime()) / 3_600_000;
+    if (gapHours > CONTEXT_WINDOW_HOURS) windowStart = i;
+  }
+
+  return rows.slice(windowStart).map((row) => ({ role: row.role, content: row.content }));
+}
+
+export async function POST(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
@@ -65,12 +99,40 @@ export default async function handler(req: Request): Promise<Response> {
   if (userError || !userData.user) {
     return new Response('Unauthorized', { status: 401 });
   }
-  const role = userData.user.user_metadata?.role ?? userData.user.app_metadata?.role;
-  if (role !== 'client') {
+  const clientId = userData.user.id;
+
+  // profiles.role é a fonte de verdade usada no resto do app (AuthContext.tsx, AppRoutes) — nem toda
+  // conta de cliente tem user_metadata.role setado (depende de qual fluxo criou a conta), então checar
+  // isso ali gerava 403 pra clientes legítimas.
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', clientId).maybeSingle();
+  if (profile?.role !== 'client') {
     return new Response('Forbidden', { status: 403 });
   }
 
+  const { data: subscription } = await supabase
+    .from('bot_subscriptions')
+    .select('status')
+    .eq('client_id', clientId)
+    .maybeSingle();
+  if (subscription?.status !== 'active') {
+    return new Response(JSON.stringify({ error: 'subscription_required' }), {
+      status: 402,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const { messages }: { messages: UIMessage[] } = await req.json();
+
+  // Grava a mensagem que acabou de chegar da cliente (a última do array) — sem isso a conversa
+  // some ao recarregar a página, porque o useChat só guarda mensagens na memória do navegador.
+  const lastUserMessage = messages[messages.length - 1];
+  const lastUserText = lastUserMessage.parts
+    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+    .map((p) => p.text)
+    .join('\n');
+  if (lastUserText) {
+    await supabase.from('bot_messages').insert({ client_id: clientId, role: 'user', content: lastUserText });
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const { data: entry } = await supabase
@@ -95,9 +157,14 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const result = streamText({
-    model: 'anthropic/claude-haiku-4.5',
+    model: anthropic('claude-haiku-4-5'),
     system: `${SYSTEM_PROMPT}\n\nContexto do diário do cliente:\n${diaryContext}`,
-    messages: await convertToModelMessages(messages),
+    messages: await getContextWindow(supabase, clientId),
+    onFinish: async ({ text }) => {
+      if (text) {
+        await supabase.from('bot_messages').insert({ client_id: clientId, role: 'assistant', content: text });
+      }
+    },
   });
 
   return result.toUIMessageStreamResponse();

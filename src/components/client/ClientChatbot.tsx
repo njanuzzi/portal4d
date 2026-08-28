@@ -1,23 +1,85 @@
 import { useState, useRef, useEffect, FormEvent } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-export function ClientChatbot() {
-  const [open, setOpen] = useState(false);
+type SubscriptionState = 'loading' | 'inactive' | 'active';
+
+// Mesmo valor de api/chat.ts — só pra decidir quando mostrar o aviso de "nova conversa" na tela,
+// não afeta o que de fato é mandado pro modelo (isso é decidido no backend).
+const CONTEXT_WINDOW_HOURS = 4;
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function startCheckout(setRedirecting: (v: boolean) => void, setError: (v: string | null) => void) {
+  setRedirecting(true);
+  setError(null);
+  try {
+    const headers = await authHeaders();
+    const res = await fetch('/api/create-checkout-session', { method: 'POST', headers });
+    if (!res.ok) throw new Error(`Falha ao criar sessão de pagamento (${res.status})`);
+    const { url } = (await res.json()) as { url: string };
+    window.location.href = url;
+  } catch (err) {
+    console.error('[ClientChatbot] startCheckout falhou:', err);
+    setError('Não consegui abrir o pagamento agora. Tenta de novo em instantes.');
+    setRedirecting(false);
+  }
+}
+
+function UpsellCard({
+  onSubscribe,
+  loading,
+  error,
+}: {
+  onSubscribe: () => void;
+  loading: boolean;
+  error: string | null;
+}) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 py-8 text-center bg-beige-100">
+      <MessageCircle size={32} className="text-petrol-700" />
+      <p className="text-dark font-serif text-base">Assine o assistente do Portal 4D</p>
+      <p className="text-dark/60 text-sm leading-relaxed">
+        Um espaço de apoio entre sessões, que te acompanha nos seus próprios termos — não substitui a
+        terapia com a Núbia.
+      </p>
+      <button
+        onClick={onSubscribe}
+        disabled={loading}
+        className="mt-2 px-5 py-2.5 rounded-lg bg-gold-500 text-white text-sm font-medium hover:bg-gold-600 disabled:opacity-50 transition-colors"
+      >
+        {loading ? 'Redirecionando...' : 'Assinar assistente'}
+      </button>
+      {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
+    </div>
+  );
+}
+
+function ChatPanel({
+  initialMessages,
+  messageTimestamps,
+}: {
+  initialMessages: UIMessage[];
+  messageTimestamps: Record<string, string>;
+}) {
   const [input, setInput] = useState('');
+  const [blocked, setBlocked] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/chat',
-      headers: async (): Promise<Record<string, string>> => {
-        const { data } = await supabase.auth.getSession();
-        const token = data.session?.access_token;
-        return token ? { Authorization: `Bearer ${token}` } : {};
-      },
-    }),
+    messages: initialMessages,
+    transport: new DefaultChatTransport({ api: '/api/chat', headers: authHeaders }),
+    onError: (error) => {
+      if (error.message.includes('subscription_required')) setBlocked(true);
+    },
   });
 
   useEffect(() => {
@@ -30,6 +92,124 @@ export function ClientChatbot() {
     sendMessage({ text: input });
     setInput('');
   };
+
+  if (blocked) {
+    return (
+      <UpsellCard
+        onSubscribe={() => startCheckout(setCheckoutLoading, setCheckoutError)}
+        loading={checkoutLoading}
+        error={checkoutError}
+      />
+    );
+  }
+
+  return (
+    <>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-beige-100">
+        {messages.length === 0 && (
+          <p className="text-petrol-800/60 text-sm text-center mt-8">
+            Pergunte sobre sua entrada de diário de hoje, tire uma dúvida do portal, ou só desabafe um pouco.
+          </p>
+        )}
+        {messages.map((message, index) => {
+          const prevTimestamp = index > 0 ? messageTimestamps[messages[index - 1].id] : undefined;
+          const currentTimestamp = messageTimestamps[message.id];
+          const gapHours =
+            prevTimestamp && currentTimestamp
+              ? (new Date(currentTimestamp).getTime() - new Date(prevTimestamp).getTime()) / 3_600_000
+              : 0;
+          const showNewWindowNotice = index > 0 && gapHours > CONTEXT_WINDOW_HOURS;
+
+          return (
+            <div key={message.id}>
+              {showNewWindowNotice && (
+                <div className="text-center text-[11px] text-petrol-800/40 my-2">
+                  · nova conversa — o assistente não vai lembrar dos detalhes de antes daqui ·
+                </div>
+              )}
+              <div
+                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
+                  message.role === 'user'
+                    ? 'ml-auto bg-petrol-700 text-white'
+                    : 'mr-auto bg-white border border-beige-300 text-dark'
+                }`}
+              >
+                {message.parts.map((part, i) =>
+                  part.type === 'text' ? <span key={i}>{part.text}</span> : null
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {status === 'submitted' && (
+          <div className="mr-auto flex items-center gap-2 text-petrol-800/50 text-sm">
+            <Loader2 size={14} className="animate-spin" />
+            Pensando...
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={handleSubmit} className="border-t border-beige-300 p-3 flex gap-2 bg-white">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          disabled={status !== 'ready'}
+          placeholder="Escreva sua mensagem..."
+          className="flex-1 text-sm px-3 py-2 rounded-lg border border-beige-300 bg-beige-50 outline-none focus:border-petrol-400 disabled:opacity-50"
+        />
+        <button
+          type="submit"
+          disabled={status !== 'ready' || !input.trim()}
+          className="w-9 h-9 shrink-0 rounded-lg bg-gold-500 text-white flex items-center justify-center hover:bg-gold-600 disabled:opacity-40 transition-colors"
+        >
+          <Send size={16} />
+        </button>
+      </form>
+    </>
+  );
+}
+
+export function ClientChatbot() {
+  const [open, setOpen] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionState>('loading');
+  const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
+  const [messageTimestamps, setMessageTimestamps] = useState<Record<string, string>>({});
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    if (!open || loadedRef.current) return;
+    loadedRef.current = true;
+
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+
+      const [{ data: sub }, { data: history }] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('bot_subscriptions') as any).select('status').eq('client_id', userData.user.id).maybeSingle(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('bot_messages') as any)
+          .select('id, role, content, created_at')
+          .eq('client_id', userData.user.id)
+          .order('created_at', { ascending: true }),
+      ]);
+
+      type HistoryRow = { id: string; role: 'user' | 'assistant'; content: string; created_at: string };
+      const rows = (history ?? []) as HistoryRow[];
+
+      setSubscription(sub?.status === 'active' ? 'active' : 'inactive');
+      setInitialMessages(
+        rows.map((row) => ({
+          id: row.id,
+          role: row.role,
+          parts: [{ type: 'text', text: row.content }],
+        }))
+      );
+      setMessageTimestamps(Object.fromEntries(rows.map((row) => [row.id, row.created_at])));
+    })();
+  }, [open]);
 
   return (
     <>
@@ -50,50 +230,19 @@ export function ClientChatbot() {
             </div>
           </div>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-beige-100">
-            {messages.length === 0 && (
-              <p className="text-petrol-800/60 text-sm text-center mt-8">
-                Pergunte sobre sua entrada de diário de hoje, tire uma dúvida do portal, ou só desabafe um pouco.
-              </p>
-            )}
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
-                  message.role === 'user'
-                    ? 'ml-auto bg-petrol-700 text-white'
-                    : 'mr-auto bg-white border border-beige-300 text-dark'
-                }`}
-              >
-                {message.parts.map((part, i) =>
-                  part.type === 'text' ? <span key={i}>{part.text}</span> : null
-                )}
-              </div>
-            ))}
-            {status === 'submitted' && (
-              <div className="mr-auto flex items-center gap-2 text-petrol-800/50 text-sm">
-                <Loader2 size={14} className="animate-spin" />
-                Pensando...
-              </div>
-            )}
-          </div>
-
-          <form onSubmit={handleSubmit} className="border-t border-beige-300 p-3 flex gap-2 bg-white">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              disabled={status !== 'ready'}
-              placeholder="Escreva sua mensagem..."
-              className="flex-1 text-sm px-3 py-2 rounded-lg border border-beige-300 bg-beige-50 outline-none focus:border-petrol-400 disabled:opacity-50"
+          {subscription === 'loading' || (subscription === 'active' && initialMessages === null) ? (
+            <div className="flex-1 flex items-center justify-center bg-beige-100">
+              <Loader2 size={20} className="animate-spin text-petrol-700/50" />
+            </div>
+          ) : subscription === 'inactive' ? (
+            <UpsellCard
+              onSubscribe={() => startCheckout(setCheckoutLoading, setCheckoutError)}
+              loading={checkoutLoading}
+              error={checkoutError}
             />
-            <button
-              type="submit"
-              disabled={status !== 'ready' || !input.trim()}
-              className="w-9 h-9 shrink-0 rounded-lg bg-gold-500 text-white flex items-center justify-center hover:bg-gold-600 disabled:opacity-40 transition-colors"
-            >
-              <Send size={16} />
-            </button>
-          </form>
+          ) : (
+            <ChatPanel initialMessages={initialMessages ?? []} messageTimestamps={messageTimestamps} />
+          )}
         </div>
       )}
     </>
