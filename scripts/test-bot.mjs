@@ -3,8 +3,8 @@
 // a infra da V3 (ver TECHNICAL_V3.md).
 //
 // Uso:
-//   BOT_TESTE_ANTHROPIC_API_KEY=sk-ant-... node scripts/test-bot.mjs
-// ou adicione BOT_TESTE_ANTHROPIC_API_KEY=... no .env.local e rode:
+//   BOT_ANTHROPIC_API_KEY=sk-ant-... node scripts/test-bot.mjs
+// ou adicione BOT_ANTHROPIC_API_KEY=... no .env.local e rode:
 //   node scripts/test-bot.mjs
 //
 // Usa uma chave separada da ANTHROPIC_API_KEY já existente (usada pelo
@@ -25,9 +25,9 @@ function loadEnvLocal() {
 }
 loadEnvLocal();
 
-const API_KEY = process.env.BOT_TESTE_ANTHROPIC_API_KEY;
+const API_KEY = process.env.BOT_ANTHROPIC_API_KEY;
 if (!API_KEY) {
-  console.error('Faltou BOT_TESTE_ANTHROPIC_API_KEY — adicione no .env.local ou exporte antes de rodar.');
+  console.error('Faltou BOT_ANTHROPIC_API_KEY — adicione no .env.local ou exporte antes de rodar.');
   process.exit(1);
 }
 

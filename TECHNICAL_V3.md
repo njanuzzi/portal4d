@@ -63,7 +63,7 @@ repositório** — a V3 estende isso, não começa do zero.
 
 | Peça | Arquivo | O que já faz |
 |---|---|---|
-| Chat com IA | [`api/chat.ts`](../api/chat.ts) | Vercel Function (Node), AI SDK (`streamText`), modelo `anthropic/claude-haiku-4.5` via Vercel AI Gateway, autenticado com o JWT da própria cliente (RLS aplicado, nunca service role). Contexto hoje = só a entrada de diário do dia. |
+| Chat com IA | [`api/chat.ts`](../api/chat.ts) | Vercel Function (Node), AI SDK (`streamText`) com `@ai-sdk/anthropic` chamando a Anthropic direto (chave dedicada `BOT_ANTHROPIC_API_KEY`, não passa pelo AI Gateway da Vercel — trocado na Fase 1 depois de descobrir que o Gateway exige billing próprio sem trazer benefício real pra um uso de provedor único), autenticado com o JWT da própria cliente (RLS aplicado, nunca service role). Contexto hoje = só a entrada de diário do dia. |
 | Widget de chat | [`src/components/client/ClientChatbot.tsx`](../src/components/client/ClientChatbot.tsx) | Botão flutuante, montado em `ClientLayout` pra toda cliente, sem gate nenhum. |
 | Metas | `client_goals` ([migration](../supabase/migrations/20260506140000_add_client_goals.sql)) | Ciclo semanal (7 diários), encerramento com observações — tudo em [`DiaryPage.tsx`](../src/pages/client/DiaryPage.tsx). |
 | Notas de sessão | `session_reports` ([migration](../supabase/migrations/20260825190000_add_session_reports.sql)) | Uma linha por sessão (`rascunho` → `revisado` → `publicado`), `content_html`. |
@@ -156,19 +156,26 @@ STRIPE_SECRET_KEY=sk_live_...              # ou sk_test_... em preview
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_BOT_PRICE_ID=price_...              # o Price recorrente criado no 4.1
 SUPABASE_SERVICE_ROLE_KEY=                 # já deve existir; necessário pro webhook gravar bot_subscriptions
+BOT_ANTHROPIC_API_KEY=                     # chave dedicada ao bot — api/chat.ts chama a Anthropic direto
+                                            # com ela, SEM passar pelo AI Gateway da Vercel (ver Decisões
+                                            # Técnicas: o Gateway exige billing próprio à parte, sem
+                                            # benefício real pra um uso de provedor único)
 ```
 
 ### Supabase (Dashboard → Edge Functions → Secrets)
 
 ```env
 BOT_INTERNAL_SECRET=                       # string aleatória — protege notify-therapist-risk de chamadas externas
-BOT_ANTHROPIC_API_KEY=                     # chave dedicada ao bot, criada separada no console da Anthropic
+BOT_ANTHROPIC_API_KEY=                     # mesma chave de cima — a Fase 2 (generate-bot-context) roda como
+                                            # Edge Function no Supabase, então precisa dela cadastrada aqui
+                                            # também, além de na Vercel
 # WHATSAPP_ACCESS_TOKEN e WHATSAPP_PHONE_NUMBER_ID já existem da V2 — reaproveitados, não duplicar
 ```
 
 > ⚠️ `BOT_ANTHROPIC_API_KEY` é intencionalmente **separada** da `ANTHROPIC_API_KEY` já usada por
 > `generate-monthly-report` — chave própria por funcionalidade, pra medir custo e uso do bot isoladamente
-> no console da Anthropic (e poder revogar/limitar sem afetar o fechamento mensal).
+> no console da Anthropic (e poder revogar/limitar sem afetar o fechamento mensal). Precisa estar
+> cadastrada em **dois lugares** (Vercel e Supabase) porque o bot tem código rodando nas duas plataformas.
 
 ---
 
@@ -446,10 +453,13 @@ Mudanças sobre o que já existe hoje:
 
 ```typescript
 import { createClient } from '@supabase/supabase-js';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { convertToModelMessages, streamText, tool, type UIMessage } from 'ai';
 import { z } from 'zod';
 
 export const config = { runtime: 'nodejs' };
+
+const anthropic = createAnthropic({ apiKey: process.env.BOT_ANTHROPIC_API_KEY });
 
 // ... SYSTEM_PROMPT definido na seção 11 ...
 
@@ -492,7 +502,7 @@ export async function POST(req: Request): Promise<Response> {
   // ... busca diaryContext como já existe hoje ...
 
   const result = streamText({
-    model: 'anthropic/claude-haiku-4.5',
+    model: anthropic('claude-haiku-4-5'),
     system: `${SYSTEM_PROMPT}\n\nContexto de fundo (nunca citar literalmente):\n${context?.summary_text ?? 'Sem histórico ainda.'}\n\n${diaryContext}`,
     messages: await convertToModelMessages(messages),
     onFinish: async ({ text }) => {
@@ -822,6 +832,16 @@ Fase 4 — Metas via bot
 ---
 
 ## 13. Decisões Técnicas
+
+### Por que chamar a Anthropic direto em vez do AI Gateway da Vercel?
+O desenho original (e o `api/chat.ts` que já existia antes da V3) usava `model: 'anthropic/claude-haiku-4.5'`
+— uma string que o AI SDK resolve automaticamente através do AI Gateway da Vercel. Isso só compensa quando
+você usa múltiplos provedores/modelos, quer fallback automático entre eles, ou quer um painel único de
+custo pra tudo que usa IA no projeto. Não é o nosso caso: um provedor, um modelo fixo. Na prática, o
+Gateway se mostrou uma segunda superfície de billing pra manter (precisa de cartão e saldo *na Vercel*,
+separado da conta da Anthropic) sem trazer nenhum benefício real aqui — e isso bloqueou o teste da Fase 1
+até resolvermos. Trocado pra `@ai-sdk/anthropic` com a `BOT_ANTHROPIC_API_KEY` dedicada, chamando a
+Anthropic direto — mesmo padrão de billing que `generate-monthly-report` e `scripts/test-bot.mjs` já usam.
 
 ### Por que Stripe em vez de InfinityPay?
 A documentação pública do InfinityPay só cobre checkout avulso (Checkout Integrado / InfiniteTap) — não

@@ -1,7 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { convertToModelMessages, streamText, type UIMessage } from 'ai';
 
 export const config = { runtime: 'nodejs' };
+
+// Chave dedicada ao bot (separada da ANTHROPIC_API_KEY usada pelo fechamento mensal) — chama a
+// Anthropic direto, sem passar pelo AI Gateway da Vercel (que exigiria saldo/billing à parte só
+// pra essa chamada, sem nenhum benefício real já que só usamos um provedor/modelo fixo aqui).
+const anthropic = createAnthropic({ apiKey: process.env.BOT_ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `Você é o assistente do Portal 4D, o espaço de acompanhamento entre sessões dos
 clientes da psicoterapeuta Núbia Januzzi, criadora do Protocolo 4D (Detectar, Desacelerar, Decodificar,
@@ -123,7 +129,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const result = streamText({
-    model: 'anthropic/claude-haiku-4.5',
+    model: anthropic('claude-haiku-4-5'),
     system: `${SYSTEM_PROMPT}\n\nContexto do diário do cliente:\n${diaryContext}`,
     messages: await convertToModelMessages(messages),
     onFinish: async ({ text }) => {
