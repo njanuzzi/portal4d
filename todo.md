@@ -38,6 +38,14 @@
 - [x] Atualizar CTAs, navegação, página Sobre, Biblioteca e metadados para refletir a hierarquia aprovada.
 - [ ] Publicar somente na branch de prévia e validar desktop/mobile antes de qualquer merge.
 
+## Correção de regressão desktop
+
+- [ ] Reproduzir a desconfiguração em viewport desktop na prévia atual.
+- [ ] Identificar o seletor, importação ou layout responsável pelo conflito.
+- [ ] Corrigir o desktop sem remover o painel deslizante e acordeão exclusivos do mobile.
+- [ ] Testar home, método e percurso nas versões desktop e mobile.
+- [ ] Enviar a correção para a branch de prévia e solicitar nova revisão antes do merge.
+
 ## Ajustes de interação no mobile
 
 - [x] Aumentar o respiro superior do hero mobile, preservando a composição desktop.

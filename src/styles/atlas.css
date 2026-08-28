@@ -1,5 +1,6 @@
 /* Atlas de Padrões — sistema editorial cartográfico isolado para as rotas públicas. */
 :root { --atlas-ink:#083e47; --atlas-deep:#06323a; --atlas-paper:#f7f2e8; --atlas-white:#fffdfa; --atlas-gold:#c9a458; --atlas-gold-light:#e6cb91; --atlas-coral:#bf675b; --atlas-line:rgba(8,62,71,.17); --atlas-line-light:rgba(255,255,255,.16); }
+.atlas-sheet { display:none; }
 .atlas-brand small { max-width:182px !important; margin-top:2px !important; font-size:7px !important; letter-spacing:.11em !important; line-height:1.3 !important; }
 .atlas-hero p strong { color:var(--atlas-gold-light); font-weight:700; }
 .atlas-hero__art { margin:0; }
