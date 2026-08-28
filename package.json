@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender-contents.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
@@ -13,10 +13,13 @@
   "dependencies": {
     "@ai-sdk/react": "^4.0.58",
     "@supabase/supabase-js": "^2.57.4",
+    "@tiptap/extension-image": "^2.27.2",
+    "@tiptap/extension-link": "^2.27.2",
+    "@tiptap/react": "^2.27.2",
+    "@tiptap/starter-kit": "^2.27.2",
     "@types/dompurify": "^3.0.5",
     "ai": "^7.0.55",
     "dompurify": "^3.4.2",
-    "fast-xml-parser": "^5.10.1",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

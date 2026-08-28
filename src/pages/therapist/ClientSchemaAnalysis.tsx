@@ -6,6 +6,8 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { ReportsTabs } from '../../components/ReportsTabs';
+import { ReadStatusBadge } from '../../components/ReadStatusBadge';
 import { supabase } from '../../lib/supabase';
 import type { Profile } from '../../lib/database.types';
 
@@ -21,6 +23,7 @@ interface ReportRow {
   assessment_id: string;
   status: 'draft' | 'reviewed' | 'published';
   client_content: unknown;
+  client_content_status: 'draft' | 'reviewed' | 'published';
 }
 
 const reportStatusLabel: Record<string, string> = {
@@ -34,6 +37,17 @@ const reportStatusVariant: Record<string, 'warning' | 'success' | 'neutral'> = {
   published: 'success',
 };
 
+const clientStatusLabel: Record<string, string> = {
+  draft: 'Cliente: rascunho',
+  reviewed: 'Cliente: revisado',
+  published: 'Cliente: versão final',
+};
+const clientStatusVariant: Record<string, 'warning' | 'success' | 'neutral'> = {
+  draft: 'warning',
+  reviewed: 'neutral',
+  published: 'success',
+};
+
 // Rascunho do formulário nativo (por domínio) — o cliente ainda não
 // terminou de responder, então não tem scores calculados ainda.
 const isIncomplete = (status: string) => status === 'in_progress';
@@ -43,6 +57,7 @@ export function ClientSchemaAnalysis() {
   const [client, setClient] = useState<Profile | null>(null);
   const [assessments, setAssessments] = useState<AssessmentRow[]>([]);
   const [reportsByAssessment, setReportsByAssessment] = useState<Record<string, ReportRow>>({});
+  const [viewedByAssessment, setViewedByAssessment] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [generatingClientId, setGeneratingClientId] = useState<string | null>(null);
@@ -67,13 +82,23 @@ export function ClientSchemaAnalysis() {
     setAssessments(rows);
 
     if (rows.length > 0) {
-      const { data: reportRows } = await supabase
-        .from('client_schema_reports')
-        .select('id, assessment_id, status, client_content')
-        .in('assessment_id', rows.map((r) => r.id));
+      const [{ data: reportRows }, { data: publishedRows }] = await Promise.all([
+        supabase
+          .from('client_schema_reports')
+          .select('id, assessment_id, status, client_content, client_content_status')
+          .in('assessment_id', rows.map((r) => r.id)),
+        supabase
+          .from('client_published_reports')
+          .select('assessment_id, first_viewed_at')
+          .in('assessment_id', rows.map((r) => r.id)),
+      ]);
       const map: Record<string, ReportRow> = {};
       ((reportRows ?? []) as ReportRow[]).forEach((r) => { map[r.assessment_id] = r; });
       setReportsByAssessment(map);
+
+      const viewedMap: Record<string, string | null> = {};
+      (publishedRows ?? []).forEach((r) => { viewedMap[r.assessment_id] = r.first_viewed_at; });
+      setViewedByAssessment(viewedMap);
     }
 
     if (assessmentsError) setError(assessmentsError.message);
@@ -124,6 +149,7 @@ export function ClientSchemaAnalysis() {
           <ArrowLeft size={16} />
           Voltar para {client?.name || 'Cliente'}
         </Link>
+        {id && <ReportsTabs clientId={id} active="esquemas" />}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-petrol-50 flex items-center justify-center">
             <Brain size={18} className="text-petrol-700" />
@@ -162,6 +188,14 @@ export function ClientSchemaAnalysis() {
                         <Badge variant={reportStatusVariant[report.status] ?? 'neutral'}>
                           {reportStatusLabel[report.status] ?? report.status}
                         </Badge>
+                      )}
+                      {report?.client_content != null && (
+                        <Badge variant={clientStatusVariant[report.client_content_status] ?? 'neutral'}>
+                          {clientStatusLabel[report.client_content_status] ?? report.client_content_status}
+                        </Badge>
+                      )}
+                      {report?.client_content != null && (
+                        <ReadStatusBadge firstViewedAt={viewedByAssessment[assessment.id]} />
                       )}
                     </div>
                     <div className="text-xs text-dark/40">

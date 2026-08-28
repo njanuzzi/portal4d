@@ -1,246 +1,93 @@
-import { useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ArrowRight, Target, Eye } from 'lucide-react';
-import { Button } from '../components/ui/Button';
+/** Atlas de Padrões — home autoral: Núbia Januzzi no primeiro plano e Protocolo 4D como produto principal. */
+import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { MarketingLayout } from '../components/marketing/MarketingLayout';
-import { InstagramFeed } from '../components/marketing/InstagramFeed';
-// Desativado até a Núbia criar um Substack direcionado ao Protocolo 4D (o atual é um espaço livre, fora do tom do site).
-// import { BlogPreview } from '../components/marketing/BlogPreview';
-import { LeadForm } from '../components/marketing/LeadForm';
-import { PILARES } from '../lib/protocolo4d';
+import { AtlasSpiral } from '../components/marketing/AtlasSpiral';
+import { AtlasJourney } from '../components/marketing/AtlasJourney';
+import { ContentPreview } from '../components/marketing/ContentPreview';
+import { SeoHead } from '../components/SeoHead';
+
+const recognitions = [
+  'Você sabe qual é a tarefa importante e deixa exatamente ela para depois.',
+  'Você entrega para todo mundo, mas paralisa quando a decisão é sua.',
+  'Você já entendeu o padrão; o difícil continua sendo agir no meio dele.',
+  'Você evita se expor mesmo quando sabe que está pronta para aparecer.',
+];
 
 export function MarketingHome() {
-  const location = useLocation();
-
-  useEffect(() => {
-    if (!location.hash) return;
-    const el = document.getElementById(location.hash.slice(1));
-    el?.scrollIntoView({ behavior: 'smooth' });
-  }, [location.hash]);
-
   return (
     <MarketingLayout>
-      {/* Hero */}
-      <section className="bg-petrol-700 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-20 md:py-28 grid md:grid-cols-[1fr_auto] gap-12 items-center">
+      <SeoHead
+        title="Núbia Januzzi | Especialista em Desbloqueio Comportamental"
+        description="Núbia Januzzi é Especialista em Desbloqueio Comportamental e autora do Protocolo 4D, um produto estruturado para quem reconhece um padrão e quer agir de outro modo."
+        canonicalPath="/"
+      />
+      <main>
+        <section className="atlas-hero">
+          <div className="atlas-frame atlas-hero__grid">
+            <div>
+              <span className="atlas-eyebrow text-gold-200">NÚBIA JANUZZI · ESPECIALISTA EM DESBLOQUEIO COMPORTAMENTAL</span>
+              <h1>Quando entender não resolve, o próximo passo precisa ser visível.</h1>
+              <p>Eu acompanho pessoas que reconhecem o próprio padrão, mas ainda encontram dificuldade para sair dele no cotidiano. O <strong>Protocolo 4D</strong> é o produto que criei para transformar essa leitura em direção prática.</p>
+              <div className="atlas-hero__actions">
+                <Link to="/sessao-avaliacao" className="atlas-button">Conhecer a sessão de avaliação <ArrowRight size={17} /></Link>
+                <Link to="/protocolo4d" className="atlas-link">Conheça o Protocolo 4D <ArrowUpRight size={16} /></Link>
+              </div>
+              <div className="atlas-hero__facts">
+                <span><b>24</b>sessões</span>
+                <span><b>6</b>meses</span>
+                <span><b>online</b>e ao vivo</span>
+              </div>
+            </div>
+            <figure className="atlas-hero__art">
+              <img src="/nubia-foto.jpg" alt="Núbia Januzzi, Especialista em Desbloqueio Comportamental" />
+              <figcaption>NÚBIA JANUZZI · AUTORA DO PROTOCOLO 4D</figcaption>
+            </figure>
+          </div>
+          <div className="atlas-strip"><span>PROTOCOLO 4D</span><i /><span>MÉTODO AUTORAL</span><i /><span>OBSERVAR</span><i /><span>PAUSAR</span><i /><span>DECODIFICAR</span><i /><span>DIRECIONAR</span></div>
+        </section>
+
+        <section className="atlas-intro atlas-frame">
+          <aside className="atlas-margin-note"><strong>02 · RECONHECIMENTO</strong>Um ponto de partida para reconhecer a situação antes de conhecer o produto.</aside>
           <div>
-            <p className="text-gold-300 text-xs font-semibold tracking-widest uppercase mb-4">
-              Especialista em Desbloqueio Comportamental · Criadora do Protocolo 4D
-            </p>
-            <h1 className="font-serif text-4xl md:text-5xl leading-tight max-w-2xl text-balance mb-6">
-              Trabalho com pessoas que já entenderam o problema e continuam travadas.
-            </h1>
-            <p className="text-petrol-100 text-base md:text-lg max-w-xl mb-3 leading-relaxed">
-              Não trabalho com motivação. Trabalho com o mecanismo que produz o travamento.
-            </p>
-            <p className="text-petrol-200 text-sm max-w-xl mb-10">
-              Força de vontade não muda nada. Técnica muda tudo.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <a href="#contato">
-                <Button variant="secondary" size="lg">Agendar uma conversa</Button>
-              </a>
-              <Link to="/areamembros">
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className="!border-petrol-300 !text-white hover:!bg-petrol-600"
-                >
-                  Já sou cliente
-                </Button>
-              </Link>
+            <h2>Você não precisa se encaixar em um perfil. Precisa reconhecer o padrão.</h2>
+            <div className="atlas-recognition-grid">
+              <div className="atlas-recognition-cards">{recognitions.map((text, index) => <article className="atlas-recognition-card" key={text}><span>0{index + 1}</span><p>{text}</p></article>)}</div>
+              <div className="atlas-recognition-image"><img src="/images/atlas-attendance-human.jpg" alt="Duas pessoas em uma conversa de escuta atenta" /></div>
             </div>
           </div>
-          <div className="relative mx-auto md:mx-0 shrink-0">
-            <div className="absolute -inset-3 rounded-full border border-gold-400/40" />
-            <img
-              src="/nubia-foto.jpg"
-              alt="Núbia Januzzi"
-              className="relative w-48 h-48 md:w-64 md:h-64 rounded-full object-cover border-4 border-gold-400 shadow-2xl"
-            />
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Quem sou eu */}
-      <section id="sobre" className="bg-white border-y border-beige-300 scroll-mt-20">
-        <div className="max-w-5xl mx-auto px-4 py-20 grid md:grid-cols-[300px_1fr] gap-12 items-start">
-          <div>
-            <div className="relative mb-6 max-w-[280px] mx-auto md:mx-0">
-              <div className="absolute -inset-3 rounded-2xl border border-gold-400/40" />
-              <img
-                src="/nubia-foto.jpg"
-                alt="Núbia Januzzi"
-                className="relative w-full aspect-[4/5] object-cover rounded-2xl border-4 border-gold-400 shadow-xl"
-              />
+        <section className="atlas-method">
+          <div className="atlas-frame atlas-method__grid">
+            <div>
+              <aside className="atlas-margin-note"><strong>03 · O PRODUTO PRINCIPAL</strong>O Protocolo 4D é o método autoral criado por Núbia Januzzi para reconhecer, interromper, compreender e escolher uma resposta possível.</aside>
+              <h2 className="mt-11">O Protocolo 4D não é uma resposta pronta. É uma forma de enxergar onde o ciclo começa.</h2>
+              <p className="atlas-method__intro">A espiral concentra a lógica do método. Ela não é o percurso de atendimento: mostra os quatro movimentos que podem reaparecer em diferentes situações.</p>
             </div>
-            <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">Sobre</p>
-            <h2 className="font-serif text-3xl text-balance">Núbia Januzzi</h2>
+            <AtlasSpiral />
           </div>
-          <div>
-            <p className="text-petrol-800/80 leading-relaxed mb-4">
-              Comecei a atender em 2018. Nos primeiros anos, o padrão que eu via se repetir era sempre o
-              mesmo: a pessoa entendia o próprio funcionamento com clareza, saía da sessão organizada — e
-              travava de novo três dias depois, na hora de fazer.
-            </p>
-            <p className="text-petrol-800/80 leading-relaxed mb-4">
-              O problema não estava na sessão. Estava no que acontecia entre uma sessão e outra.
-            </p>
-            <p className="text-petrol-800/80 leading-relaxed mb-4">
-              Foi aí que mudei o formato. Passei a acompanhar as pessoas fora da sessão — não para dar
-              dicas ou motivar, mas para mostrar, no momento exato em que o travamento acontecia, o que
-              estava acontecendo no funcionamento delas. Um GPS, não um manual.
-            </p>
-            <p className="text-petrol-800/80 leading-relaxed mb-4">
-              A mudança foi imediata. E se manteve ao longo de mais de 3 mil horas de atendimento.
-            </p>
-            <p className="text-petrol-800/80 leading-relaxed mb-4">
-              <strong className="text-petrol-900">
-                O Protocolo 4D não foi criado para ser vendido. Foi nomeado depois de já estar
-                funcionando.
-              </strong>{' '}
-              É a estruturação formal de um processo que se repetiu, se corrigiu e se estabilizou na
-              prática — organizado em seis etapas, 24 sessões e seis meses.
-            </p>
-            <p className="text-petrol-800/80 leading-relaxed mb-8">
-              Meu ponto de partida não foi a clínica. Foi o Direito — onde passei anos observando o que
-              faz alguém decidir, adiar ou recuar sob pressão. Vim para o comportamento por essa porta, e
-              nunca deixei de trabalhar com o que é observável.
-            </p>
+        </section>
 
-            <h3 className="font-serif text-lg mb-3">Formação</h3>
-            <ul className="text-petrol-800/80 text-sm leading-relaxed space-y-1.5 mb-4">
-              <li>Pós-graduação em Psicoterapia com ênfase em Abordagem Sistêmica Comportamental — 720h</li>
-              <li>Pós-graduação em Neurociência do Comportamento Humano — PUCRS</li>
-              <li>Formação em Psicoterapia — Instituto Saulo Veríssimo</li>
-              <li>Bacharelado em Direito</li>
-              <li>Pesquisa continuada em Terapia do Esquema e Logoterapia</li>
-            </ul>
-            <p className="text-petrol-900 text-sm font-medium">
-              Mais de 3 mil horas de atendimento desde 2018.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Missão e visão */}
-      <section id="missao" className="relative overflow-hidden scroll-mt-20">
-        <div className="pointer-events-none absolute -right-28 -top-28 w-72 h-72 rounded-full border border-gold-400/30" />
-        <div className="pointer-events-none absolute -left-24 bottom-0 w-56 h-56 rounded-full border border-petrol-300/40" />
-        <div className="relative max-w-5xl mx-auto px-4 py-20">
-          <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">
-            Missão e visão
-          </p>
-          <div className="grid sm:grid-cols-2 gap-8">
-            <div className="bg-white border border-beige-300 rounded-2xl shadow-sm p-8">
-              <span className="w-12 h-12 rounded-full bg-petrol-700 text-gold-300 flex items-center justify-center mb-5">
-                <Target size={20} />
-              </span>
-              <h3 className="font-serif text-xl mb-2">Missão</h3>
-              <p className="text-petrol-800/80 leading-relaxed mb-3">
-                Trabalhar com pessoas que já entenderam o próprio padrão e continuam travadas —
-                reduzindo a distância entre saber o que precisa ser feito e conseguir fazer.
-              </p>
-              <p className="text-petrol-800/80 leading-relaxed">
-                Não com motivação, disciplina ou produtividade. Com técnica aplicada ao mecanismo que
-                produz o travamento: a origem do padrão, a resposta do corpo e a reconstrução do
-                comportamento.
-              </p>
+        <section className="atlas-journey">
+          <div className="atlas-frame">
+            <div className="atlas-journey__head">
+              <aside className="atlas-margin-note"><strong>04 · COMO EU TRABALHO</strong>O acompanhamento tem começo, meio e encerramento. Ele organiza como o Protocolo 4D acontece ao longo do tempo.</aside>
+              <div><h2>Não é uma linha reta. É uma rota que se ajusta sem perder o rumo.</h2><p>Explore as seis etapas do acompanhamento comigo. Elas existem para que o método se transforme em trabalho contínuo, com direção e prazo definidos.</p></div>
             </div>
-            <div className="bg-white border border-beige-300 rounded-2xl shadow-sm p-8">
-              <span className="w-12 h-12 rounded-full bg-petrol-700 text-gold-300 flex items-center justify-center mb-5">
-                <Eye size={20} />
-              </span>
-              <h3 className="font-serif text-xl mb-2">Visão</h3>
-              <p className="text-petrol-800/80 leading-relaxed mb-3">
-                Consolidar o Protocolo 4D como um método de referência para travamento comportamental —
-                reconhecido pelo que entrega em comportamento observável, não pelo que promete.
-              </p>
-              <p className="text-petrol-800/80 leading-relaxed">
-                E tornar esse trabalho disponível além do atendimento individual, sem diluir o que o
-                faz funcionar: sequência definida, prazo fechado e acompanhamento entre as sessões.
-              </p>
-            </div>
+            <AtlasJourney />
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Protocolo 4D — teaser */}
-      <section className="bg-white border-y border-beige-300">
-        <div className="max-w-5xl mx-auto px-4 py-20 grid md:grid-cols-[1fr_260px] gap-12 items-center">
-          <div className="order-2 md:order-1">
-            <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">O método</p>
-            <h2 className="font-serif text-3xl mb-4 text-balance">Isso tem um nome: Protocolo 4D</h2>
-            <p className="text-petrol-800/80 max-w-2xl mb-10 leading-relaxed">
-              Não é rótulo, não é fórmula pronta — é uma direção. Quatro etapas que se repetem em cada
-              questão que aparece na terapia, até virarem um jeito de olhar para a própria vida.
-            </p>
-            <div className="grid sm:grid-cols-2 gap-4 mb-8">
-              {PILARES.map((p, i) => (
-                <div key={p.titulo} className="bg-beige-100 border border-beige-300 rounded-xl p-4">
-                  <span className="text-petrol-400 text-xs font-mono">0{i + 1}</span>
-                  <h3 className="font-serif text-lg mt-1">{p.titulo}</h3>
-                </div>
-              ))}
-            </div>
-            <Link
-              to="/protocolo4d"
-              className="inline-flex items-center gap-2 text-petrol-700 font-medium text-sm hover:text-petrol-800"
-            >
-              Entender o Protocolo 4D em detalhe
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-          <div className="order-1 md:order-2 max-w-[220px] md:max-w-none mx-auto">
-            <img
-              src="/protocolo4d-espiral.png"
-              alt="Espiral do Protocolo 4D: Detectar, Desacelerar, Decodificar, Direcionar"
-              className="w-full rounded-2xl shadow-xl"
-            />
-          </div>
-        </div>
-      </section>
+        <section className="atlas-about-preview atlas-frame">
+          <aside className="atlas-margin-note"><strong>05 · SOBRE A NÚBIA</strong>Autoria, percurso profissional e critérios que sustentam a prática.</aside>
+          <div className="atlas-about-preview__image"><img src="/nubia-foto.jpg" alt="Retrato de Núbia Januzzi" /></div>
+          <div><h2>O método tem autoria, mas o trabalho começa na escuta.</h2><p>Sou Núbia Januzzi, Especialista em Desbloqueio Comportamental. O Protocolo 4D organiza um produto construído a partir de atendimento, observação e correção de rota.</p><div className="atlas-about-preview__facts"><span><b>TRAJETÓRIA</b>Atendimentos desde 2018</span><span><b>FORMAÇÃO</b>Psicoterapia e neurociência</span><span><b>ABORDAGEM</b>Clareza, técnica e presença</span></div><Link to="/sobre" className="atlas-link">Conhecer a Núbia <ArrowUpRight size={16} /></Link></div>
+        </section>
 
-      {/* Instagram */}
-      <section className="max-w-5xl mx-auto px-4 py-20">
-        <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">Instagram</p>
-        <h2 className="font-serif text-3xl mb-8 text-balance">O que ando compartilhando</h2>
-        <InstagramFeed />
-      </section>
-
-      {/* Blog — desativado até a Núbia criar um Substack direcionado (ver import comentado acima)
-      <section className="bg-white border-y border-beige-300">
-        <div className="max-w-5xl mx-auto px-4 py-20">
-          <p className="text-gold-700 text-xs font-semibold tracking-widest uppercase mb-3">Conteúdo</p>
-          <h2 className="font-serif text-3xl mb-8 text-balance">Reflexões sobre padrões, corpo e comportamento</h2>
-          <BlogPreview />
-        </div>
-      </section>
-      */}
-
-      {/* Newsletter */}
-      <section className="max-w-5xl mx-auto px-4 py-20">
-        <LeadForm source="newsletter_home" />
-      </section>
-
-      {/* CTA fechamento */}
-      <section id="contato" className="bg-petrol-700 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-20 text-center">
-          <h2 className="font-serif text-3xl md:text-4xl text-balance mb-4">
-            Pronta para entender o que se repete em você?
-          </h2>
-          <p className="text-petrol-100 max-w-lg mx-auto mb-8">
-            Fale comigo para conhecer o processo e ver se o Protocolo 4D faz sentido para o seu momento.
-          </p>
-          <a
-            href="https://wa.me/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Button variant="secondary" size="lg">Agendar pelo WhatsApp</Button>
-          </a>
-        </div>
-      </section>
+        <section className="atlas-library"><div className="atlas-library__image" /><div className="atlas-frame atlas-library__inner"><div className="atlas-library__intro"><span className="atlas-eyebrow text-gold-200">06 · BIBLIOTECA 4D POR NÚBIA JANUZZI</span><h2>Para quando a pergunta ainda não virou uma decisão.</h2><p>Textos de Núbia Januzzi para aprofundar dúvidas reais, sem transformar leitura em diagnóstico e sem repetir o conteúdo das redes.</p><Link to="/conteudos" className="atlas-button atlas-button--line">Explorar todos os conteúdos <ArrowRight size={16} /></Link></div><ContentPreview /></div></section>
+        <section className="atlas-evaluation"><div className="atlas-frame atlas-evaluation__card"><div className="atlas-evaluation__copy"><span className="atlas-eyebrow text-gold-200">07 · PRÓXIMA COORDENADA</span><h2>Antes de escolher o Protocolo 4D, você precisa saber se ele é o produto certo para o seu momento.</h2><p>Na sessão de avaliação, eu organizo a entrada e ajudo a entender se este formato faz sentido para você, sem pressão para decidir na hora.</p><Link to="/sessao-avaliacao" className="atlas-button">Conhecer a sessão <ArrowRight size={16} /></Link></div><div className="atlas-evaluation__image"><img src="/images/atlas-evaluation-human.jpg" alt="Pessoa em um momento de escuta e disponibilidade para começar um percurso" /></div></div></section>
+      </main>
     </MarketingLayout>
   );
 }
