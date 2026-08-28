@@ -794,6 +794,9 @@ Fase 1 — Gate de assinatura + memória de conversa
   [ ] ClientChatbot.tsx: checar assinatura, upsell se inativa, carregar histórico como initialMessages
   [ ] Decidir política de retenção de bot_messages (ver Decisões Técnicas)
   [ ] Testar fluxo completo em modo teste do Stripe
+  [ ] ⚠️ LEMBRAR: o webhook endpoint (we_1U9ClYPos1yVUu5Z8ShMPXkI) foi apontado temporariamente pra URL
+      de preview da branch (`.../api/stripe-webhook`) pra testar o fluxo automático — reverter pra
+      `https://nubiajanuzzi.com/api/stripe-webhook` antes ou no momento do merge pra main
 
 Fase 2 — Pipeline de contexto
   [ ] Migration: client_bot_context
