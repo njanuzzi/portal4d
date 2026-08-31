@@ -76,6 +76,67 @@ function HomeMock() {
   );
 }
 
+const CALENDAR_WEEKDAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+// Réplica leve do calendário público do Cal.com (cal.com/nubia-januzzi-orbex7/sessao-de-mentoria) —
+// mesmo layout (mês + grade de dias + horários do dia selecionado), com as cores do portal.
+function CalendarMock() {
+  const days = Array.from({ length: 30 }, (_, i) => i + 1);
+  const leadingBlanks = 2; // 1º de setembro/2026 cai numa terça
+  return (
+    <PhoneFrame>
+      <Card className="max-w-none">
+        <CardBody className="py-3 space-y-3">
+          <div>
+            <p className="text-xs font-semibold text-dark">Sessão de Mentoria</p>
+            <p className="text-[10px] text-dark/40 flex items-center gap-1 mt-0.5">
+              <Video size={10} /> Zoom Video · América/São Paulo
+            </p>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium text-dark">Setembro 2026</span>
+            <div className="flex gap-1 text-dark/30">
+              <span className="text-xs">‹</span>
+              <span className="text-xs">›</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-7 gap-y-1 text-center">
+            {CALENDAR_WEEKDAYS.map((d, i) => (
+              <span key={`${d}-${i}`} className="text-[9px] text-dark/30 font-medium">{d}</span>
+            ))}
+            {Array.from({ length: leadingBlanks }).map((_, i) => (
+              <span key={`blank-${i}`} />
+            ))}
+            {days.map((day) => (
+              <span
+                key={day}
+                className={`text-[10px] rounded-full w-5 h-5 mx-auto flex items-center justify-center ${
+                  day === 14
+                    ? 'bg-petrol-700 text-white font-semibold'
+                    : day < 3
+                      ? 'text-dark/20'
+                      : 'text-dark/60'
+                }`}
+              >
+                {day}
+              </span>
+            ))}
+          </div>
+          <div className="border-t border-beige-300 pt-2.5">
+            <p className="text-[10px] font-medium text-dark/50 mb-1.5">Segunda-feira, 14</p>
+            <div className="flex gap-2">
+              {['19:00', '20:00'].map((t) => (
+                <span key={t} className="flex-1 text-center text-[11px] py-1.5 rounded-lg border border-petrol-300 text-petrol-700 font-medium">
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+    </PhoneFrame>
+  );
+}
+
 function AgendamentoMock() {
   return (
     <PhoneFrame>
@@ -259,7 +320,19 @@ const METAS_SCREENS = [
   { title: 'Registra uma anotação rápida a qualquer momento', mock: <AnotacaoMock /> },
 ];
 
-function MetasGalleryModal({ onClose }: { onClose: () => void }) {
+const AGENDAMENTO_SCREENS = [
+  { title: 'Você escolhe o dia e o horário', mock: <CalendarMock /> },
+  { title: 'Sessão confirmada, com o "Entrar" liberado na hora', mock: <AgendamentoMock /> },
+];
+
+interface ScreensGalleryModalProps {
+  title: string;
+  subtitle: string;
+  screens: { title: string; mock: ReactNode }[];
+  onClose: () => void;
+}
+
+function ScreensGalleryModal({ title, subtitle, screens, onClose }: ScreensGalleryModalProps) {
   return (
     <div
       className="fixed inset-0 z-50 bg-dark/70 flex items-start justify-center overflow-y-auto p-4 sm:p-8"
@@ -276,10 +349,10 @@ function MetasGalleryModal({ onClose }: { onClose: () => void }) {
         >
           <X size={18} />
         </button>
-        <h3 className="font-serif text-2xl text-dark mb-1">As telas de Metas</h3>
-        <p className="text-dark/50 text-sm mb-8">Três momentos da mesma tela — tudo dentro do Diário.</p>
-        <div className="grid sm:grid-cols-3 gap-8">
-          {METAS_SCREENS.map((s) => (
+        <h3 className="font-serif text-2xl text-dark mb-1">{title}</h3>
+        <p className="text-dark/50 text-sm mb-8">{subtitle}</p>
+        <div className={`grid gap-8 ${screens.length >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+          {screens.map((s) => (
             <div key={s.title}>
               {s.mock}
               <p className="text-center text-xs text-dark/50 mt-3">{s.title}</p>
@@ -293,6 +366,7 @@ function MetasGalleryModal({ onClose }: { onClose: () => void }) {
 
 export function ManualPortalCliente() {
   const [metasModalOpen, setMetasModalOpen] = useState(false);
+  const [agendamentoModalOpen, setAgendamentoModalOpen] = useState(false);
 
   return (
     <MarketingLayout>
@@ -340,21 +414,33 @@ export function ManualPortalCliente() {
           <p>O diário abre todos os dias às 18h e fica disponível até a meia-noite. É o momento de registrar como você está se sentindo naquele dia — leva só alguns minutos.</p>
         </Feature>
 
-        <Feature
-          icon={<Calendar size={20} className="text-white" />}
-          eyebrow="Agendamento"
-          title="Suas sessões"
-          mock={<AgendamentoMock />}
-          reverse
-        >
-          <p>Aqui você vê suas sessões marcadas.</p>
-          <p>
-            <strong className="text-dark">Importante:</strong> o link da sua sessão (Zoom) vai
-            sempre por e-mail, não por aqui no WhatsApp — porque esse link já vem com senha, e eu
-            não mando senha por WhatsApp. Fica de olho no seu e-mail perto do horário da sessão e
-            usa sempre aquele link, não um antigo.
-          </p>
-        </Feature>
+        <div className="grid gap-10 items-center py-12 border-t border-beige-300 lg:grid-cols-2">
+          <div className="lg:order-2">
+            <div className="w-11 h-11 rounded-xl bg-petrol-700 flex items-center justify-center mb-4">
+              <Calendar size={20} className="text-white" />
+            </div>
+            <span className="text-gold-700 text-xs font-semibold tracking-wide uppercase">Agendamento</span>
+            <h3 className="font-serif text-2xl text-dark mt-2 mb-3">Suas sessões</h3>
+            <div className="text-dark/60 text-sm leading-relaxed space-y-3">
+              <p>Aqui você marca sua sessão e vê as próximas já confirmadas.</p>
+              <p>
+                <strong className="text-dark">Importante:</strong> o link da sua sessão (Zoom) vai
+                sempre por e-mail, não por aqui no WhatsApp — porque esse link já vem com senha, e
+                eu não mando senha por WhatsApp. Fica de olho no seu e-mail perto do horário da
+                sessão e usa sempre aquele link, não um antigo.
+              </p>
+              <button
+                onClick={() => setAgendamentoModalOpen(true)}
+                className="inline-flex items-center gap-2 text-petrol-700 font-medium text-sm underline underline-offset-2 hover:text-petrol-900"
+              >
+                <Images size={16} /> Ver mais telas do Agendamento
+              </button>
+            </div>
+          </div>
+          <div className="lg:order-1">
+            <CalendarMock />
+          </div>
+        </div>
 
         <div className="grid gap-10 items-center py-12 border-t border-beige-300 lg:grid-cols-2">
           <div>
@@ -497,7 +583,22 @@ export function ManualPortalCliente() {
         </div>
       </section>
 
-      {metasModalOpen && <MetasGalleryModal onClose={() => setMetasModalOpen(false)} />}
+      {metasModalOpen && (
+        <ScreensGalleryModal
+          title="As telas de Metas"
+          subtitle="Três momentos da mesma tela — tudo dentro do Diário."
+          screens={METAS_SCREENS}
+          onClose={() => setMetasModalOpen(false)}
+        />
+      )}
+      {agendamentoModalOpen && (
+        <ScreensGalleryModal
+          title="As telas de Agendamento"
+          subtitle="Do calendário até a sessão confirmada."
+          screens={AGENDAMENTO_SCREENS}
+          onClose={() => setAgendamentoModalOpen(false)}
+        />
+      )}
     </MarketingLayout>
   );
 }
