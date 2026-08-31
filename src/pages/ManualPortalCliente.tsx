@@ -259,25 +259,22 @@ function MetaAtualMock() {
 function AnotacaoMock() {
   return (
     <PhoneFrame>
+      <div className="flex gap-1 bg-beige-100 rounded-xl p-1 mb-3">
+        <div className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-medium bg-white text-dark shadow-sm">
+          <PenLine size={12} /> Anotações
+        </div>
+        <div className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-medium text-dark/40">
+          <BookOpen size={12} /> Diário
+        </div>
+      </div>
       <Card className="max-w-none">
         <CardBody className="space-y-3 py-3">
-          <p className="text-xs font-semibold text-dark">Anotação rápida</p>
-          <Textarea readOnly value="Consegui parar antes de responder no automático hoje." rows={2} className="text-xs" />
-          <p className="text-[10px] font-medium text-dark/50">Intensidade (1 = pouco • 10 = muito)</p>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-dark/70 w-16 shrink-0">🙂 Calma</span>
-            <div className="flex gap-1 flex-1">
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <div
-                  key={n}
-                  className={`flex-1 h-5 rounded text-[9px] flex items-center justify-center font-medium ${
-                    n === 7 ? 'bg-petrol-500 text-white' : 'bg-beige-100 text-dark/40'
-                  }`}
-                >
-                  {n}
-                </div>
-              ))}
-            </div>
+          <Textarea readOnly value="O que está acontecendo agora?" rows={2} className="text-xs text-dark/30" />
+          <p className="text-[10px] font-medium text-dark/50">Como você está se sentindo?</p>
+          <div className="flex flex-wrap gap-1.5">
+            {['😊 Alegria', '😰 Ansiedade', '😌 Calma'].map((e) => (
+              <span key={e} className="text-[10px] px-2 py-1 rounded-lg border border-beige-300 text-dark/60">{e}</span>
+            ))}
           </div>
           <Button size="sm" className="w-full text-xs">Salvar anotação</Button>
         </CardBody>
@@ -438,6 +435,12 @@ export function ManualPortalCliente() {
           mock={<HomeMock />}
         >
           <p>O diário abre todos os dias às 18h e fica disponível até a meia-noite. É o momento de registrar como você está se sentindo naquele dia — leva só alguns minutos.</p>
+          <p>
+            <strong className="text-dark">Importante:</strong> as respostas do diário são sempre
+            em referência à sua meta da semana — é isso que conecta o registro diário ao que a
+            gente está trabalhando juntas.
+          </p>
+          <p>No Histórico, você revê os dias anteriores — o diário e as anotações daquele dia, juntos.</p>
         </Feature>
 
         <div className="grid gap-10 items-center py-12 border-t border-beige-300 lg:grid-cols-2">
@@ -499,8 +502,9 @@ export function ManualPortalCliente() {
               </p>
               <p className="flex items-start gap-2">
                 <PenLine size={15} className="text-gold-600 shrink-0 mt-0.5" />
-                Tem também o botão de anotação, onde você pode registrar rapidinho o que está
-                sentindo e a intensidade daquilo, mesmo fora do diário completo.
+                Tem também a aba de Anotações — diferente do diário (que só abre às 18h), ela fica
+                aberta o dia inteiro, pra você registrar qualquer coisa que aconteça antes disso,
+                na hora que acontecer.
               </p>
               <button
                 onClick={() => setMetasModalOpen(true)}
