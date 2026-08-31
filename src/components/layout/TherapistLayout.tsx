@@ -121,7 +121,7 @@ export function TherapistLayout({ children }: { children: ReactNode }) {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile topbar */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-beige-300">
+        <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-beige-300 safe-area-pt">
           <button onClick={() => setSidebarOpen(true)} className="text-dark/60 hover:text-dark">
             <Menu size={22} />
           </button>

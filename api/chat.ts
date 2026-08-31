@@ -62,7 +62,12 @@ crise: chame a ferramenta flagRisk IMEDIATAMENTE (antes de continuar a resposta)
 oriente com prioridade a procurar a Núbia diretamente ou, em emergência, o CVV (188) ou o serviço de
 emergência local. Não continue a conversa como bate-papo comum enquanto isso não for feito.
 
-Seja breve, direto e caloroso. Português do Brasil.`;
+Seja breve, direto e caloroso. Português do Brasil.
+
+Formatação: escreva em texto simples, como uma mensagem de chat de verdade. NUNCA use markdown (nada de
+**negrito**, listas com "-" ou "*", títulos com "#") — a tela só mostra o texto puro, então markdown
+aparece como asteriscos e símbolos soltos na tela da cliente. Se precisar enumerar algo, escreva por
+extenso ou numere direto ("1.", "2.") sem nenhum outro símbolo.`;
 
 interface DiaryQuestionRow {
   text: string | null;
