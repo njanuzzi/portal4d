@@ -15,6 +15,7 @@ import {
   MessageCircle,
   X,
   Images,
+  FileText,
 } from 'lucide-react';
 import { MarketingLayout } from '../components/marketing/MarketingLayout';
 import { SeoHead } from '../components/SeoHead';
@@ -158,6 +159,31 @@ function AgendamentoMock() {
         <span className="text-[11px] font-medium text-dark">Agosto de 2026</span>
         <span className="text-[10px] text-dark/40">4</span>
       </div>
+    </PhoneFrame>
+  );
+}
+
+function RelatoriosMock() {
+  return (
+    <PhoneFrame>
+      <div className="flex gap-3 border-b border-beige-300 mb-3 text-[10px] font-medium">
+        <span className="text-petrol-700 border-b-2 border-petrol-700 pb-1.5">Sessões (3)</span>
+        <span className="text-dark/40 pb-1.5">Fechamento do Ciclo (1)</span>
+        <span className="text-dark/40 pb-1.5">Esquemas (1)</span>
+      </div>
+      <Card>
+        <CardBody className="py-3">
+          <Badge variant="gold">Relatório de sessão</Badge>
+          <div className="text-xs font-medium text-dark mt-1.5">14 de setembro de 2026</div>
+          <div className="text-[10px] text-dark/40 mt-0.5">Disponível desde 15 de setembro</div>
+          <p className="text-[11px] text-dark/60 mt-2 leading-snug line-clamp-2">
+            Trabalhamos a dificuldade em pedir ajuda antes de chegar no limite...
+          </p>
+          <div className="flex justify-end mt-1.5">
+            <Button size="sm" variant="ghost" className="text-[11px] px-2.5 py-1">Ler</Button>
+          </div>
+        </CardBody>
+      </Card>
     </PhoneFrame>
   );
 }
@@ -441,6 +467,17 @@ export function ManualPortalCliente() {
             <CalendarMock />
           </div>
         </div>
+
+        <Feature
+          icon={<FileText size={20} className="text-white" />}
+          eyebrow="Sessões e Relatórios"
+          title="O que fica registrado pra você"
+          mock={<RelatoriosMock />}
+        >
+          <p>Depois de cada sessão, você encontra aqui um resumo curto do que foi trabalhado — vale a pena reler antes da próxima.</p>
+          <p>De tempos em tempos você também recebe um <strong className="text-dark">Fechamento do Ciclo</strong>, com uma visão mais ampla do seu progresso ao longo do período.</p>
+          <p>Se você já respondeu o inventário de esquemas, sua devolutiva de padrões também aparece aqui, na aba "Esquemas".</p>
+        </Feature>
 
         <div className="grid gap-10 items-center py-12 border-t border-beige-300 lg:grid-cols-2">
           <div>
