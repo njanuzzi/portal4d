@@ -35,38 +35,52 @@ export function ClientLayout({ children }: { children: ReactNode }) {
       {/* Header */}
       <header className="bg-petrol-700 text-white sticky top-0 z-40 safe-area-pt">
         <div className="max-w-2xl mx-auto px-4">
-          <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-3">
-              <img src="/logosistema.png" alt="Logo" className="w-9 h-9 rounded-lg object-cover shrink-0" />
-              <div>
-                <div className="text-white font-semibold text-sm font-serif leading-tight">Desbloqueio Comportamental</div>
-                <div className="text-petrol-200 text-xs">Olá, {profile?.name?.split(' ')[0] || 'Cliente'}</div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 gap-2 sm:gap-0">
+            <div className="flex items-center justify-between sm:justify-start gap-3">
+              <div className="flex items-center gap-3">
+                <img src="/logosistema.png" alt="Logo" className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                <div>
+                  <div className="text-white font-semibold text-sm font-serif leading-tight">Desbloqueio Comportamental</div>
+                  <div className="text-petrol-200 text-xs">Olá, {profile?.name?.split(' ')[0] || 'Cliente'}</div>
+                </div>
+              </div>
+              {/* Ações — ao lado do nome no desktop, linha própria abaixo no mobile pra não disputar espaço com a Dynamic Island/notch */}
+              <div className="hidden sm:flex items-center gap-3">
+                <Link
+                  to="/notifications"
+                  className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors text-sm"
+                  title="Lembretes do diário"
+                >
+                  <Bell size={16} />
+                  <span className="hidden sm:inline text-xs">Lembretes</span>
+                </Link>
+                <Link
+                  to="/change-password"
+                  className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors text-sm"
+                  title="Alterar senha"
+                >
+                  <KeyRound size={16} />
+                  <span className="hidden sm:inline text-xs">Alterar senha</span>
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors"
+                  title="Sair"
+                >
+                  <LogOut size={16} />
+                  <span className="hidden sm:inline text-xs">Sair</span>
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Link
-                to="/notifications"
-                className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors text-sm"
-                title="Lembretes do diário"
-              >
-                <Bell size={16} />
-                <span className="hidden sm:inline text-xs">Lembretes</span>
+            <div className="flex sm:hidden items-center justify-end gap-5">
+              <Link to="/notifications" className="text-petrol-200 hover:text-white transition-colors" title="Lembretes do diário">
+                <Bell size={18} />
               </Link>
-              <Link
-                to="/change-password"
-                className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors text-sm"
-                title="Alterar senha"
-              >
-                <KeyRound size={16} />
-                <span className="hidden sm:inline text-xs">Alterar senha</span>
+              <Link to="/change-password" className="text-petrol-200 hover:text-white transition-colors" title="Alterar senha">
+                <KeyRound size={18} />
               </Link>
-              <button
-                onClick={handleSignOut}
-                className="flex items-center gap-1.5 text-petrol-200 hover:text-white transition-colors"
-                title="Sair"
-              >
-                <LogOut size={16} />
-                <span className="hidden sm:inline text-xs">Sair</span>
+              <button onClick={handleSignOut} className="text-petrol-200 hover:text-white transition-colors" title="Sair">
+                <LogOut size={18} />
               </button>
             </div>
           </div>
