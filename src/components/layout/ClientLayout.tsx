@@ -33,7 +33,7 @@ export function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-beige-200 flex flex-col">
       {/* Header */}
-      <header className="bg-petrol-700 text-white sticky top-0 z-40">
+      <header className="bg-petrol-700 text-white sticky top-0 z-40 safe-area-pt">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-3">

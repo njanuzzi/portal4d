@@ -30,3 +30,13 @@
     border-radius: 3px;
   }
 }
+
+/* viewport-fit=cover deixa o conteúdo ir até embaixo do notch/status bar/home indicator do iOS —
+   sem isso, header fixo no topo e nav fixa embaixo ficam escondidos atrás dessas áreas. */
+.safe-area-pt {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom);
+}
