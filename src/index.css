@@ -40,3 +40,13 @@
 .safe-area-pb {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* Só no modo instalado (tela de início): confirmado em iPhone 16 Pro Max por print real que o
+   env(safe-area-inset-top) vem como 0 mesmo devendo ser ~59px (Dynamic Island) — esse piso de
+   54px cobre o caso mesmo quando o env() falha. Fica de fora do navegador comum de propósito, pra
+   não empurrar o header à toa em quem só acessa pela URL (lá o env() já funciona certo). */
+@media (display-mode: standalone) {
+  .safe-area-pt {
+    padding-top: max(env(safe-area-inset-top), 54px);
+  }
+}
