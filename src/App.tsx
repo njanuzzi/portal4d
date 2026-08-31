@@ -53,8 +53,9 @@ import { Contents } from './pages/Contents';
 import { ContentArticlePage } from './pages/ContentArticle';
 import { ContentManager } from './pages/therapist/ContentManager';
 import { ContentEditor } from './pages/therapist/ContentEditor';
+import { ManualPortalCliente } from './pages/ManualPortalCliente';
 
-const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog'];
+const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog', '/manualportalcliente'];
 
 function AppRoutes() {
   const location = useLocation();
@@ -103,6 +104,7 @@ function AppRoutes() {
         <Route path="/conteudos" element={<Contents />} />
         <Route path="/conteudos/:slug" element={<ContentArticlePage />} />
         <Route path="/blog" element={<Navigate to="/conteudos" replace />} />
+        <Route path="/manualportalcliente" element={<ManualPortalCliente />} />
       </Routes>
     );
   }
