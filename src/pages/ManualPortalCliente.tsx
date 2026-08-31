@@ -1,5 +1,5 @@
 /** Manual público do Portal 4D — link enviado por WhatsApp pra clientes já cadastrados, sem exigir login pra ler. */
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import {
   ArrowRight,
   BookOpen,
@@ -13,28 +13,38 @@ import {
   Video,
   PenLine,
   MessageCircle,
+  X,
+  Images,
 } from 'lucide-react';
 import { MarketingLayout } from '../components/marketing/MarketingLayout';
 import { SeoHead } from '../components/SeoHead';
 import { Card, CardBody } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { Textarea } from '../components/ui/Textarea';
 
 // Mockups abaixo usam os MESMOS componentes de UI do portal (Card, Badge,
-// Button), só que com dado fictício — mostram exatamente como a tela real
-// se parece, sem expor nenhum dado de cliente de verdade.
+// Button, Textarea), só que com dado fictício — mostram exatamente como a
+// tela real se parece, sem expor nenhum dado de cliente de verdade.
 
-function PhoneMock({ children }: { children: ReactNode }) {
+function PhoneFrame({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className="w-full max-w-[300px] mx-auto bg-beige-200 rounded-[28px] border border-beige-400/60 shadow-md p-3">
-      {children}
+    <div className={`w-full max-w-[320px] mx-auto ${className}`}>
+      <div className="bg-dark rounded-[32px] p-2 shadow-xl">
+        <div className="bg-beige-200 rounded-[24px] overflow-hidden">
+          <div className="flex items-center justify-center py-1.5 bg-beige-200">
+            <div className="w-16 h-1.5 rounded-full bg-dark/15" />
+          </div>
+          <div className="p-3 pt-1">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }
 
 function HomeMock() {
   return (
-    <PhoneMock>
+    <PhoneFrame>
       <Card className="mb-3">
         <CardBody className="flex items-center gap-3 py-3">
           <div className="w-9 h-9 rounded-full bg-petrol-100 flex items-center justify-center shrink-0">
@@ -62,13 +72,13 @@ function HomeMock() {
           </div>
         ))}
       </div>
-    </PhoneMock>
+    </PhoneFrame>
   );
 }
 
 function AgendamentoMock() {
   return (
-    <PhoneMock>
+    <PhoneFrame>
       <p className="text-[10px] font-semibold text-dark/50 uppercase tracking-wide mb-2">Próximos</p>
       <Card>
         <CardBody className="py-3">
@@ -82,13 +92,18 @@ function AgendamentoMock() {
           </div>
         </CardBody>
       </Card>
-    </PhoneMock>
+      <p className="text-[10px] font-semibold text-dark/50 uppercase tracking-wide mt-4 mb-2">Histórico</p>
+      <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-white border border-beige-300">
+        <span className="text-[11px] font-medium text-dark">Agosto de 2026</span>
+        <span className="text-[10px] text-dark/40">4</span>
+      </div>
+    </PhoneFrame>
   );
 }
 
 function LembretesMock() {
   return (
-    <PhoneMock>
+    <PhoneFrame>
       <Card className="max-w-none">
         <CardBody className="space-y-3 py-3">
           <div className="flex items-start gap-2.5">
@@ -105,7 +120,111 @@ function LembretesMock() {
           </div>
         </CardBody>
       </Card>
-    </PhoneMock>
+    </PhoneFrame>
+  );
+}
+
+function DefinirMetaMock() {
+  return (
+    <PhoneFrame>
+      <Card className="border-2 border-gold-300 max-w-none">
+        <CardBody className="space-y-3 py-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-gold-100 flex items-center justify-center shrink-0">
+              <Target size={16} className="text-gold-600" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-dark">Qual é a sua meta desta semana?</p>
+              <p className="text-[10px] text-dark/50 mt-0.5">Defina uma intenção que guiará suas reflexões nos próximos 7 registros.</p>
+            </div>
+          </div>
+          <Textarea
+            readOnly
+            value="Quero praticar parar e respirar antes de reagir às situações difíceis."
+            rows={3}
+            className="text-xs"
+          />
+          <Button size="sm" className="w-full text-xs">Definir minha meta</Button>
+        </CardBody>
+      </Card>
+    </PhoneFrame>
+  );
+}
+
+function MetaAtualMock() {
+  return (
+    <PhoneFrame>
+      <div className="flex items-start gap-2.5 bg-gold-50 border border-gold-200 rounded-xl p-3">
+        <Target size={14} className="text-gold-600 shrink-0 mt-0.5" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-medium text-gold-700 mb-0.5">Meta desta semana</p>
+          <p className="text-xs text-dark/70 leading-snug">Anotar 1 vitória pequena por dia, mesmo que pareça bobinha</p>
+          <div className="flex items-center gap-3 mt-1.5">
+            <span className="text-[10px] text-gold-700 underline underline-offset-2">Mudar meta</span>
+            <span className="text-[10px] text-dark/40 underline underline-offset-2">Excluir meta</span>
+          </div>
+        </div>
+      </div>
+    </PhoneFrame>
+  );
+}
+
+function AnotacaoMock() {
+  return (
+    <PhoneFrame>
+      <Card className="max-w-none">
+        <CardBody className="space-y-3 py-3">
+          <p className="text-xs font-semibold text-dark">Anotação rápida</p>
+          <Textarea readOnly value="Consegui parar antes de responder no automático hoje." rows={2} className="text-xs" />
+          <p className="text-[10px] font-medium text-dark/50">Intensidade (1 = pouco • 10 = muito)</p>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-dark/70 w-16 shrink-0">🙂 Calma</span>
+            <div className="flex gap-1 flex-1">
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                <div
+                  key={n}
+                  className={`flex-1 h-5 rounded text-[9px] flex items-center justify-center font-medium ${
+                    n === 7 ? 'bg-petrol-500 text-white' : 'bg-beige-100 text-dark/40'
+                  }`}
+                >
+                  {n}
+                </div>
+              ))}
+            </div>
+          </div>
+          <Button size="sm" className="w-full text-xs">Salvar anotação</Button>
+        </CardBody>
+      </Card>
+    </PhoneFrame>
+  );
+}
+
+function ChatMock() {
+  return (
+    <PhoneFrame>
+      <div className="space-y-2.5 py-1">
+        <div className="flex justify-end">
+          <div className="bg-petrol-700 text-white text-xs rounded-2xl rounded-br-sm px-3 py-2 max-w-[80%]">
+            hoje foi bem difícil, não consegui parar de pensar no trabalho
+          </div>
+        </div>
+        <div className="flex justify-start">
+          <div className="bg-white border border-beige-300 text-dark/80 text-xs rounded-2xl rounded-bl-sm px-3 py-2 max-w-[85%]">
+            entendo. antes de mais nada: você consegue nomear o que estava sentindo nesse momento — ansiedade, cansaço, outra coisa?
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <div className="bg-petrol-700 text-white text-xs rounded-2xl rounded-br-sm px-3 py-2 max-w-[80%]">
+            acho que ansiedade mesmo
+          </div>
+        </div>
+        <div className="flex justify-start">
+          <div className="bg-white border border-beige-300 text-dark/80 text-xs rounded-2xl rounded-bl-sm px-3 py-2 max-w-[85%]">
+            faz sentido com o que você tem trabalhado ultimamente. quer que eu te sugira uma meta pequena pra essa semana?
+          </div>
+        </div>
+      </div>
+    </PhoneFrame>
   );
 }
 
@@ -134,7 +253,47 @@ function Feature({ icon, eyebrow, title, children, mock, reverse }: FeatureProps
   );
 }
 
+const METAS_SCREENS = [
+  { title: 'Você define a meta', mock: <DefinirMetaMock /> },
+  { title: 'Acompanha e ajusta quando quiser', mock: <MetaAtualMock /> },
+  { title: 'Registra uma anotação rápida a qualquer momento', mock: <AnotacaoMock /> },
+];
+
+function MetasGalleryModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-dark/70 flex items-start justify-center overflow-y-auto p-4 sm:p-8"
+      onClick={onClose}
+    >
+      <div
+        className="bg-beige-100 rounded-2xl max-w-4xl w-full p-6 sm:p-10 relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white border border-beige-300 flex items-center justify-center text-dark/50 hover:text-dark"
+          aria-label="Fechar"
+        >
+          <X size={18} />
+        </button>
+        <h3 className="font-serif text-2xl text-dark mb-1">As telas de Metas</h3>
+        <p className="text-dark/50 text-sm mb-8">Três momentos da mesma tela — tudo dentro do Diário.</p>
+        <div className="grid sm:grid-cols-3 gap-8">
+          {METAS_SCREENS.map((s) => (
+            <div key={s.title}>
+              {s.mock}
+              <p className="text-center text-xs text-dark/50 mt-3">{s.title}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ManualPortalCliente() {
+  const [metasModalOpen, setMetasModalOpen] = useState(false);
+
   return (
     <MarketingLayout>
       <SeoHead
@@ -197,33 +356,48 @@ export function ManualPortalCliente() {
           </p>
         </Feature>
 
-        <Feature
-          icon={<Target size={20} className="text-white" />}
-          eyebrow="Metas"
-          title="A parte mais importante do portal"
-        >
-          <p>
-            As metas conectam o que a gente trabalha na sessão com o seu dia a dia — pequenos
-            passos entre um encontro e outro que ajudam a sustentar o que você está construindo em
-            terapia.
-          </p>
-          <p>
-            Ao final de 30 dias, vamos conseguir ver o seu progresso de verdade — mas isso só é
-            possível se você preencher o diário por 30 dias corridos. Se pular dias, a gente perde
-            a continuidade e não dá pra enxergar a evolução direito.
-          </p>
-          <p className="flex items-start gap-2">
-            <PenLine size={15} className="text-gold-600 shrink-0 mt-0.5" />
-            Tem também o botão de anotação, onde você pode registrar rapidinho o que está sentindo
-            e a intensidade daquilo, mesmo fora do diário completo.
-          </p>
-        </Feature>
+        <div className="grid gap-10 items-center py-12 border-t border-beige-300 lg:grid-cols-2">
+          <div>
+            <div className="w-11 h-11 rounded-xl bg-petrol-700 flex items-center justify-center mb-4">
+              <Target size={20} className="text-white" />
+            </div>
+            <span className="text-gold-700 text-xs font-semibold tracking-wide uppercase">Metas</span>
+            <h3 className="font-serif text-2xl text-dark mt-2 mb-3">A parte mais importante do portal</h3>
+            <div className="text-dark/60 text-sm leading-relaxed space-y-3">
+              <p>
+                As metas conectam o que a gente trabalha na sessão com o seu dia a dia — pequenos
+                passos entre um encontro e outro que ajudam a sustentar o que você está construindo
+                em terapia.
+              </p>
+              <p>
+                Ao final de 30 dias, vamos conseguir ver o seu progresso de verdade — mas isso só é
+                possível se você preencher o diário por 30 dias corridos. Se pular dias, a gente
+                perde a continuidade e não dá pra enxergar a evolução direito.
+              </p>
+              <p className="flex items-start gap-2">
+                <PenLine size={15} className="text-gold-600 shrink-0 mt-0.5" />
+                Tem também o botão de anotação, onde você pode registrar rapidinho o que está
+                sentindo e a intensidade daquilo, mesmo fora do diário completo.
+              </p>
+              <button
+                onClick={() => setMetasModalOpen(true)}
+                className="inline-flex items-center gap-2 text-petrol-700 font-medium text-sm underline underline-offset-2 hover:text-petrol-900"
+              >
+                <Images size={16} /> Ver as telas de Metas
+              </button>
+            </div>
+          </div>
+          <div>
+            <DefinirMetaMock />
+          </div>
+        </div>
 
         <Feature
           icon={<Bell size={20} className="text-white" />}
           eyebrow="Lembretes"
           title="Pra não esquecer o diário"
           mock={<LembretesMock />}
+          reverse
         >
           <p>No ícone de sino no topo do portal, você configura lembretes pra não esquecer de preencher o diário.</p>
         </Feature>
@@ -232,7 +406,6 @@ export function ManualPortalCliente() {
           icon={<KeyRound size={20} className="text-white" />}
           eyebrow="Alterar senha"
           title="Sua conta, seu controle"
-          reverse
         >
           <p>Também dá pra trocar sua senha a qualquer momento, direto no portal — sem precisar falar comigo.</p>
         </Feature>
@@ -241,10 +414,12 @@ export function ManualPortalCliente() {
           icon={<MessageCircle size={20} className="text-white" />}
           eyebrow="Bônus"
           title="Assistente do Portal 4D"
+          mock={<ChatMock />}
+          reverse
         >
           <p>
-            O portal também tem um assistente disponível como <strong className="text-dark">assinatura à parte</strong> —
-            pra quem quiser um apoio extra entre as sessões, disponível a qualquer hora.
+            O portal também tem um assistente disponível por assinatura — pra quem quiser um apoio
+            extra entre as sessões, disponível a qualquer hora.
           </p>
         </Feature>
 
@@ -321,6 +496,8 @@ export function ManualPortalCliente() {
           </a>
         </div>
       </section>
+
+      {metasModalOpen && <MetasGalleryModal onClose={() => setMetasModalOpen(false)} />}
     </MarketingLayout>
   );
 }
