@@ -23,6 +23,7 @@ import { Card, CardBody } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
+import { buildWhatsAppLink } from '../lib/whatsapp';
 
 // Mockups abaixo usam os MESMOS componentes de UI do portal (Card, Badge,
 // Button, Textarea), só que com dado fictício — mostram exatamente como a
@@ -608,10 +609,20 @@ export function ManualPortalCliente() {
           />
           <div className="flex-1">
             <h3 className="font-serif text-xl text-dark mb-1">Alguma dúvida ou problema?</h3>
-            <p className="text-dark/60 text-sm">
+            <p className="text-dark/60 text-sm mb-4">
               Estamos em melhoria contínua — se encontrar qualquer problema no app, ou tiver alguma
               sugestão, me manda direto, sua opinião é muito bem-vinda.
             </p>
+            <a
+              href={buildWhatsAppLink('Olá! Tenho uma dúvida sobre o Portal 4D.')}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="secondary" size="sm">
+                <MessageCircle size={16} />
+                Fale com a gente
+              </Button>
+            </a>
           </div>
         </div>
 
