@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { MarketingHeader } from './MarketingHeader';
 import { MarketingDrawer } from './MarketingDrawer';
 import { MarketingFooter } from './MarketingFooter';
+import { WhatsAppFloatingButton } from './WhatsAppFloatingButton';
 
 interface MarketingLayoutProps {
   children: ReactNode;
@@ -16,6 +17,7 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
       <MarketingDrawer open={menuOpen} onClose={() => setMenuOpen(false)} />
       {children}
       <MarketingFooter />
+      <WhatsAppFloatingButton />
     </div>
   );
 }
