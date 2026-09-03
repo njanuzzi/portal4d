@@ -11,28 +11,29 @@ interface LinkItem {
   icon: ReactNode;
   href: string;
   external: boolean;
+  newTab: boolean;
 }
 
 const links: LinkItem[] = [
-  { key: 'portal', label: 'Portal', icon: <Compass size={20} />, href: '/', external: false },
-  { key: 'youtube', label: 'Canal do YouTube', icon: <Youtube size={20} />, href: 'https://www.youtube.com/@nubiajanuzzi', external: true },
-  { key: 'blog', label: 'Blog', icon: <BookOpen size={20} />, href: '/conteudos', external: false },
-  { key: 'protocolo4d', label: 'Protocolo 4D', icon: <Compass size={20} />, href: '/protocolo4d', external: false },
-  { key: 'whatsapp', label: 'Fale com a gente', icon: <MessageCircle size={20} />, href: buildWhatsAppLink('Olá! Vim pelo link da bio.'), external: true },
+  { key: 'portal', label: 'Portal', icon: <Compass size={20} />, href: 'https://www.nubiajanuzzi.com', external: true, newTab: false },
+  { key: 'youtube', label: 'Canal do YouTube', icon: <Youtube size={20} />, href: 'https://www.youtube.com/@nubiajanuzzi', external: true, newTab: true },
+  { key: 'blog', label: 'Blog', icon: <BookOpen size={20} />, href: '/conteudos', external: false, newTab: false },
+  { key: 'protocolo4d', label: 'Protocolo 4D', icon: <Compass size={20} />, href: '/protocolo4d', external: false, newTab: false },
+  { key: 'whatsapp', label: 'Fale com a gente', icon: <MessageCircle size={20} />, href: buildWhatsAppLink('Olá! Vim pelo link da bio.'), external: true, newTab: true },
 ];
 
 function LinkButton({ item }: { item: LinkItem }) {
-  const className = 'flex w-full items-center gap-3 rounded-full border border-petrol-700/15 bg-white px-5 py-4 font-sans font-medium text-dark shadow-sm transition active:scale-[0.98] active:bg-beige-100';
+  const className = 'flex w-full items-center gap-3 rounded-full border-2 border-gold-400 bg-white px-5 py-4 font-sans font-medium text-dark shadow-sm transition active:scale-[0.98] active:bg-beige-100';
   const content = (
     <>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-petrol-700 text-beige-50">{item.icon}</span>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-petrol-700 text-gold-400">{item.icon}</span>
       <span className="flex-1 text-center">{item.label}</span>
     </>
   );
 
   if (item.external) {
     return (
-      <a href={item.href} target="_blank" rel="noopener noreferrer" className={className}>
+      <a href={item.href} {...(item.newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className={className}>
         {content}
       </a>
     );
