@@ -28,14 +28,25 @@ interface FieldsState {
 
 const EMPTY_FIELDS: FieldsState = { title: '', cena: '', crenca: '', mecanismo: '', termo: '', teste: '', fechamento: '' };
 
-const FIELD_LABELS: Record<keyof Omit<FieldsState, 'title'>, string> = {
-  cena: 'Cena',
-  crenca: 'Crença',
-  mecanismo: 'Mecanismo',
-  termo: 'Termo técnico',
-  teste: 'Teste',
-  fechamento: 'Fechamento',
+const FIELD_META: Record<keyof Omit<FieldsState, 'title'>, { label: string; hint: string }> = {
+  cena: { label: 'Cena de abertura', hint: 'Qual momento específico, com detalhe sensorial, abre o texto?' },
+  crenca: { label: 'Crença comum', hint: 'O que todo mundo assume sobre isso?' },
+  mecanismo: { label: 'O mecanismo', hint: 'O que realmente acontece — o que falta na crença comum?' },
+  termo: { label: 'Termo técnico', hint: 'Um termo, usado uma vez, traduzido na mesma frase.' },
+  teste: { label: 'Teste aplicável', hint: 'Que critério observável o leitor testa sozinho, hoje?' },
+  fechamento: { label: 'Fechamento', hint: 'Como a cena de abertura se resolve?' },
 };
+
+// Ordem fixa — mapeia direto pro array `checklist` (5 booleanos) no banco.
+const CHECKLIST_ITEMS = [
+  'A primeira frase só serve para esse texto, não para qualquer texto do tema?',
+  'Existe só um mecanismo central, do início ao fim?',
+  'O termo técnico aparece uma vez só, e é traduzido na mesma frase?',
+  'Tem um teste que o leitor aplica sozinho, hoje, sem precisar de mim?',
+  'O final resolve a cena de abertura, não resume o texto?',
+];
+
+const EMPTY_CHECKLIST = [false, false, false, false, false];
 
 export function RoteiroWorkshop() {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +57,7 @@ export function RoteiroWorkshop() {
   const [loading, setLoading] = useState(!isNew);
   const [rawText, setRawText] = useState('');
   const [fields, setFields] = useState<FieldsState>(EMPTY_FIELDS);
+  const [checklist, setChecklist] = useState<boolean[]>(EMPTY_CHECKLIST);
   const [autoExtracted, setAutoExtracted] = useState<Set<string>>(new Set());
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState('');
@@ -64,6 +76,7 @@ export function RoteiroWorkshop() {
           title: r.title, cena: r.cena, crenca: r.crenca, mecanismo: r.mecanismo,
           termo: r.termo, teste: r.teste, fechamento: r.fechamento,
         });
+        setChecklist(r.checklist?.length === CHECKLIST_ITEMS.length ? r.checklist : EMPTY_CHECKLIST);
         setExtractedAt(r.extracted_at);
       }
       setLoading(false);
@@ -78,6 +91,10 @@ export function RoteiroWorkshop() {
       next.delete(field);
       return next;
     });
+  };
+
+  const toggleChecklist = (idx: number) => {
+    setChecklist((prev) => prev.map((v, i) => (i === idx ? !v : v)));
   };
 
   const runExtraction = async () => {
@@ -118,7 +135,7 @@ export function RoteiroWorkshop() {
     setSaving(true);
     setSaveError('');
 
-    const payload = { ...fields, extracted_at: extractedAt };
+    const payload = { ...fields, checklist, extracted_at: extractedAt };
 
     if (isNew) {
       const { data, error } = await supabase
@@ -208,8 +225,8 @@ export function RoteiroWorkshop() {
               />
             </FieldWithBadge>
 
-            {(Object.keys(FIELD_LABELS) as (keyof typeof FIELD_LABELS)[]).map((field) => (
-              <FieldWithBadge key={field} label={FIELD_LABELS[field]} auto={autoExtracted.has(field)}>
+            {(Object.keys(FIELD_META) as (keyof typeof FIELD_META)[]).map((field) => (
+              <FieldWithBadge key={field} label={FIELD_META[field].label} hint={FIELD_META[field].hint} auto={autoExtracted.has(field)}>
                 <Textarea
                   value={fields[field]}
                   onChange={(e) => updateField(field, e.target.value)}
@@ -217,6 +234,25 @@ export function RoteiroWorkshop() {
                 />
               </FieldWithBadge>
             ))}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody className="space-y-3">
+            <span className="text-sm font-semibold text-dark">Checklist de revisão antes de publicar</span>
+            <div className="space-y-2">
+              {CHECKLIST_ITEMS.map((item, idx) => (
+                <label key={idx} className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={checklist[idx] ?? false}
+                    onChange={() => toggleChecklist(idx)}
+                    className="w-3.5 h-3.5 mt-0.5 accent-petrol-600 shrink-0"
+                  />
+                  <span className="text-sm text-dark/70">{item}</span>
+                </label>
+              ))}
+            </div>
           </CardBody>
         </Card>
 
@@ -235,13 +271,14 @@ export function RoteiroWorkshop() {
   );
 }
 
-function FieldWithBadge({ label, auto, children }: { label: string; auto: boolean; children: ReactNode }) {
+function FieldWithBadge({ label, hint, auto, children }: { label: string; hint?: string; auto: boolean; children: ReactNode }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
         <label className="text-sm font-medium text-dark/80">{label}</label>
         {auto && <Badge variant="gold">Extraído por IA</Badge>}
       </div>
+      {hint && <p className="text-xs text-dark/40 mb-1.5">{hint}</p>}
       {children}
     </div>
   );
