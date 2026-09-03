@@ -112,6 +112,20 @@ export interface Report {
   last_viewed_at?: string | null;
 }
 
+export interface ChecklistReviewItem {
+  ok: boolean;
+  comment: string;
+}
+
+export interface RoteiroRewrite {
+  cena: string;
+  crenca: string;
+  mecanismo: string;
+  termo: string;
+  teste: string;
+  fechamento: string;
+}
+
 export interface Roteiro {
   id: string;
   user_id: string;
@@ -124,10 +138,10 @@ export interface Roteiro {
   fechamento: string;
   checklist: boolean[];
   source_text: string | null;
+  ai_review: ChecklistReviewItem[] | null;
+  ai_rewrite: RoteiroRewrite | null;
   extracted_at: string | null;
-  ai_review?: unknown | null;
-  ai_rewrite?: unknown | null;
-  reviewed_at?: string | null;
+  reviewed_at: string | null;
   created_at: string;
   updated_at: string;
 }
