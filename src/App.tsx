@@ -56,8 +56,9 @@ import { ContentEditor } from './pages/therapist/ContentEditor';
 import { Roteiros } from './pages/therapist/Roteiros';
 import { RoteiroWorkshop } from './pages/therapist/RoteiroWorkshop';
 import { ManualPortalCliente } from './pages/ManualPortalCliente';
+import { LinkTree } from './pages/LinkTree';
 
-const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog', '/manualportalcliente'];
+const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog', '/manualportalcliente', '/tree'];
 
 function AppRoutes() {
   const location = useLocation();
@@ -107,6 +108,7 @@ function AppRoutes() {
         <Route path="/conteudos/:slug" element={<ContentArticlePage />} />
         <Route path="/blog" element={<Navigate to="/conteudos" replace />} />
         <Route path="/manualportalcliente" element={<ManualPortalCliente />} />
+        <Route path="/tree" element={<LinkTree />} />
       </Routes>
     );
   }
