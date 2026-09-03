@@ -614,7 +614,7 @@ export function ManualPortalCliente() {
               sugestão, me manda direto, sua opinião é muito bem-vinda.
             </p>
             <a
-              href={buildWhatsAppLink('Olá! Tenho uma dúvida sobre o Portal 4D.')}
+              href={buildWhatsAppLink()}
               target="_blank"
               rel="noopener noreferrer"
             >

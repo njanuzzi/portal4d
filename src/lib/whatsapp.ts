@@ -9,6 +9,6 @@ export const WHATSAPP_ACTIVATION_LINK = 'https://wa.me/15559457319?text=Formul%C
 // do site e no CTA "Fale com a gente" do manual, pra dúvidas gerais.
 const WHATSAPP_NUMBER = '5548988652228';
 
-export function buildWhatsAppLink(message = 'Olá! Tenho uma dúvida sobre o Portal 4D.') {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+export function buildWhatsAppLink(message?: string) {
+  return message ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}` : `https://wa.me/${WHATSAPP_NUMBER}`;
 }
