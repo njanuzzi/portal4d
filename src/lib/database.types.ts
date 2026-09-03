@@ -77,6 +77,23 @@ export interface Report {
   updated_at: string;
 }
 
+export interface Roteiro {
+  id: string;
+  user_id: string;
+  title: string;
+  cena: string;
+  crenca: string;
+  mecanismo: string;
+  termo: string;
+  teste: string;
+  fechamento: string;
+  checklist: boolean[];
+  source_text: string | null;
+  extracted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Joined types
 export interface DiaryEntryWithAnswers extends DiaryEntry {
   answers: (EntryAnswer & { question: DiaryQuestion })[];
@@ -166,6 +183,11 @@ export type Database = {
         Row: { id: string; client_id: string; role: 'user' | 'assistant'; content: string; created_at: string };
         Insert: { id?: string; client_id: string; role: 'user' | 'assistant'; content: string; created_at?: string };
         Update: Partial<{ content: string }>;
+      };
+      roteiros: {
+        Row: Roteiro;
+        Insert: Partial<Omit<Roteiro, 'id' | 'user_id' | 'created_at' | 'updated_at'>> & { user_id: string; id?: string; created_at?: string; updated_at?: string };
+        Update: Partial<Omit<Roteiro, 'id' | 'user_id' | 'created_at'>>;
       };
     };
   };

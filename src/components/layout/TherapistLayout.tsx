@@ -12,6 +12,7 @@ import {
   Brain,
   Sparkles,
   PenLine,
+  Wand2,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -30,6 +31,7 @@ const navItems: NavItem[] = [
   { to: '/schema-respostas', label: 'Esquemas', icon: <Brain size={18} /> },
   { to: '/scheduling', label: 'Agendamento', icon: <CalendarDays size={18} /> },
   { to: '/gestao-conteudos', label: 'Biblioteca 4D', icon: <PenLine size={18} /> },
+  { to: '/roteiros', label: 'Oficina de Roteiro', icon: <Wand2 size={18} /> },
 ];
 
 export function TherapistLayout({ children }: { children: ReactNode }) {

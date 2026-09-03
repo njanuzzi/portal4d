@@ -53,6 +53,8 @@ import { Contents } from './pages/Contents';
 import { ContentArticlePage } from './pages/ContentArticle';
 import { ContentManager } from './pages/therapist/ContentManager';
 import { ContentEditor } from './pages/therapist/ContentEditor';
+import { Roteiros } from './pages/therapist/Roteiros';
+import { RoteiroWorkshop } from './pages/therapist/RoteiroWorkshop';
 import { ManualPortalCliente } from './pages/ManualPortalCliente';
 
 const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog', '/manualportalcliente'];
@@ -186,6 +188,9 @@ function AppRoutes() {
           <Route path="/gestao-conteudos" element={<ContentManager />} />
           <Route path="/gestao-conteudos/novo" element={<ContentEditor />} />
           <Route path="/gestao-conteudos/:id" element={<ContentEditor />} />
+          <Route path="/roteiros" element={<Roteiros />} />
+          <Route path="/roteiros/novo" element={<RoteiroWorkshop />} />
+          <Route path="/roteiros/:id" element={<RoteiroWorkshop />} />
           <Route path="/areamembros" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Navigate to="/dashboard" replace />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
