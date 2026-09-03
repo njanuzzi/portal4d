@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Wand2, ChevronRight, Trash2 } from 'lucide-react';
+import { Plus, Wand2, ChevronRight, Trash2, ArrowLeft } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -48,6 +48,10 @@ export function Roteiros() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
+      <Link to="/gestao-conteudos" className="flex items-center gap-2 text-sm text-dark/50 hover:text-petrol-700 transition-colors mb-4">
+        <ArrowLeft size={16} />
+        Voltar para Biblioteca 4D
+      </Link>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-semibold text-dark font-serif">Oficina de Roteiro</h1>
