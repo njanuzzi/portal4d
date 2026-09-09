@@ -125,6 +125,8 @@ export function NewClient() {
 
     setLoading(true);
 
+    let createdAuthUserId: string | null = null;
+
     try {
       const { data: existing } = await supabase
         .from('profiles')
@@ -152,6 +154,8 @@ export function NewClient() {
       }
 
       if (authData.user) {
+        createdAuthUserId = authData.user.id;
+
         const { error: profileError } = await supabase.from('profiles').upsert({
           id: authData.user.id,
           email,
@@ -163,11 +167,7 @@ export function NewClient() {
           diary_id: diaryId,
         } as any);
 
-        if (profileError) {
-          setError(profileError.message);
-          setLoading(false);
-          return;
-        }
+        if (profileError) throw profileError;
 
         // Send first-access email so client can set their own password
         await supabase.auth.resetPasswordForEmail(email, {
@@ -182,8 +182,13 @@ export function NewClient() {
       }
 
       setCreatedClient({ name, email, tempPassword });
-    } catch {
-      setError('Erro inesperado. Tente novamente.');
+    } catch (err) {
+      // Auth user was created but the client record didn't finish — roll it
+      // back so the email isn't left stuck on an orphaned auth user.
+      if (createdAuthUserId) {
+        await supabase.rpc('delete_client', { client_id: createdAuthUserId });
+      }
+      setError(err instanceof Error ? err.message : 'Erro inesperado. Tente novamente.');
       setLoading(false);
     }
   };
