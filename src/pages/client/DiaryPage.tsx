@@ -116,17 +116,19 @@ export function DiaryPage() {
   const [savingNote, setSavingNote] = useState(false);
 
   // Goal state
-  interface ClientGoal { id: string; goal_text: string; entry_count_at_creation: number; }
+  interface ClientGoal { id: string; goal_text: string; entry_count_at_creation: number; confirmed_at: string; }
   const [currentGoal, setCurrentGoal] = useState<ClientGoal | null>(null);
   const [totalEntries, setTotalEntries] = useState(0);
   const [showGoalForm, setShowGoalForm] = useState(false);
-  const [goalPhase, setGoalPhase] = useState<'new' | 'renew'>('new');
+  // 'new' = nunca teve meta. 'choose' = os 7 dias do ciclo passaram, pergunta
+  // se mantém a mesma meta ou cadastra uma nova. 'renew' = tela de texto,
+  // seja pra mudar de meta por conta própria (goalChangeOptional=true, pode
+  // cancelar) seja depois de escolher "cadastrar nova" em 'choose'.
+  const [goalPhase, setGoalPhase] = useState<'new' | 'choose' | 'renew'>('new');
   const [goalDraft, setGoalDraft] = useState('');
   const [closingNotes, setClosingNotes] = useState('');
-  // true quando o cliente pediu pra mudar de meta por conta própria (pode
-  // cancelar); false no ciclo automático de renovação após 7 registros
-  // (é obrigatório definir a próxima antes de continuar).
   const [goalChangeOptional, setGoalChangeOptional] = useState(false);
+  const [goalError, setGoalError] = useState('');
   const [savingGoal, setSavingGoal] = useState(false);
 
   // Popup de lembrete do diário — só aparece se o cliente já tem uma meta
@@ -172,7 +174,7 @@ export function DiaryPage() {
           .order('noted_at', { ascending: true }),
         // Sugestões do bot ainda não confirmadas (confirmed_at is null) não contam como meta atual —
         // sem isso, uma sugestão pendente bloquearia o diário antes da cliente decidir se aceita.
-        supabase.from('client_goals').select('id, goal_text, entry_count_at_creation')
+        supabase.from('client_goals').select('id, goal_text, entry_count_at_creation, confirmed_at')
           .eq('user_id', user!.id).not('confirmed_at', 'is', null)
           .order('created_at', { ascending: false }).limit(1),
         supabase.from('diary_entries').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
@@ -191,10 +193,15 @@ export function DiaryPage() {
           setGoalChangeOptional(false);
           setShowGoalForm(true);
         } else {
-          const entriesSinceGoal = total - latestGoal.entry_count_at_creation;
-          if (entriesSinceGoal >= 7) {
-            setGoalPhase('renew');
-            setGoalDraft(latestGoal.goal_text); // pre-fill with previous so client can keep or edit
+          // Ciclo é sempre de 7 dias corridos a partir da confirmação da meta —
+          // não da quantidade de diários preenchidos, senão dias pulados
+          // esticariam o ciclo indefinidamente.
+          const daysSinceGoal = Math.floor(
+            (Date.now() - new Date(latestGoal.confirmed_at).getTime()) / 86400000
+          );
+          if (daysSinceGoal >= 7) {
+            setGoalPhase('choose');
+            setGoalDraft(latestGoal.goal_text);
             setClosingNotes('');
             setGoalChangeOptional(false);
             setShowGoalForm(true);
@@ -284,6 +291,7 @@ export function DiaryPage() {
     setGoalDraft('');
     setClosingNotes('');
     setGoalChangeOptional(true);
+    setGoalError('');
     setShowGoalForm(true);
   };
 
@@ -292,6 +300,22 @@ export function DiaryPage() {
     setGoalDraft('');
     setClosingNotes('');
     setGoalChangeOptional(false);
+    setGoalError('');
+  };
+
+  // Escolheu "cadastrar nova meta" na tela de decisão do ciclo — vai pra
+  // tela de texto, mas ainda pode voltar (cancelToChoose) já que as
+  // observações de encerramento continuam preenchidas.
+  const chooseNewGoal = () => {
+    setGoalPhase('renew');
+    setGoalDraft('');
+    setGoalError('');
+  };
+
+  const cancelToChoose = () => {
+    setGoalPhase('choose');
+    setGoalDraft(currentGoal?.goal_text ?? '');
+    setGoalError('');
   };
 
   // Sem nenhum registro de diário feito desde que a meta foi criada — nesse
@@ -319,32 +343,88 @@ export function DiaryPage() {
     if (goalPhase === 'renew' && !closingNotes.trim()) return;
 
     setSavingGoal(true);
+    setGoalError('');
 
     // Encerra a meta anterior com as observações do encerramento antes de
     // criar a próxima — mantém o histórico completo pro terapeuta acompanhar.
     if (goalPhase === 'renew' && currentGoal) {
-      await supabase
+      const { error: closeError } = await supabase
         .from('client_goals')
         .update({ closed_at: new Date().toISOString(), closing_notes: closingNotes.trim() })
         .eq('id', currentGoal.id);
+      if (closeError) {
+        setGoalError('Não foi possível encerrar o ciclo anterior. Tente novamente.');
+        setSavingGoal(false);
+        return;
+      }
     }
 
-    const { data: newGoal } = await supabase
+    const { data: newGoal, error: insertError } = await supabase
       .from('client_goals')
       .insert({
         user_id: user!.id,
         goal_text: text,
         entry_count_at_creation: totalEntries,
+        confirmed_at: new Date().toISOString(),
       })
-      .select('id, goal_text, entry_count_at_creation')
+      .select('id, goal_text, entry_count_at_creation, confirmed_at')
       .single();
-    if (newGoal) {
-      setCurrentGoal(newGoal as ClientGoal);
-      setShowGoalForm(false);
-      setGoalDraft('');
-      setClosingNotes('');
-      setGoalChangeOptional(false);
+
+    if (insertError || !newGoal) {
+      setGoalError('Não foi possível salvar sua meta. Tente novamente.');
+      setSavingGoal(false);
+      return;
     }
+
+    setCurrentGoal(newGoal as ClientGoal);
+    setShowGoalForm(false);
+    setGoalDraft('');
+    setClosingNotes('');
+    setGoalChangeOptional(false);
+    setGoalError('');
+    setSavingGoal(false);
+  };
+
+  // "Manter a mesma meta": encerra o ciclo atual com as observações e abre
+  // um novo ciclo de 7 dias com o mesmo texto, sem passar pela tela de texto.
+  const handleKeepGoal = async () => {
+    if (!currentGoal || !closingNotes.trim()) return;
+    setSavingGoal(true);
+    setGoalError('');
+
+    const { error: closeError } = await supabase
+      .from('client_goals')
+      .update({ closed_at: new Date().toISOString(), closing_notes: closingNotes.trim() })
+      .eq('id', currentGoal.id);
+    if (closeError) {
+      setGoalError('Não foi possível encerrar o ciclo anterior. Tente novamente.');
+      setSavingGoal(false);
+      return;
+    }
+
+    const { data: newGoal, error: insertError } = await supabase
+      .from('client_goals')
+      .insert({
+        user_id: user!.id,
+        goal_text: currentGoal.goal_text,
+        entry_count_at_creation: totalEntries,
+        confirmed_at: new Date().toISOString(),
+      })
+      .select('id, goal_text, entry_count_at_creation, confirmed_at')
+      .single();
+
+    if (insertError || !newGoal) {
+      setGoalError('Não foi possível salvar sua meta. Tente novamente.');
+      setSavingGoal(false);
+      return;
+    }
+
+    setCurrentGoal(newGoal as ClientGoal);
+    setShowGoalForm(false);
+    setGoalDraft('');
+    setClosingNotes('');
+    setGoalChangeOptional(false);
+    setGoalError('');
     setSavingGoal(false);
   };
 
@@ -444,20 +524,26 @@ export function DiaryPage() {
               </div>
               <div>
                 <h2 className="font-semibold text-dark font-serif">
-                  {goalPhase === 'new' ? 'Qual é a sua meta desta semana?' : 'Hora de renovar sua meta!'}
+                  {goalPhase === 'new'
+                    ? 'Qual é a sua meta desta semana?'
+                    : goalPhase === 'choose'
+                      ? 'Sua semana de meta terminou!'
+                      : 'Nova meta'}
                 </h2>
                 <p className="text-xs text-dark/50 mt-0.5">
                   {goalPhase === 'new'
-                    ? 'Defina uma intenção que guiará suas reflexões nos próximos 7 registros.'
-                    : goalChangeOptional
-                      ? 'Encerre o ciclo atual com suas observações e defina a próxima meta.'
-                      : 'Você completou mais um ciclo de 7 registros. Parabéns! Encerre com suas observações e renove ou ajuste sua meta.'}
+                    ? 'Defina uma intenção que guiará suas reflexões nos próximos 7 dias.'
+                    : goalPhase === 'choose'
+                      ? 'Encerre o ciclo com suas observações e decida: manter a mesma meta ou definir uma nova.'
+                      : goalChangeOptional
+                        ? 'Encerre o ciclo atual com suas observações e defina a próxima meta.'
+                        : 'Escreva sua nova meta para os próximos 7 dias.'}
                 </p>
               </div>
             </div>
 
-            {/* Previous goal + closing notes (renew only) */}
-            {goalPhase === 'renew' && currentGoal && (
+            {/* Previous goal + closing notes (choose/renew) */}
+            {(goalPhase === 'choose' || goalPhase === 'renew') && currentGoal && (
               <div className="space-y-3">
                 <div className="bg-beige-100 rounded-lg p-3 border border-beige-200">
                   <p className="text-xs font-medium text-dark/40 mb-1">Sua meta do ciclo anterior</p>
@@ -480,41 +566,75 @@ export function DiaryPage() {
               </div>
             )}
 
-            {/* Textarea */}
-            <div>
-              {goalPhase === 'renew' && (
-                <label className="block text-xs font-medium text-dark/50 mb-1.5">Nova meta</label>
-              )}
-              <Textarea
-                placeholder={
-                  goalPhase === 'new'
-                    ? 'Ex: Quero praticar parar e respirar antes de reagir às situações difíceis.'
-                    : 'Edite ou mantenha sua meta para o próximo ciclo...'
-                }
-                value={goalDraft}
-                onChange={e => setGoalDraft(e.target.value.slice(0, 300))}
-                rows={4}
-              />
-              <div className="flex justify-end mt-1">
-                <span className="text-xs text-dark/30">{goalDraft.length}/300</span>
+            {/* Textarea (new/renew only — em 'choose' ainda não se sabe se vai escrever uma nova) */}
+            {goalPhase !== 'choose' && (
+              <div>
+                {goalPhase === 'renew' && (
+                  <label className="block text-xs font-medium text-dark/50 mb-1.5">Nova meta</label>
+                )}
+                <Textarea
+                  placeholder={
+                    goalPhase === 'new'
+                      ? 'Ex: Quero praticar parar e respirar antes de reagir às situações difíceis.'
+                      : 'Escreva sua nova meta...'
+                  }
+                  value={goalDraft}
+                  onChange={e => setGoalDraft(e.target.value.slice(0, 300))}
+                  rows={4}
+                />
+                <div className="flex justify-end mt-1">
+                  <span className="text-xs text-dark/30">{goalDraft.length}/300</span>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="flex gap-2">
-              {goalPhase === 'renew' && goalChangeOptional && (
-                <Button variant="ghost" onClick={cancelGoalChange} disabled={savingGoal} className="flex-1">
-                  Cancelar
+            {goalError && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {goalError}
+              </div>
+            )}
+
+            {goalPhase === 'choose' ? (
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={chooseNewGoal}
+                  disabled={!closingNotes.trim() || savingGoal}
+                  className="flex-1"
+                >
+                  Cadastrar nova meta
                 </Button>
-              )}
-              <Button
-                onClick={handleGoalSubmit}
-                loading={savingGoal}
-                disabled={!goalDraft.trim() || (goalPhase === 'renew' && !closingNotes.trim())}
-                className="flex-1"
-              >
-                {goalPhase === 'new' ? 'Definir minha meta' : 'Confirmar nova meta'}
-              </Button>
-            </div>
+                <Button
+                  onClick={handleKeepGoal}
+                  loading={savingGoal}
+                  disabled={!closingNotes.trim()}
+                  className="flex-1"
+                >
+                  Manter a mesma meta
+                </Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                {goalPhase === 'renew' && currentGoal && (
+                  <Button
+                    variant="ghost"
+                    onClick={goalChangeOptional ? cancelGoalChange : cancelToChoose}
+                    disabled={savingGoal}
+                    className="flex-1"
+                  >
+                    {goalChangeOptional ? 'Cancelar' : 'Voltar'}
+                  </Button>
+                )}
+                <Button
+                  onClick={handleGoalSubmit}
+                  loading={savingGoal}
+                  disabled={!goalDraft.trim() || (goalPhase === 'renew' && !closingNotes.trim())}
+                  className="flex-1"
+                >
+                  {goalPhase === 'new' ? 'Definir minha meta' : 'Confirmar nova meta'}
+                </Button>
+              </div>
+            )}
           </CardBody>
         </Card>
       )}
