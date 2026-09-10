@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Clock, PenLine } from 'lucide-react';
+import { ChevronDown, ChevronUp, Clock, PenLine, MessageCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { PageSpinner } from '../../components/ui/Spinner';
-import { formatDateLong } from '../../lib/format';
+import { formatDateLong, formatDate } from '../../lib/format';
+import { buildDiaryConfirmationLink } from '../../lib/whatsapp';
 import type { DiaryEntry, EntryAnswer, DiaryQuestion, Diary } from '../../lib/database.types';
 
 interface EntryWithDetails extends DiaryEntry {
@@ -258,6 +259,19 @@ export function DiaryHistory() {
                     ) : (
                       <p className="text-xs text-dark/30 italic">Sem anotações neste dia</p>
                     )}
+                  </div>
+
+                  <div className="pt-2 border-t border-beige-100 flex justify-center">
+                    <a
+                      href={buildDiaryConfirmationLink(formatDate(entry.date))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button variant="secondary" size="sm">
+                        <MessageCircle size={14} className="mr-2" />
+                        Avisar no WhatsApp
+                      </Button>
+                    </a>
                   </div>
                 </div>
               )}
