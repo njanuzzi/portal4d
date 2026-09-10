@@ -239,6 +239,9 @@ export function DiaryPage() {
             })
           );
           setSaved(true);
+          // Já tem diário de hoje salvo — mostra a confirmação (com o botão
+          // de avisar no WhatsApp) em vez de abrir na aba Anotações por padrão.
+          if (isToday) setActiveTab('diary');
         } else {
           setAnswers(loadedQuestions.map(q => ({ question_id: q.id, answer_text: '', answer_value: null })));
         }
