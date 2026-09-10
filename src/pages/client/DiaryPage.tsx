@@ -1,6 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle, BookOpen, ArrowLeft, PenLine, Clock, Target } from 'lucide-react';
+import { CheckCircle, BookOpen, ArrowLeft, PenLine, Clock, Target, MessageCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -11,6 +11,7 @@ import { Input } from '../../components/ui/Input';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { DiaryReminderPrompt } from '../../components/client/DiaryReminderPrompt';
 import { formatDateLong } from '../../lib/format';
+import { DIARY_CONFIRMATION_LINK } from '../../lib/whatsapp';
 import type { Diary, DiaryQuestion, DiaryEntry, DayNote } from '../../lib/database.types';
 
 // ── Fixed emotion list for notes ──────────────────────────────────────────────
@@ -733,6 +734,16 @@ export function DiaryPage() {
                   );
                 })}
               </div>
+              {isToday && (
+                <div className="mt-6">
+                  <a href={DIARY_CONFIRMATION_LINK} target="_blank" rel="noopener noreferrer">
+                    <Button variant="secondary" size="md">
+                      <MessageCircle size={16} className="mr-2" />
+                      Avisar no WhatsApp
+                    </Button>
+                  </a>
+                </div>
+              )}
               {!isToday && (
                 <div className="mt-6">
                   <Link to="/diary/history" className="inline-flex items-center gap-2 text-sm text-petrol-600 hover:text-petrol-800 transition-colors">
