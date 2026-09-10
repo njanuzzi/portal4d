@@ -161,7 +161,7 @@ export function DiaryPage() {
       const dayEnd   = new Date(`${diaryDate}T23:59:59`).toISOString();
 
       const [{ data: activeDiary }, { data: entry }, { data: dayNotes }, { data: goalRows }, { count: entryCount }] = await Promise.all([
-        supabase.from('diaries').select('*').eq('is_active', true).maybeSingle(),
+        supabase.from('diaries').select('*').eq('id', profile?.diary_id ?? '').maybeSingle(),
         supabase.from('diary_entries').select('*').eq('user_id', user!.id).eq('date', diaryDate).maybeSingle(),
         supabase
           .from('day_notes')
@@ -240,7 +240,7 @@ export function DiaryPage() {
       setLoading(false);
     };
     load();
-  }, [user, diaryDate]);
+  }, [user, diaryDate, profile?.diary_id]);
 
   // ── Notes actions ───────────────────────────────────────────────────────────
 
@@ -416,8 +416,8 @@ export function DiaryPage() {
       <div className="text-center py-16">
         {reminderPrompt}
         <BookOpen size={48} className="text-beige-400 mx-auto mb-4" />
-        <h2 className="text-lg font-semibold text-dark/60">Nenhum diário ativo</h2>
-        <p className="text-dark/40 text-sm mt-1">Aguarde sua terapeuta ativar um diário</p>
+        <h2 className="text-lg font-semibold text-dark/60">Nenhum diário vinculado</h2>
+        <p className="text-dark/40 text-sm mt-1">Aguarde sua terapeuta vincular um diário à sua conta</p>
       </div>
     );
   }
