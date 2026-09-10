@@ -1,5 +1,5 @@
 /** Biblioteca 4D — editor Tiptap restrito a blocos seguros de leitura editorial. */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
