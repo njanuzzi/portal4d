@@ -55,6 +55,7 @@ export interface DiaryEntry {
   diary_id: string;
   date: string;
   created_at: string;
+  goal_id?: string | null;
 }
 
 export interface EntryAnswer {
