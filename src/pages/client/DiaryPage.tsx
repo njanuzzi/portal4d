@@ -10,8 +10,8 @@ import { ScaleInput } from '../../components/ui/ScaleInput';
 import { Input } from '../../components/ui/Input';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { DiaryReminderPrompt } from '../../components/client/DiaryReminderPrompt';
-import { formatDateLong } from '../../lib/format';
-import { DIARY_CONFIRMATION_LINK } from '../../lib/whatsapp';
+import { formatDateLong, formatDate } from '../../lib/format';
+import { buildDiaryConfirmationLink } from '../../lib/whatsapp';
 import type { Diary, DiaryQuestion, DiaryEntry, DayNote } from '../../lib/database.types';
 
 // ── Fixed emotion list for notes ──────────────────────────────────────────────
@@ -857,24 +857,24 @@ export function DiaryPage() {
                   );
                 })}
               </div>
-              {isToday && (
-                <div className="mt-6">
-                  <a href={DIARY_CONFIRMATION_LINK} target="_blank" rel="noopener noreferrer">
-                    <Button variant="secondary" size="md">
-                      <MessageCircle size={16} className="mr-2" />
-                      Avisar no WhatsApp
-                    </Button>
-                  </a>
-                </div>
-              )}
-              {!isToday && (
-                <div className="mt-6">
+              <div className="mt-6 flex flex-col items-center gap-3">
+                <a
+                  href={buildDiaryConfirmationLink(isToday ? 'hoje' : formatDate(diaryDate))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="secondary" size="md">
+                    <MessageCircle size={16} className="mr-2" />
+                    Avisar no WhatsApp
+                  </Button>
+                </a>
+                {!isToday && (
                   <Link to="/diary/history" className="inline-flex items-center gap-2 text-sm text-petrol-600 hover:text-petrol-800 transition-colors">
                     <ArrowLeft size={15} />
                     Voltar para o histórico
                   </Link>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ) : !available && isToday ? (
             /* Blocked by availability window */
