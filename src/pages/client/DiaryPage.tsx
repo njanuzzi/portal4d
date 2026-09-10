@@ -457,7 +457,7 @@ export function DiaryPage() {
 
     const { data: entry, error: entryError } = await supabase
       .from('diary_entries')
-      .insert({ user_id: user!.id, diary_id: diary.id, date: diaryDate })
+      .insert({ user_id: user!.id, diary_id: diary.id, date: diaryDate, goal_id: currentGoal?.id ?? null })
       .select()
       .single();
 
