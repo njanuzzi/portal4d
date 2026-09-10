@@ -5,9 +5,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 //
 // Recebe { client_id }, casa o cliente no Notion pelo NOME (a terapeuta se
 // comprometeu a manter o nome do cadastro do Notion igual ao nome do
-// cliente no portal) e busca as sessões dele nos últimos 5 dias (hoje
+// cliente no portal) e busca as sessões dele nos últimos 15 dias (hoje
 // incluído) em "🗓️ Todas as Sessões" — não varre o histórico inteiro. A
-// janela de 5 dias existe porque a automação que registra a sessão no
+// janela de 15 dias existe porque a automação que registra a sessão no
 // Notion às vezes grava com a data de um dia antes do esperado (fuso
 // horário), então "só hoje" perdia sessão. Carga histórica mais antiga
 // (cliente novo, sessões de semanas atrás que ainda não entraram) continua
@@ -332,12 +332,12 @@ serve(async (req) => {
 
     const clienteRow = clienteRows[0];
 
-    // 2. Busca as sessões dos últimos 5 dias (hoje incluído) desse
+    // 2. Busca as sessões dos últimos 15 dias (hoje incluído) desse
     // cliente — não o histórico inteiro. Carga histórica mais antiga é
     // feita pelo script (backfill-client.js), não por esse botão, então
     // não precisamos paginar a relação inteira aqui.
     const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-    const sinceStr = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    const sinceStr = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
     const recentSessions = await queryDataSource(TODAS_SESSOES_DATA_SOURCE_ID, {
       filter: {
         and: [
@@ -350,7 +350,7 @@ serve(async (req) => {
     const sessionPages = recentSessions.results ?? [];
 
     if (sessionPages.length === 0) {
-      return json({ synced: 0, adopted: 0, skipped: 0, errors: [], message: "Nenhuma sessão dos últimos 5 dias encontrada pra esse cliente no Notion." });
+      return json({ synced: 0, adopted: 0, skipped: 0, errors: [], message: "Nenhuma sessão dos últimos 15 dias encontrada pra esse cliente no Notion." });
     }
 
     const result: SyncResult = { synced: 0, adopted: 0, skipped: 0, errors: [] };
