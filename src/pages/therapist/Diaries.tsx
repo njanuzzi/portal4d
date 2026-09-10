@@ -104,10 +104,9 @@ export function Diaries() {
 
   const activateDiary = async (diary: Diary) => {
     setToggling(diary.id);
-    await supabase.from('diaries').update({ is_active: false }).neq('id', diary.id);
     const { data: updated } = await supabase
       .from('diaries').update({ is_active: true }).eq('id', diary.id).select('*').single();
-    if (updated) setDiaries((prev) => prev.map((d) => d.id === diary.id ? updated : { ...d, is_active: false }));
+    if (updated) setDiaries((prev) => prev.map((d) => d.id === diary.id ? updated : d));
     setToggling(null);
   };
 

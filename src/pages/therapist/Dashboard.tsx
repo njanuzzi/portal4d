@@ -216,7 +216,7 @@ export function Dashboard() {
 
   const statCards = [
     { label: 'Total de Clientes', value: stats!.totalClients, sub: `${stats!.activeClients} ativos`, icon: <Users size={20} />, color: 'text-petrol-600', bg: 'bg-petrol-50', to: '/clients' },
-    { label: 'Diário Ativo', value: stats!.activeDiaries.length, sub: stats!.activeDiaries[0]?.name || 'Nenhum ativo', icon: <BookOpen size={20} />, color: 'text-gold-600', bg: 'bg-gold-50', to: '/diaries' },
+    { label: 'Diários Ativos', value: stats!.activeDiaries.length, sub: stats!.activeDiaries.length === 1 ? stats!.activeDiaries[0].name : stats!.activeDiaries.length === 0 ? 'Nenhum ativo' : `${stats!.activeDiaries.length} diários`, icon: <BookOpen size={20} />, color: 'text-gold-600', bg: 'bg-gold-50', to: '/diaries' },
     { label: 'Respostas Hoje', value: stats!.todayEntries, sub: `${pendingCount} pendente${pendingCount !== 1 ? 's' : ''}`, icon: <TrendingUp size={20} />, color: 'text-emerald-600', bg: 'bg-emerald-50', to: '/dashboard' },
     { label: 'Relatórios', value: stats!.reportCount, sub: 'total criado', icon: <FileText size={20} />, color: 'text-amber-600', bg: 'bg-amber-50', to: '/reports' },
   ];

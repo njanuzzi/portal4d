@@ -5,10 +5,16 @@
 // isso compartilham a mesma URL.
 export const WHATSAPP_ACTIVATION_LINK = 'https://wa.me/15559457319?text=Formul%C3%A1rio%20enviado!';
 
+// Link de confirmação de diário — mesmo número/gatilho do
+// WHATSAPP_ACTIVATION_LINK acima, mas com o texto que a automação de
+// "Confirmação de diário" no Manychat reconhece (Keyword → External
+// Request com keyword fixo "respondi", ver whatsapp-manychat-webhook).
+export const DIARY_CONFIRMATION_LINK = 'https://wa.me/15559457319?text=Preenchi%20o%20di%C3%A1rio%20de%20hoje!%20%F0%9F%93%94';
+
 // Número de contato direto (WhatsApp da Núbia) — usado no botão flutuante
 // do site e no CTA "Fale com a gente" do manual, pra dúvidas gerais.
 const WHATSAPP_NUMBER = '5548988652228';
 
-export function buildWhatsAppLink(message = 'Olá! Tenho uma dúvida sobre o Portal 4D.') {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+export function buildWhatsAppLink(message?: string) {
+  return message ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}` : `https://wa.me/${WHATSAPP_NUMBER}`;
 }

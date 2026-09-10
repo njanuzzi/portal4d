@@ -1,6 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle, BookOpen, ArrowLeft, PenLine, Clock, Target } from 'lucide-react';
+import { CheckCircle, BookOpen, ArrowLeft, PenLine, Clock, Target, MessageCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardBody } from '../../components/ui/Card';
@@ -11,6 +11,7 @@ import { Input } from '../../components/ui/Input';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { DiaryReminderPrompt } from '../../components/client/DiaryReminderPrompt';
 import { formatDateLong } from '../../lib/format';
+import { DIARY_CONFIRMATION_LINK } from '../../lib/whatsapp';
 import type { Diary, DiaryQuestion, DiaryEntry, DayNote } from '../../lib/database.types';
 
 // ── Fixed emotion list for notes ──────────────────────────────────────────────
@@ -160,7 +161,7 @@ export function DiaryPage() {
       const dayEnd   = new Date(`${diaryDate}T23:59:59`).toISOString();
 
       const [{ data: activeDiary }, { data: entry }, { data: dayNotes }, { data: goalRows }, { count: entryCount }] = await Promise.all([
-        supabase.from('diaries').select('*').eq('is_active', true).maybeSingle(),
+        supabase.from('diaries').select('*').eq('id', profile?.diary_id ?? '').maybeSingle(),
         supabase.from('diary_entries').select('*').eq('user_id', user!.id).eq('date', diaryDate).maybeSingle(),
         supabase
           .from('day_notes')
@@ -239,7 +240,7 @@ export function DiaryPage() {
       setLoading(false);
     };
     load();
-  }, [user, diaryDate]);
+  }, [user, diaryDate, profile?.diary_id]);
 
   // ── Notes actions ───────────────────────────────────────────────────────────
 
@@ -415,8 +416,8 @@ export function DiaryPage() {
       <div className="text-center py-16">
         {reminderPrompt}
         <BookOpen size={48} className="text-beige-400 mx-auto mb-4" />
-        <h2 className="text-lg font-semibold text-dark/60">Nenhum diário ativo</h2>
-        <p className="text-dark/40 text-sm mt-1">Aguarde sua terapeuta ativar um diário</p>
+        <h2 className="text-lg font-semibold text-dark/60">Nenhum diário vinculado</h2>
+        <p className="text-dark/40 text-sm mt-1">Aguarde sua terapeuta vincular um diário à sua conta</p>
       </div>
     );
   }
@@ -733,6 +734,16 @@ export function DiaryPage() {
                   );
                 })}
               </div>
+              {isToday && (
+                <div className="mt-6">
+                  <a href={DIARY_CONFIRMATION_LINK} target="_blank" rel="noopener noreferrer">
+                    <Button variant="secondary" size="md">
+                      <MessageCircle size={16} className="mr-2" />
+                      Avisar no WhatsApp
+                    </Button>
+                  </a>
+                </div>
+              )}
               {!isToday && (
                 <div className="mt-6">
                   <Link to="/diary/history" className="inline-flex items-center gap-2 text-sm text-petrol-600 hover:text-petrol-800 transition-colors">
