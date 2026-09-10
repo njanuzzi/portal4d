@@ -20,6 +20,7 @@ import { DiaryDetail } from './pages/therapist/DiaryDetail';
 import { Reports } from './pages/therapist/Reports';
 import { ReportsByClient } from './pages/therapist/ReportsByClient';
 import { ClientAccess } from './pages/client/ClientAccess';
+import { ClientDiaryForm } from './pages/client/ClientDiaryForm';
 import { DiaryPage } from './pages/client/DiaryPage';
 import { DiaryHistory } from './pages/client/DiaryHistory';
 import { ClientReports as ClientReportsPage } from './pages/client/ClientReports';
@@ -27,12 +28,13 @@ import { ClientReports as ClientReportsPage } from './pages/client/ClientReports
 function AppRoutes() {
   const location = useLocation();
   const { user, profile, loading } = useAuth();
-  const isClientTokenRoute = /^\/client\/[^/]+\/?$/.test(location.pathname);
+  const isClientTokenRoute = /^\/client\/[^/]+(\/diary)?\/?$/.test(location.pathname);
 
   if (isClientTokenRoute) {
     return (
       <Routes>
         <Route path="/client/:token" element={<ClientAccess />} />
+        <Route path="/client/:token/diary" element={<ClientDiaryForm />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );

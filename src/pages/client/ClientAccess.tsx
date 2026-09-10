@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { AlertCircle, BookOpen, CheckCircle, FileText, KeyRound, Mail, User } from 'lucide-react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { AlertCircle, BookOpen, CheckCircle, KeyRound, Mail, User } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -20,7 +20,9 @@ const CLIENT_ACCESS_KEY = 'portal_client_access';
 
 export function ClientAccess() {
   const { token } = useParams<{ token: string }>();
+  const navigate = useNavigate();
   const [client, setClient] = useState<AccessClient | null>(null);
+  const [diaryName, setDiaryName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -37,20 +39,23 @@ export function ClientAccess() {
         return;
       }
 
-      const { data, error: tokenError } = await (supabase as any)
-        .rpc('validate_client_token', { invite_token: token })
-        .maybeSingle();
+      const today = new Date().toISOString().slice(0, 10);
+
+      const [tokenResult, diaryResult] = await Promise.all([
+        (supabase as any).rpc('validate_client_token', { p_token: token }).maybeSingle(),
+        (supabase as any).rpc('get_client_diary_data', { p_token: token, p_date: today }),
+      ]);
 
       if (cancelled) return;
 
-      if (tokenError || !data) {
+      if (tokenResult.error || !tokenResult.data) {
         setClient(null);
         setError('Link de acesso inválido ou expirado. Solicite um novo convite.');
         setLoading(false);
         return;
       }
 
-      const validatedClient = data as AccessClient;
+      const validatedClient = tokenResult.data as AccessClient;
       localStorage.setItem(
         CLIENT_ACCESS_KEY,
         JSON.stringify({
@@ -60,6 +65,11 @@ export function ClientAccess() {
         })
       );
       setClient(validatedClient);
+
+      if (!diaryResult.error && diaryResult.data && !diaryResult.data.error) {
+        setDiaryName(diaryResult.data.diary?.name ?? null);
+      }
+
       setLoading(false);
     };
 
@@ -114,7 +124,7 @@ export function ClientAccess() {
           </div>
         </div>
 
-        <Card className="mb-6">
+        <Card className="mb-4">
           <CardBody className="space-y-3">
             <div className="flex items-center gap-3 text-sm">
               <User size={16} className="text-dark/30 shrink-0" />
@@ -131,31 +141,26 @@ export function ClientAccess() {
           </CardBody>
         </Card>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card>
-            <CardBody className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-petrol-50 flex items-center justify-center">
-                <BookOpen size={18} className="text-petrol-700" />
-              </div>
+        {diaryName && (
+          <Card className="mb-6 border border-petrol-200 bg-petrol-50/30">
+            <CardBody className="flex items-center gap-3 py-3">
+              <BookOpen size={16} className="text-petrol-600 shrink-0" />
               <div>
-                <div className="font-medium text-dark text-sm">Diário</div>
-                <div className="text-xs text-dark/40">Área básica liberada por convite</div>
+                <p className="text-xs text-dark/40 uppercase tracking-wide font-medium">Diário habilitado</p>
+                <p className="text-sm font-medium text-dark">{diaryName}</p>
               </div>
             </CardBody>
           </Card>
+        )}
 
-          <Card>
-            <CardBody className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gold-50 flex items-center justify-center">
-                <FileText size={18} className="text-gold-600" />
-              </div>
-              <div>
-                <div className="font-medium text-dark text-sm">Relatórios</div>
-                <div className="text-xs text-dark/40">Acesso sem senha confirmado</div>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
+        <Button
+          size="lg"
+          className="w-full"
+          onClick={() => navigate(`/client/${token}/diary`)}
+        >
+          <BookOpen size={18} className="mr-2" />
+          Preencher Diário de Hoje
+        </Button>
       </div>
     </div>
   );

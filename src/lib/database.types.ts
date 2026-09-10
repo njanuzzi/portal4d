@@ -7,6 +7,7 @@ export interface Profile {
   name: string;
   role: Role;
   active: boolean;
+  diary_id?: string | null;
   whatsapp?: string | null;
   address?: string | null;
   created_at: string;
