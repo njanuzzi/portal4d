@@ -128,6 +128,7 @@ export function DiaryPage() {
   const [goalDraft, setGoalDraft] = useState('');
   const [closingNotes, setClosingNotes] = useState('');
   const [goalChangeOptional, setGoalChangeOptional] = useState(false);
+  const [goalError, setGoalError] = useState('');
   const [savingGoal, setSavingGoal] = useState(false);
 
   // Popup de lembrete do diário — só aparece se o cliente já tem uma meta
@@ -290,6 +291,7 @@ export function DiaryPage() {
     setGoalDraft('');
     setClosingNotes('');
     setGoalChangeOptional(true);
+    setGoalError('');
     setShowGoalForm(true);
   };
 
@@ -298,6 +300,7 @@ export function DiaryPage() {
     setGoalDraft('');
     setClosingNotes('');
     setGoalChangeOptional(false);
+    setGoalError('');
   };
 
   // Escolheu "cadastrar nova meta" na tela de decisão do ciclo — vai pra
@@ -306,11 +309,13 @@ export function DiaryPage() {
   const chooseNewGoal = () => {
     setGoalPhase('renew');
     setGoalDraft('');
+    setGoalError('');
   };
 
   const cancelToChoose = () => {
     setGoalPhase('choose');
     setGoalDraft(currentGoal?.goal_text ?? '');
+    setGoalError('');
   };
 
   // Sem nenhum registro de diário feito desde que a meta foi criada — nesse
@@ -338,17 +343,23 @@ export function DiaryPage() {
     if (goalPhase === 'renew' && !closingNotes.trim()) return;
 
     setSavingGoal(true);
+    setGoalError('');
 
     // Encerra a meta anterior com as observações do encerramento antes de
     // criar a próxima — mantém o histórico completo pro terapeuta acompanhar.
     if (goalPhase === 'renew' && currentGoal) {
-      await supabase
+      const { error: closeError } = await supabase
         .from('client_goals')
         .update({ closed_at: new Date().toISOString(), closing_notes: closingNotes.trim() })
         .eq('id', currentGoal.id);
+      if (closeError) {
+        setGoalError('Não foi possível encerrar o ciclo anterior. Tente novamente.');
+        setSavingGoal(false);
+        return;
+      }
     }
 
-    const { data: newGoal } = await supabase
+    const { data: newGoal, error: insertError } = await supabase
       .from('client_goals')
       .insert({
         user_id: user!.id,
@@ -358,13 +369,19 @@ export function DiaryPage() {
       })
       .select('id, goal_text, entry_count_at_creation, confirmed_at')
       .single();
-    if (newGoal) {
-      setCurrentGoal(newGoal as ClientGoal);
-      setShowGoalForm(false);
-      setGoalDraft('');
-      setClosingNotes('');
-      setGoalChangeOptional(false);
+
+    if (insertError || !newGoal) {
+      setGoalError('Não foi possível salvar sua meta. Tente novamente.');
+      setSavingGoal(false);
+      return;
     }
+
+    setCurrentGoal(newGoal as ClientGoal);
+    setShowGoalForm(false);
+    setGoalDraft('');
+    setClosingNotes('');
+    setGoalChangeOptional(false);
+    setGoalError('');
     setSavingGoal(false);
   };
 
@@ -373,13 +390,19 @@ export function DiaryPage() {
   const handleKeepGoal = async () => {
     if (!currentGoal || !closingNotes.trim()) return;
     setSavingGoal(true);
+    setGoalError('');
 
-    await supabase
+    const { error: closeError } = await supabase
       .from('client_goals')
       .update({ closed_at: new Date().toISOString(), closing_notes: closingNotes.trim() })
       .eq('id', currentGoal.id);
+    if (closeError) {
+      setGoalError('Não foi possível encerrar o ciclo anterior. Tente novamente.');
+      setSavingGoal(false);
+      return;
+    }
 
-    const { data: newGoal } = await supabase
+    const { data: newGoal, error: insertError } = await supabase
       .from('client_goals')
       .insert({
         user_id: user!.id,
@@ -390,13 +413,18 @@ export function DiaryPage() {
       .select('id, goal_text, entry_count_at_creation, confirmed_at')
       .single();
 
-    if (newGoal) {
-      setCurrentGoal(newGoal as ClientGoal);
-      setShowGoalForm(false);
-      setGoalDraft('');
-      setClosingNotes('');
-      setGoalChangeOptional(false);
+    if (insertError || !newGoal) {
+      setGoalError('Não foi possível salvar sua meta. Tente novamente.');
+      setSavingGoal(false);
+      return;
     }
+
+    setCurrentGoal(newGoal as ClientGoal);
+    setShowGoalForm(false);
+    setGoalDraft('');
+    setClosingNotes('');
+    setGoalChangeOptional(false);
+    setGoalError('');
     setSavingGoal(false);
   };
 
@@ -557,6 +585,12 @@ export function DiaryPage() {
                 <div className="flex justify-end mt-1">
                   <span className="text-xs text-dark/30">{goalDraft.length}/300</span>
                 </div>
+              </div>
+            )}
+
+            {goalError && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {goalError}
               </div>
             )}
 
