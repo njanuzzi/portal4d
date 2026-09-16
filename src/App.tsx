@@ -27,6 +27,8 @@ import { SchemaReportDetail } from './pages/therapist/SchemaReportDetail';
 import { ClientFacingReportPreview } from './pages/therapist/ClientFacingReportPreview';
 import { SchemaResponsesRepository } from './pages/therapist/SchemaResponsesRepository';
 import { SchemaResponseDetail } from './pages/therapist/SchemaResponseDetail';
+import { SMIResponsesRepository } from './pages/therapist/SMIResponsesRepository';
+import { SMIResponseDetail } from './pages/therapist/SMIResponseDetail';
 import { ClientAccess } from './pages/client/ClientAccess';
 import { ClientDiaryForm } from './pages/client/ClientDiaryForm';
 import { ClientHome } from './pages/client/ClientHome';
@@ -43,6 +45,7 @@ import { MarketingHome } from './pages/MarketingHome';
 import { Protocolo4D } from './pages/Protocolo4D';
 import { ClientSignup } from './pages/ClientSignup';
 import { SchemaQuestionnaire } from './pages/SchemaQuestionnaire';
+import { SMIQuestionnaire } from './pages/SMIQuestionnaire';
 import { Atendimento } from './pages/Atendimento';
 import { SessaoAvaliacao } from './pages/SessaoAvaliacao';
 import { Inscricao } from './pages/Inscricao';
@@ -127,6 +130,15 @@ function AppRoutes() {
     );
   }
 
+  // SMI questionnaire (Inventário de Modos Esquemáticos) is always public
+  if (location.pathname === '/questionario-modos') {
+    return (
+      <Routes>
+        <Route path="/questionario-modos" element={<SMIQuestionnaire />} />
+      </Routes>
+    );
+  }
+
   if (isClientTokenRoute) {
     return (
       <Routes>
@@ -173,6 +185,8 @@ function AppRoutes() {
           <Route path="/clients/:id/schema-analysis/report/:reportId/cliente" element={<ClientFacingReportPreview />} />
           <Route path="/schema-respostas" element={<SchemaResponsesRepository />} />
           <Route path="/schema-respostas/:assessmentId" element={<SchemaResponseDetail />} />
+          <Route path="/smi-respostas" element={<SMIResponsesRepository />} />
+          <Route path="/smi-respostas/:assessmentId" element={<SMIResponseDetail />} />
           <Route path="/diaries" element={<Diaries />} />
           <Route path="/diaries/new" element={<NewDiary />} />
           <Route path="/diaries/:id" element={<DiaryDetail />} />

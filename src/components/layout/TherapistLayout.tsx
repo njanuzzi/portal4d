@@ -10,6 +10,7 @@ import {
   ChevronRight,
   CalendarDays,
   Brain,
+  Layers,
   Sparkles,
   PenLine,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ const navItems: NavItem[] = [
   { to: '/diaries', label: 'Diários', icon: <BookOpen size={18} /> },
   { to: '/reports', label: 'Relatórios', icon: <FileText size={18} /> },
   { to: '/schema-respostas', label: 'Esquemas', icon: <Brain size={18} /> },
+  { to: '/smi-respostas', label: 'Modos (SMI)', icon: <Layers size={18} /> },
   { to: '/scheduling', label: 'Agendamento', icon: <CalendarDays size={18} /> },
   { to: '/gestao-conteudos', label: 'Biblioteca 4D', icon: <PenLine size={18} /> },
 ];
