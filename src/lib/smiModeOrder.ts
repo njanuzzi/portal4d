@@ -41,3 +41,25 @@ export const SMI_CATEGORY_LABELS: Record<string, string> = {
 export function sortByModeOrder<T extends { code: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => SMI_MODE_ORDER.indexOf(a.code) - SMI_MODE_ORDER.indexOf(b.code));
 }
+
+// Combinações de modos com leitura clínica documentada no instrumento (não
+// são pontos de corte — o SMI não tem cutoffs validados pra população BR).
+// Mostramos o insight quando os dois modos do par estão entre os mais
+// ativados do cliente (ver TOP_MODES_FOR_RELATIONSHIPS em SMIResponseDetail).
+export const SMI_MODE_RELATIONSHIPS: { codes: [string, string]; insight: string }[] = [
+  {
+    codes: ['crianca_vulneravel', 'protetor_desligado'],
+    insight: 'Criança Vulnerável + Protetor Desligado → hiporregulação emocional e evitação.',
+  },
+  {
+    codes: ['crianca_impulsiva', 'crianca_raivosa'],
+    insight: 'Criança Impulsiva + Criança Raivosa → impulsividade e externalização agressiva.',
+  },
+  {
+    codes: ['pais_punitivos', 'crianca_vulneravel'],
+    insight: 'Pais Punitivos + Criança Vulnerável → ciclos de autocrítica e retraimento.',
+  },
+];
+
+export const SMI_ETHICAL_NOTICE =
+  'Este instrumento não deve ser usado isoladamente para diagnóstico — requer entrevista clínica e avaliação complementar de esquemas e coping. Sem pontos de corte validados para a população brasileira; interprete os escores como frequência relativa de ativação de cada modo, não como classificação fechada.';
