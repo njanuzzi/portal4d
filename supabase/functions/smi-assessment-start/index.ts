@@ -37,6 +37,24 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
+// Mesma normalização usada pelo trigger trigger_create_whatsapp_session (só
+// dígitos, prefixa 55 se faltar DDI, remove o 9 extra de celular quando vem
+// com DDI) — precisamos calcular o mesmo telefone que ele vai gravar em
+// whatsapp_sessions.phone pra conseguir checar de quem é ANTES de tentar
+// criar o cadastro, em vez de descobrir só quando o insert já falhou.
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  let normalized = digits.length > 11 ? digits : `55${digits}`;
+  if (normalized.startsWith("55") && normalized.length === 13) {
+    normalized = normalized.slice(0, 4) + normalized.slice(5);
+  }
+  return normalized;
+}
+
+function normalizeName(raw: string): string {
+  return raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
 // Avisa a terapeuta por e-mail sempre que um cliente novo se cadastra (via
 // início do SMI). Fire-and-forget: uma falha aqui não deve impedir o
 // cliente de continuar o formulário.
@@ -132,9 +150,35 @@ serve(async (req) => {
       .maybeSingle();
     if (findError) throw findError;
 
+    // E-mail novo, mas o WhatsApp pode já pertencer a um cliente cadastrado
+    // (mesma pessoa testando/preenchendo de novo com outro e-mail). Confere
+    // no whatsapp_sessions — fonte de verdade do índice único de telefone —
+    // e só reaproveita o cadastro existente se o nome também bater; nunca
+    // atribuímos o número de outra pessoa a um cadastro novo.
+    let matchedExistingClientId: string | null = null;
+    let whatsappBelongsToAnotherClient = false;
+    if (!existingProfile && whatsapp) {
+      const normalizedPhone = normalizePhone(whatsapp);
+      const { data: session } = await supabase
+        .from("whatsapp_sessions")
+        .select("client_id, profiles(name)")
+        .eq("phone", normalizedPhone)
+        .maybeSingle();
+      if (session) {
+        const owner = Array.isArray(session.profiles) ? session.profiles[0] : session.profiles;
+        if (owner?.name && normalizeName(owner.name) === normalizeName(name)) {
+          matchedExistingClientId = session.client_id;
+        } else {
+          whatsappBelongsToAnotherClient = true;
+        }
+      }
+    }
+
     let clientId: string;
     if (existingProfile) {
       clientId = existingProfile.id;
+    } else if (matchedExistingClientId) {
+      clientId = matchedExistingClientId;
     } else {
       const tempPassword = `PortalNJ@${crypto.randomUUID().slice(0, 8)}`;
       const { data: created, error: createError } = await supabase.auth.admin.createUser({
@@ -143,17 +187,41 @@ serve(async (req) => {
         email_confirm: true,
         user_metadata: { name, role: "client" },
       });
-      if (createError || !created.user) throw createError ?? new Error("Falha ao criar usuário");
-      clientId = created.user.id;
 
-      const { error: profileError } = await supabase.from("profiles").upsert({
+      if (createError) {
+        // E-mail já existe no auth mas não tem profile — sobra de uma
+        // tentativa anterior que falhou depois de criar o usuário (ex:
+        // conflito de WhatsApp abaixo). Recupera o usuário existente em vez
+        // de travar o cadastro.
+        if (createError.code === "email_exists") {
+          const { data: usersPage, error: listError } = await supabase.auth.admin.listUsers();
+          if (listError) throw listError;
+          const existingUser = usersPage.users.find((u) => u.email?.toLowerCase() === email);
+          if (!existingUser) throw createError;
+          clientId = existingUser.id;
+        } else {
+          throw createError;
+        }
+      } else if (!created.user) {
+        throw new Error("Falha ao criar usuário");
+      } else {
+        clientId = created.user.id;
+      }
+
+      const profilePayload = {
         id: clientId,
         email,
         name,
         role: "client",
         active: true,
-        whatsapp: whatsapp || null,
-      });
+        whatsapp: whatsappBelongsToAnotherClient ? null : (whatsapp || null),
+      };
+      let { error: profileError } = await supabase.from("profiles").upsert(profilePayload);
+      if (profileError?.message?.includes("whatsapp_sessions_phone_idx")) {
+        // Rede de segurança pra corrida de requisições simultâneas — a
+        // checagem acima já devia ter pego isso antes de chegar aqui.
+        ({ error: profileError } = await supabase.from("profiles").upsert({ ...profilePayload, whatsapp: null }));
+      }
       if (profileError) throw profileError;
 
       await notifyNewSignup(name, email, whatsapp);
