@@ -143,17 +143,34 @@ serve(async (req) => {
         email_confirm: true,
         user_metadata: { name, role: "client" },
       });
-      if (createError || !created.user) throw createError ?? new Error("Falha ao criar usuário");
-      clientId = created.user.id;
 
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: clientId,
-        email,
-        name,
-        role: "client",
-        active: true,
-        whatsapp: whatsapp || null,
-      });
+      if (createError) {
+        // E-mail já existe no auth mas não tem profile — sobra de uma
+        // tentativa anterior que falhou depois de criar o usuário (ex:
+        // conflito de WhatsApp abaixo). Recupera o usuário existente em vez
+        // de travar o cadastro.
+        if (createError.code === "email_exists") {
+          const { data: usersPage, error: listError } = await supabase.auth.admin.listUsers();
+          if (listError) throw listError;
+          const existingUser = usersPage.users.find((u) => u.email?.toLowerCase() === email);
+          if (!existingUser) throw createError;
+          clientId = existingUser.id;
+        } else {
+          throw createError;
+        }
+      } else if (!created.user) {
+        throw new Error("Falha ao criar usuário");
+      } else {
+        clientId = created.user.id;
+      }
+
+      const profilePayload = { id: clientId, email, name, role: "client", active: true, whatsapp: whatsapp || null };
+      let { error: profileError } = await supabase.from("profiles").upsert(profilePayload);
+      if (profileError?.message?.includes("whatsapp_sessions_phone_idx")) {
+        // Esse número de WhatsApp já está vinculado a outro cliente — cria
+        // o cadastro sem o número em vez de bloquear o formulário inteiro.
+        ({ error: profileError } = await supabase.from("profiles").upsert({ ...profilePayload, whatsapp: null }));
+      }
       if (profileError) throw profileError;
 
       await notifyNewSignup(name, email, whatsapp);
