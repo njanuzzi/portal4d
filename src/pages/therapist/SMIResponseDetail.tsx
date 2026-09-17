@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Layers, Download } from 'lucide-react';
+import { ArrowLeft, Layers, Download, Info } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { supabase } from '../../lib/supabase';
 import { buildRawAnswersCsv, downloadCsv, QuestionRef } from '../../lib/schemaCsv';
-import { SMI_CATEGORY_LABELS, SMI_CATEGORY_ORDER } from '../../lib/smiModeOrder';
+import { SMI_CATEGORY_LABELS, SMI_CATEGORY_ORDER, SMI_ETHICAL_NOTICE, SMI_MODE_RELATIONSHIPS } from '../../lib/smiModeOrder';
+
+// Quantos modos (dos 14) entram na leitura de "mais ativados" pra cruzar
+// com SMI_MODE_RELATIONSHIPS — não é um cutoff clínico (o instrumento não
+// tem pontos de corte validados), só um recorte relativo ao próprio perfil
+// do cliente pra destacar os modos mais proeminentes dele.
+const TOP_MODES_FOR_RELATIONSHIPS = 4;
 
 interface AssessmentInfo {
   id: string;
@@ -21,6 +27,7 @@ interface AssessmentInfo {
 
 interface ModeScore {
   mode_id: string;
+  mode_code: string;
   mode_name: string;
   mode_category: string;
   mode_description: string | null;
@@ -51,7 +58,7 @@ export function SMIResponseDetail() {
           .maybeSingle(),
         supabase
           .from('client_smi_scores')
-          .select('mode_id, average_score, smi_modes(name, category, description)')
+          .select('mode_id, average_score, smi_modes(code, name, category, description)')
           .eq('assessment_id', assessmentId),
         supabase.from('smi_questions').select('question_number, question_text').order('question_number'),
       ]);
@@ -76,11 +83,12 @@ export function SMIResponseDetail() {
 
       const mapped = ((scoreRows ?? []) as unknown as Array<{
         mode_id: string; average_score: number;
-        smi_modes: { name: string; category: string; description: string | null } | { name: string; category: string; description: string | null }[] | null;
+        smi_modes: { code: string; name: string; category: string; description: string | null } | { code: string; name: string; category: string; description: string | null }[] | null;
       }>).map((s) => {
         const mode = Array.isArray(s.smi_modes) ? s.smi_modes[0] : s.smi_modes;
         return {
           mode_id: s.mode_id,
+          mode_code: mode?.code ?? '',
           mode_name: mode?.name ?? '—',
           mode_category: mode?.category ?? '',
           mode_description: mode?.description ?? null,
@@ -126,12 +134,28 @@ export function SMIResponseDetail() {
     );
   }
 
-  const groups: { category: string; items: ModeScore[] }[] = [];
+  const groups: { category: string; items: ModeScore[]; averageScore: number }[] = [];
   for (const s of scores) {
     const group = groups.find((g) => g.category === s.mode_category);
     if (group) group.items.push(s);
-    else groups.push({ category: s.mode_category, items: [s] });
+    else groups.push({ category: s.mode_category, items: [s], averageScore: 0 });
   }
+  for (const group of groups) {
+    group.averageScore = group.items.reduce((sum, s) => sum + s.average_score, 0) / group.items.length;
+  }
+
+  // Modos mais ativados deste cliente (relativo ao próprio perfil, não a um
+  // cutoff) — usado só pra decidir quais cruzamentos de SMI_MODE_RELATIONSHIPS
+  // valem destacar.
+  const topCodes = new Set(
+    [...scores]
+      .sort((a, b) => b.average_score - a.average_score)
+      .slice(0, TOP_MODES_FOR_RELATIONSHIPS)
+      .map((s) => s.mode_code)
+  );
+  const matchedRelationships = SMI_MODE_RELATIONSHIPS.filter(
+    (r) => topCodes.has(r.codes[0]) && topCodes.has(r.codes[1])
+  );
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -159,12 +183,37 @@ export function SMIResponseDetail() {
         </div>
       </div>
 
+      <div className="flex items-start gap-2.5 bg-beige-50 border border-beige-200 rounded-lg px-4 py-3 mb-6">
+        <Info size={16} className="text-dark/40 shrink-0 mt-0.5" />
+        <p className="text-xs text-dark/60 leading-relaxed">{SMI_ETHICAL_NOTICE}</p>
+      </div>
+
+      {matchedRelationships.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-dark/40 mb-2 px-1">
+            Cruzamentos identificados
+          </h2>
+          <Card>
+            <div className="divide-y divide-beige-100">
+              {matchedRelationships.map((r) => (
+                <div key={r.codes.join('+')} className="px-5 py-3.5 text-sm text-dark">
+                  {r.insight}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
       <div className="space-y-6">
         {groups.map((group) => (
           <div key={group.category}>
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-dark/40 mb-2 px-1">
-              {SMI_CATEGORY_LABELS[group.category] ?? group.category}
-            </h2>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-dark/40">
+                {SMI_CATEGORY_LABELS[group.category] ?? group.category}
+              </h2>
+              <span className="text-xs text-dark/40">média {group.averageScore.toFixed(1)}/6</span>
+            </div>
             <Card>
               <div className="divide-y divide-beige-100">
                 {group.items.map((s) => (
