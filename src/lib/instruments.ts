@@ -308,6 +308,67 @@ Utilizar a ENSRA-R como indicador global de sofrimento ou bem-estar relacional, 
       ],
     },
   },
+  {
+    key: 'etas',
+    label: 'Escala Triangular do Amor de Sternberg (ETAS-R)',
+    description: '16 perguntas sobre intimidade, paixão e compromisso no relacionamento.',
+    path: '/questionario-etas',
+    documentation: {
+      badge: 'Escala Padronizada',
+      tags: ['Relacionamento'],
+      overview:
+        'A Escala Triangular do Amor de Sternberg – Versão Reduzida (ETAS-R) avalia o amor romântico a partir do ' +
+        'modelo teórico triangular proposto por Sternberg, compreendendo o amor como a articulação de três ' +
+        'componentes centrais e inter-relacionados: intimidade, paixão e decisão/compromisso. O instrumento ' +
+        'investiga, por meio de autorrelato, o grau em que o indivíduo percebe proximidade emocional, apoio e ' +
+        'vínculo afetivo com o parceiro (intimidade), atração física e excitação associadas ao relacionamento ' +
+        '(paixão), bem como a decisão cognitiva de amar e o comprometimento em manter o vínculo ao longo do tempo ' +
+        '(decisão/compromisso), permitindo uma avaliação dimensional e integrada da qualidade e da dinâmica do ' +
+        'relacionamento amoroso.',
+      applicationTime: '8 minutos',
+      targetPopulation: 'Adultos (≥18 anos) com experiência prévia de relacionamento romântico',
+      recommendedUses: [
+        'Avaliação de relacionamentos amorosos',
+        'Formulação de caso em psicoterapia individual ou de casal',
+        'Monitoramento de processos terapêuticos focados em vínculos afetivos',
+      ],
+      interpretation:
+        `1. Estrutura do instrumento
+Número total de itens: 16 itens. Tipo de resposta: escala Likert de 5 pontos (Discordo fortemente a Concordo fortemente). Organização: 3 subescalas (Intimidade, Paixão e Compromisso).
+
+2. Descrição das subescalas, dimensões ou fatores
+Intimidade: sentimentos de proximidade emocional, vínculo, apoio e compreensão mútua. Paixão: atração física, excitação sexual e ativação motivacional. Compromisso: decisão cognitiva de amar e manutenção do vínculo ao longo do tempo.
+
+3. Pontuação e faixas de interpretação (cutoffs)
+Pontuação pela soma dos itens de cada fator. O estudo não apresenta pontos de corte clínicos nem normas interpretativas categóricas — recomenda-se interpretação relativa, comparando as subescalas entre si e ao longo do tempo (monitoramento intraindivíduo).
+- Intimidade alta: vínculo emocional sólido, comunicação aberta e percepção de suporte mútuo. Baixa: distanciamento emocional, dificuldades de conexão afetiva ou empobrecimento do vínculo.
+- Paixão alta: ativação erótica e envolvimento motivacional intenso. Baixa: diminuição da excitação sexual ou transformação do vínculo para formas mais companheiras.
+- Compromisso alto: investimento relacional, compromisso e perspectiva de continuidade. Baixo: ambivalência, instabilidade ou incerteza quanto ao futuro da relação.
+
+4. Mudança clínica e sensibilidade
+O estudo não apresenta dados de sensibilidade à mudança, RCI ou MCID. Apesar disso, pela alta consistência interna e estabilidade estrutural, o instrumento pode ser reaplicado para fins exploratórios de acompanhamento terapêutico, com cautela interpretativa.
+
+5. Cuidados éticos e limitações de aplicação
+Não deve ser utilizado isoladamente para decisões clínicas — deve ser integrado a entrevista clínica, observação do contexto relacional e outros instrumentos (ex.: satisfação conjugal, apego, comunicação). Resultados podem ser influenciados por idealização do relacionamento, especialmente em fases iniciais.
+
+6. Sugestões para análise clínica
+Perfis discrepantes entre subescalas (ex.: alta paixão e baixo compromisso) podem orientar hipóteses sobre instabilidade, conflito ou fase do relacionamento. Reduções específicas em uma dimensão podem direcionar intervenções focadas (ex.: comunicação emocional para intimidade; renegociação de expectativas para compromisso). Pode ser combinada com medidas de satisfação conjugal, estilos de apego e habilidades sociais para uma formulação de caso relacional mais abrangente.`,
+      patientInstructions:
+        'Vamos apresentar para você algumas frases sobre o seu relacionamento amoroso. Avalie o quanto você ' +
+        'concorda com cada ideia apresentada. Selecione a opção que melhor representa sua opinião.',
+      developers:
+        'Sternberg, R. J. (1997). Construct validation of a triangular love scale. European Journal of Social ' +
+        'Psychology, 27, 313-335. https://doi.org/10.1002/(SICI)1099-0992(199705)27:3<313::AID-EJSP824>3.0.CO;2-4',
+      references:
+        'Andrade, A. L. D., Garcia, A., & Cassepp-Borges, V. (2013). Evidências de validade da escala triangular ' +
+        'do amor de Sternberg-reduzida (ETAS-R). Psico-USF, 18, 501-510. https://doi.org/10.1590/S1413-82712013000300016',
+      scales: [
+        { label: 'Intimidade', formula: 'Resultado calculado através da soma das questões 7, 8, 9, 10, 11.', hasCutoffs: false },
+        { label: 'Paixão', formula: 'Resultado calculado através da soma das questões 12, 13, 14, 15, 16.', hasCutoffs: false },
+        { label: 'Compromisso', formula: 'Resultado calculado através da soma das questões 1, 2, 3, 4, 5, 6.', hasCutoffs: false },
+      ],
+    },
+  },
 ];
 
 export function getInstrument(key: string): InstrumentConfig | undefined {
