@@ -76,7 +76,7 @@ export interface DayNote {
   user_id: string;
   noted_at: string;
   content: string | null;
-  emotions: any;
+  emotions: Array<{ label: string; intensity: number }> | null;
   created_at: string;
 }
 
