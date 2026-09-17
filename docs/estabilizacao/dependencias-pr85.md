@@ -93,6 +93,10 @@ Não há:
 - nova funcionalidade;
 - uso de `npm audit fix --force`.
 
+## Validação final
+
+O lote seguro foi validado com `npm ci`, `npm run typecheck` e `npm run build`, todos com sucesso. A branch final mantém somente o lockfile atualizado e esta documentação; os workflows temporários de auditoria e aplicação foram removidos antes da revisão.
+
 ## Próximas etapas recomendadas
 
 1. PR específica para migração TipTap 2 → 3, com smoke test completo da Biblioteca 4D.
