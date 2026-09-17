@@ -6,6 +6,8 @@
 // those compatibility types is a separate refactor and is not required to
 // make the Supabase client aware of the real schema.
 
+import type { Json as GeneratedJson } from './database.generated.types';
+
 export type {
   Database,
   Json,
@@ -23,29 +25,36 @@ export type QuestionType = 'text' | 'number' | 'scale' | 'emotion';
 export interface EmotionOption {
   emoji: string;
   label: string;
+  [key: string]: GeneratedJson | undefined;
 }
 
 export interface Profile {
   id: string;
   email: string;
-  name: string;
-  role: Role;
-  active: boolean;
+  name: string | null;
+  role: string;
+  active: boolean | null;
   whatsapp?: string | null;
   address?: string | null;
   diary_id?: string | null;
-  created_at: string;
+  created_at: string | null;
   first_login_at?: string | null;
   last_login_at?: string | null;
+  diary_reminder_next_at?: string | null;
+  diary_reminder_preference?: string | null;
+  manychat_subscriber_id?: string | null;
+  whatsapp_appointment_reminder_optin?: boolean | null;
+  whatsapp_diary_reminder_optin?: boolean | null;
+  whatsapp_general_info_optin?: boolean | null;
 }
 
 export interface Diary {
   id: string;
   name: string;
-  is_active: boolean;
+  is_active: boolean | null;
   available_from: string | null;
   available_to: string | null;
-  created_at: string;
+  created_at: string | null;
 }
 
 export interface DiaryQuestion {
@@ -53,10 +62,10 @@ export interface DiaryQuestion {
   diary_id: string;
   order_num: number;
   text: string;
-  type: QuestionType;
-  options: EmotionOption[] | null;
+  type: string;
+  options: GeneratedJson | EmotionOption[] | null;
   required: boolean;
-  created_at: string;
+  created_at?: string | null;
 }
 
 export interface DayNote {
@@ -64,7 +73,7 @@ export interface DayNote {
   user_id: string;
   noted_at: string;
   content: string | null;
-  emotions: { label: string; intensity: number }[];
+  emotions: GeneratedJson | { label: string; intensity: number }[] | null;
   created_at: string;
 }
 
@@ -73,7 +82,7 @@ export interface DiaryEntry {
   user_id: string;
   diary_id: string;
   date: string;
-  created_at: string;
+  created_at: string | null;
   goal_id?: string | null;
 }
 
@@ -83,7 +92,7 @@ export interface EntryAnswer {
   question_id: string;
   answer_text: string | null;
   answer_value: number | null;
-  created_at: string;
+  created_at?: string | null;
 }
 
 export interface Report {
@@ -91,10 +100,13 @@ export interface Report {
   user_id: string;
   period_start: string;
   period_end: string;
-  content_text: string;
-  published: boolean;
-  created_at: string;
-  updated_at: string;
+  content_text: string | null;
+  published: boolean | null;
+  created_at: string | null;
+  updated_at?: string;
+  active?: boolean | null;
+  first_viewed_at?: string | null;
+  last_viewed_at?: string | null;
 }
 
 export interface Roteiro {
