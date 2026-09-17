@@ -35,6 +35,7 @@ const navItems: NavItem[] = [
   { to: '/smi-respostas', label: 'Modos (SMI)', icon: <Layers size={18} /> },
   { to: '/bfi-respostas', label: 'Big Five (BFI)', icon: <UserCircle size={18} /> },
   { to: '/marq-respostas', label: 'Escala de Amor (MARQ)', icon: <Heart size={18} /> },
+  { to: '/rbs-respostas', label: 'Crenças Românticas (RBS)', icon: <Sparkles size={18} /> },
   { to: '/instrumentos', label: 'Instrumentos', icon: <ClipboardList size={18} /> },
   { to: '/scheduling', label: 'Agendamento', icon: <CalendarDays size={18} /> },
   { to: '/gestao-conteudos', label: 'Biblioteca 4D', icon: <PenLine size={18} /> },
