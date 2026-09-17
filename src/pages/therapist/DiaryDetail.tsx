@@ -31,7 +31,7 @@ export function DiaryDetail() {
   const loadDiary = async () => {
     const { data: d } = await supabase
       .from('diaries')
-      .select('id, name, is_active, created_at')
+      .select('id, name, is_active, available_from, available_to, created_at')
       .eq('id', id!)
       .maybeSingle();
     setDiary(d ?? null);
@@ -41,7 +41,7 @@ export function DiaryDetail() {
       .select('*')
       .eq('diary_id', id!)
       .order('order_num', { ascending: true });
-    setQuestions(qs ?? []);
+    setQuestions((qs ?? []) as DiaryQuestion[]);
 
     setLoading(false);
   };
@@ -65,7 +65,7 @@ export function DiaryDetail() {
       .single();
 
     if (!error && newQ) {
-      setQuestions((prev) => [...prev, newQ]);
+      setQuestions((prev) => [...prev, newQ as DiaryQuestion]);
       setQText('');
       setQType('text');
       setAddingQ(false);

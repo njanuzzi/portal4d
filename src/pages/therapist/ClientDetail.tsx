@@ -165,7 +165,7 @@ export function ClientDetail() {
           .eq('client_id', id)
           .order('invite_sent_at', { ascending: false })
           .limit(1),
-        supabase.from('diaries').select('id, name, is_active, created_at')
+        supabase.from('diaries').select('id, name, is_active, available_from, available_to, created_at')
           .eq('is_active', true).order('created_at', { ascending: false }),
         supabase.from('client_signup_feedback').select('feedback')
           .eq('client_id', id).maybeSingle(),
@@ -179,7 +179,7 @@ export function ClientDetail() {
       let diaryRow: Diary | null = null;
       if (loadedClient.diary_id) {
         const { data: diary } = await supabase
-          .from('diaries').select('id, name, is_active, created_at').eq('id', loadedClient.diary_id).maybeSingle();
+          .from('diaries').select('id, name, is_active, available_from, available_to, created_at').eq('id', loadedClient.diary_id).maybeSingle();
         diaryRow = diary;
       }
 

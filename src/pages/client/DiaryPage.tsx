@@ -225,7 +225,7 @@ export function DiaryPage() {
           .eq('diary_id', activeDiary.id)
           .order('order_num');
 
-        const loadedQuestions = qs || [];
+        const loadedQuestions = (qs || []) as DiaryQuestion[];
         setQuestions(loadedQuestions);
 
         if (entry) {
