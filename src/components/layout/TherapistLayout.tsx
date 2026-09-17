@@ -13,6 +13,7 @@ import {
   Layers,
   Sparkles,
   PenLine,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -30,6 +31,7 @@ const navItems: NavItem[] = [
   { to: '/reports', label: 'Relatórios', icon: <FileText size={18} /> },
   { to: '/schema-respostas', label: 'Esquemas', icon: <Brain size={18} /> },
   { to: '/smi-respostas', label: 'Modos (SMI)', icon: <Layers size={18} /> },
+  { to: '/instrumentos', label: 'Instrumentos', icon: <ClipboardList size={18} /> },
   { to: '/scheduling', label: 'Agendamento', icon: <CalendarDays size={18} /> },
   { to: '/gestao-conteudos', label: 'Biblioteca 4D', icon: <PenLine size={18} /> },
 ];

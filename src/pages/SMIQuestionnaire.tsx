@@ -1,8 +1,15 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { sortByModeOrder } from '../lib/smiModeOrder';
+
+// validate_instrument_invite não está nos tipos gerados do Supabase — mesmo
+// padrão do untypedSupabase usado em LeadForm/QuizInstagram/Inscricao pra
+// chamar RPCs fora do schema tipado.
+const untypedSupabase = supabase as unknown as SupabaseClient;
 
 const fieldClass =
   'w-full px-3.5 py-2.5 rounded-lg border border-petrol-600 bg-petrol-800 text-white text-sm placeholder:text-petrol-300 focus:outline-none focus:ring-2 focus:ring-gold-400 focus:border-transparent transition-colors';
@@ -59,6 +66,9 @@ function clearDraft() {
 }
 
 export function SMIQuestionnaire() {
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('token') ?? '';
+
   const [step, setStep] = useState<Step>('loading');
   const [modes, setModes] = useState<Mode[]>([]);
   const [questionsByMode, setQuestionsByMode] = useState<Map<string, Question[]>>(new Map());
@@ -67,6 +77,12 @@ export function SMIQuestionnaire() {
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [currentModeIndex, setCurrentModeIndex] = useState(0);
+
+  // Preenchido quando o acesso veio de um link individual gerado pelo
+  // terapeuta (ver src/pages/therapist/InstrumentInvite.tsx) — nesse caso
+  // pulamos a etapa de identidade (nome/e-mail/whatsapp) porque já sabemos
+  // quem é o cliente.
+  const [inviteClientName, setInviteClientName] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -127,9 +143,23 @@ export function SMIQuestionnaire() {
         clearDraft();
       }
 
+      if (inviteToken) {
+        const { data: inviteRows } = await untypedSupabase.rpc('validate_instrument_invite', {
+          p_token: inviteToken,
+          p_instrument: 'smi',
+        });
+        const invite = inviteRows?.[0];
+        if (invite) {
+          setInviteClientName(invite.name);
+          setStep('welcome');
+          return;
+        }
+      }
+
       setStep('identity');
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleIdentitySubmit = (e: FormEvent) => {
@@ -147,15 +177,22 @@ export function SMIQuestionnaire() {
     setError('');
 
     const { data, error: fnError } = await supabase.functions.invoke('smi-assessment-start', {
-      body: {
-        name: name.trim(),
-        email: email.trim(),
-        whatsapp: whatsapp.trim(),
-        hp,
-        lgpd_consent: lgpdConsent,
-        wants_email_notification: notifyEmail,
-        wants_whatsapp_notification: notifyWhatsapp,
-      },
+      body: inviteClientName
+        ? {
+            invite_token: inviteToken,
+            lgpd_consent: lgpdConsent,
+            wants_email_notification: notifyEmail,
+            wants_whatsapp_notification: notifyWhatsapp,
+          }
+        : {
+            name: name.trim(),
+            email: email.trim(),
+            whatsapp: whatsapp.trim(),
+            hp,
+            lgpd_consent: lgpdConsent,
+            wants_email_notification: notifyEmail,
+            wants_whatsapp_notification: notifyWhatsapp,
+          },
     });
 
     if (fnError || !data?.assessment_id) {
@@ -291,6 +328,12 @@ export function SMIQuestionnaire() {
               />
               <h1 className="font-serif text-xl leading-snug text-balance">Bem-vindo(a)!</h1>
             </div>
+
+            {inviteClientName && (
+              <p className="text-xs text-gold-300 bg-petrol-800/60 border border-petrol-600 rounded-lg px-3 py-2 mb-6">
+                Preenchendo para: <strong>{inviteClientName}</strong>
+              </p>
+            )}
 
             <div className="space-y-5 text-sm text-petrol-100/85 leading-relaxed mb-8">
               <p>

@@ -110,52 +110,67 @@ serve(async (req) => {
     const lgpdConsent = body?.lgpd_consent === true;
     const wantsEmailNotification = body?.wants_email_notification === true;
     const wantsWhatsappNotification = body?.wants_whatsapp_notification === true;
+    const inviteToken = String(body?.invite_token ?? "").trim();
 
     if (honeypot) {
       // bot de formulário — responde 200 sem criar nada
       return json({ ok: true });
     }
 
-    if (!name || !email) {
-      return json({ error: "Nome e e-mail são obrigatórios" }, 400);
-    }
-
     if (!lgpdConsent) {
       return json({ error: "É preciso aceitar o uso dos dados (LGPD) para continuar" }, 400);
     }
 
-    const { data: existingProfile, error: findError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
-    if (findError) throw findError;
-
     let clientId: string;
-    if (existingProfile) {
-      clientId = existingProfile.id;
+
+    if (inviteToken) {
+      // Link individual gerado pelo terapeuta (ver instrument_invites) — o
+      // cliente já é conhecido, pula toda a lógica de match/criação abaixo.
+      const { data: inviteRows, error: inviteError } = await supabase.rpc("validate_instrument_invite", {
+        p_token: inviteToken,
+        p_instrument: "esquemas",
+      });
+      if (inviteError) throw inviteError;
+      const invite = inviteRows?.[0];
+      if (!invite) return json({ error: "invalid_invite" }, 404);
+      clientId = invite.client_id;
     } else {
-      const tempPassword = `PortalNJ@${crypto.randomUUID().slice(0, 8)}`;
-      const { data: created, error: createError } = await supabase.auth.admin.createUser({
-        email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { name, role: "client" },
-      });
-      if (createError || !created.user) throw createError ?? new Error("Falha ao criar usuário");
-      clientId = created.user.id;
+      if (!name || !email) {
+        return json({ error: "Nome e e-mail são obrigatórios" }, 400);
+      }
 
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: clientId,
-        email,
-        name,
-        role: "client",
-        active: true,
-        whatsapp: whatsapp || null,
-      });
-      if (profileError) throw profileError;
+      const { data: existingProfile, error: findError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+      if (findError) throw findError;
 
-      await notifyNewSignup(name, email, whatsapp);
+      if (existingProfile) {
+        clientId = existingProfile.id;
+      } else {
+        const tempPassword = `PortalNJ@${crypto.randomUUID().slice(0, 8)}`;
+        const { data: created, error: createError } = await supabase.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { name, role: "client" },
+        });
+        if (createError || !created.user) throw createError ?? new Error("Falha ao criar usuário");
+        clientId = created.user.id;
+
+        const { error: profileError } = await supabase.from("profiles").upsert({
+          id: clientId,
+          email,
+          name,
+          role: "client",
+          active: true,
+          whatsapp: whatsapp || null,
+        });
+        if (profileError) throw profileError;
+
+        await notifyNewSignup(name, email, whatsapp);
+      }
     }
 
     const { data: lastAssessment } = await supabase

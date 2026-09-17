@@ -59,6 +59,8 @@ import { ContentEditor } from './pages/therapist/ContentEditor';
 import { Roteiros } from './pages/therapist/Roteiros';
 import { RoteiroWorkshop } from './pages/therapist/RoteiroWorkshop';
 import { ManualPortalCliente } from './pages/ManualPortalCliente';
+import { Instruments } from './pages/therapist/Instruments';
+import { InstrumentInvite } from './pages/therapist/InstrumentInvite';
 import { LinkTree } from './pages/LinkTree';
 
 const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog', '/manualportalcliente', '/tree'];
@@ -191,6 +193,8 @@ function AppRoutes() {
           <Route path="/schema-respostas/:assessmentId" element={<SchemaResponseDetail />} />
           <Route path="/smi-respostas" element={<SMIResponsesRepository />} />
           <Route path="/smi-respostas/:assessmentId" element={<SMIResponseDetail />} />
+          <Route path="/instrumentos" element={<Instruments />} />
+          <Route path="/instrumentos/:key" element={<InstrumentInvite />} />
           <Route path="/diaries" element={<Diaries />} />
           <Route path="/diaries/new" element={<NewDiary />} />
           <Route path="/diaries/:id" element={<DiaryDetail />} />
