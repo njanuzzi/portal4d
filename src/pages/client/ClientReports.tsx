@@ -60,8 +60,35 @@ interface SchemaDomain {
   wiki_description: string | null;
 }
 
+interface ClientModo {
+  nome: string;
+  average_score: number;
+  descricao: string;
+}
+
+interface ModoContent {
+  modos: ClientModo[];
+  conclusao: string;
+  todos?: { mode_id: string; average_score: number }[];
+}
+
+interface ModoRow {
+  id: string;
+  assessment_id: string;
+  content: ModoContent;
+  published_at: string;
+  first_viewed_at: string | null;
+  acknowledged_at: string | null;
+}
+
+interface SmiMode {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
 type ReportRow = Report & { first_viewed_at?: string | null };
-type ReportsTabKey = 'sessions' | 'fechamento' | 'esquemas';
+type ReportsTabKey = 'sessions' | 'fechamento' | 'esquemas' | 'modos';
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -94,12 +121,16 @@ export function ClientReports() {
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [padroes, setPadroes] = useState<PadraoRow[]>([]);
   const [domains, setDomains] = useState<SchemaDomain[]>([]);
+  const [modosReports, setModosReports] = useState<ModoRow[]>([]);
+  const [smiModes, setSmiModes] = useState<SmiMode[]>([]);
   const [sessionReports, setSessionReports] = useState<SessionReportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewReport, setPreviewReport] = useState<ReportRow | null>(null);
   const [previewPadrao, setPreviewPadrao] = useState<PadraoRow | null>(null);
+  const [previewModo, setPreviewModo] = useState<ModoRow | null>(null);
   const [previewSessionReport, setPreviewSessionReport] = useState<SessionReportRow | null>(null);
   const [acknowledging, setAcknowledging] = useState(false);
+  const [acknowledgingModo, setAcknowledgingModo] = useState(false);
   const [activeTab, setActiveTab] = useState<ReportsTabKey>('sessions');
   const [collapsedSessionMonths, setCollapsedSessionMonths] = useState<Set<string>>(new Set());
   const [collapsedFechamentoMonths, setCollapsedFechamentoMonths] = useState<Set<string>>(new Set());
@@ -124,7 +155,13 @@ export function ClientReports() {
         .eq('client_id', user!.id)
         .eq('status', 'publicado')
         .order('session_date', { ascending: false }),
-    ]).then(([{ data: reportRows }, { data: padraoRows }, { data: domainRows }, { data: sessionReportRows }]) => {
+      untypedSupabase
+        .from('client_smi_published_reports')
+        .select('id, assessment_id, content, published_at, first_viewed_at, acknowledged_at')
+        .eq('client_id', user!.id)
+        .order('published_at', { ascending: false }),
+      untypedSupabase.from('smi_modes').select('id, name, description'),
+    ]).then(([{ data: reportRows }, { data: padraoRows }, { data: domainRows }, { data: sessionReportRows }, { data: modoRows }, { data: smiModeRows }]) => {
       const loadedReports = (reportRows ?? []) as ReportRow[];
       const loadedSessionReports = (sessionReportRows ?? []) as SessionReportRow[];
 
@@ -132,6 +169,8 @@ export function ClientReports() {
       setPadroes((padraoRows ?? []) as unknown as PadraoRow[]);
       setDomains((domainRows ?? []) as SchemaDomain[]);
       setSessionReports(loadedSessionReports);
+      setModosReports((modoRows ?? []) as unknown as ModoRow[]);
+      setSmiModes((smiModeRows ?? []) as unknown as SmiMode[]);
 
       // Mês mais recente de cada lista já vem aberto; o resto começa fechado.
       const sessionMonthKeys = groupByMonth(loadedSessionReports, (r) => r.session_date).map(([key]) => key);
@@ -167,6 +206,29 @@ export function ClientReports() {
       .rpc('record_session_report_view', { p_session_report_id: previewSessionReport.id })
       .then(() => {}, () => {});
   }, [previewSessionReport]);
+
+  useEffect(() => {
+    if (!previewModo) return;
+    void untypedSupabase
+      .rpc('record_smi_report_view', { p_assessment_id: previewModo.assessment_id })
+      .then(() => {}, () => {});
+  }, [previewModo]);
+
+  const handleAcknowledgeModo = async () => {
+    if (!previewModo) return;
+    setAcknowledgingModo(true);
+    const { error } = await untypedSupabase.rpc('record_smi_report_acknowledgment', {
+      p_assessment_id: previewModo.assessment_id,
+    });
+    if (!error) {
+      const acknowledgedAt = new Date().toISOString();
+      setModosReports((prev) =>
+        prev.map((m) => (m.id === previewModo.id && !m.acknowledged_at ? { ...m, acknowledged_at: acknowledgedAt } : m))
+      );
+      setPreviewModo((prev) => (prev && !prev.acknowledged_at ? { ...prev, acknowledged_at: acknowledgedAt } : prev));
+    }
+    setAcknowledgingModo(false);
+  };
 
   const handleAcknowledge = async () => {
     if (!previewPadrao) return;
@@ -208,9 +270,10 @@ export function ClientReports() {
     { key: 'sessions', label: 'Sessões', count: sessionReports.length },
     { key: 'fechamento', label: 'Fechamento do Ciclo', count: reports.length },
     { key: 'esquemas', label: 'Esquemas', count: padroes.length },
+    { key: 'modos', label: 'Modos', count: modosReports.length },
   ];
 
-  const isEmpty = reports.length === 0 && padroes.length === 0 && sessionReports.length === 0;
+  const isEmpty = reports.length === 0 && padroes.length === 0 && sessionReports.length === 0 && modosReports.length === 0;
 
   return (
     <div>
@@ -352,26 +415,56 @@ export function ClientReports() {
             })}
           </div>
         )
-      ) : padroes.length === 0 ? (
-        <EmptyState icon={<FileText size={40} />} title="Nenhuma devolutiva de esquemas ainda" />
+      ) : activeTab === 'esquemas' ? (
+        padroes.length === 0 ? (
+          <EmptyState icon={<FileText size={40} />} title="Nenhuma devolutiva de esquemas ainda" />
+        ) : (
+          <div className="space-y-3">
+            {padroes.map((padrao) => (
+              <Card key={padrao.id}>
+                <CardBody>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="gold">Seus padrões</Badge>
+                      </div>
+                      <div className="text-sm font-medium text-dark">
+                        Devolutiva do inventário
+                      </div>
+                      <div className="text-xs text-dark/40 mt-0.5">
+                        Disponível desde {formatDate(padrao.published_at)}
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setPreviewPadrao(padrao)} className="shrink-0">
+                      <Eye size={14} />
+                      Ler
+                    </Button>
+                  </div>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        )
+      ) : modosReports.length === 0 ? (
+        <EmptyState icon={<FileText size={40} />} title="Nenhuma devolutiva de modos ainda" />
       ) : (
         <div className="space-y-3">
-          {padroes.map((padrao) => (
-            <Card key={padrao.id}>
+          {modosReports.map((modo) => (
+            <Card key={modo.id}>
               <CardBody>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="gold">Seus padrões</Badge>
+                      <Badge variant="gold">Seus modos</Badge>
                     </div>
                     <div className="text-sm font-medium text-dark">
-                      Devolutiva do inventário
+                      Devolutiva do inventário de modos
                     </div>
                     <div className="text-xs text-dark/40 mt-0.5">
-                      Disponível desde {formatDate(padrao.published_at)}
+                      Disponível desde {formatDate(modo.published_at)}
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setPreviewPadrao(padrao)} className="shrink-0">
+                  <Button variant="ghost" size="sm" onClick={() => setPreviewModo(modo)} className="shrink-0">
                     <Eye size={14} />
                     Ler
                   </Button>
@@ -472,6 +565,71 @@ export function ClientReports() {
 
             <div className="border-t border-beige-300 pt-4">
               <ReportObservations assessmentId={previewPadrao.assessment_id} clientId={user!.id} viewerRole="client" />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!previewModo}
+        onClose={() => setPreviewModo(null)}
+        title="Seus modos"
+        size="lg"
+      >
+        {previewModo && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-xs text-dark/40">
+              <Sparkles size={13} className="text-gold-500" />
+              Baseado nas suas respostas ao inventário
+            </div>
+            <div className="space-y-3">
+              {previewModo.content.modos.map((modo, i) => (
+                <div key={i} className="bg-beige-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-dark font-serif mb-2">{modo.nome}</h3>
+                  <div className="w-full h-1.5 bg-beige-200 rounded-full overflow-hidden mb-3">
+                    <div
+                      className="h-full bg-gold-500 rounded-full"
+                      style={{ width: `${Math.min(100, Math.max(0, (modo.average_score / 6) * 100))}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-dark/70 leading-relaxed">{modo.descricao}</p>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-beige-300 pt-4">
+              <p className="text-sm text-dark/70 leading-relaxed">{previewModo.content.conclusao}</p>
+            </div>
+
+            {previewModo.content.todos && previewModo.content.todos.length > 0 && (
+              <div className="border-t border-beige-300 pt-4">
+                <h3 className="font-semibold text-dark font-serif mb-1">Visão geral dos 14 modos</h3>
+                <p className="text-xs text-dark/40 mb-3">Toque em um modo para ler a explicação.</p>
+                <EsquemasBarChart
+                  items={previewModo.content.todos.map((t) => {
+                    const mode = smiModes.find((m) => m.id === t.mode_id);
+                    return {
+                      name: mode?.name ?? '—',
+                      percentual: (t.average_score / 6) * 100,
+                      displayValue: `${t.average_score.toFixed(1)}/6`,
+                      description: mode?.description ?? undefined,
+                    };
+                  })}
+                />
+              </div>
+            )}
+
+            <div className="border-t border-beige-300 pt-4">
+              {previewModo.acknowledged_at ? (
+                <div className="flex items-center gap-1.5 text-sm text-green-700">
+                  <CheckCircle2 size={15} />
+                  Você confirmou a leitura em {formatDate(previewModo.acknowledged_at)}
+                </div>
+              ) : (
+                <Button size="sm" variant="ghost" loading={acknowledgingModo} onClick={handleAcknowledgeModo}>
+                  <CheckCircle2 size={14} />
+                  Confirmar que li o relatório
+                </Button>
+              )}
             </div>
           </div>
         )}
