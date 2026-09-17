@@ -47,6 +47,7 @@ import { ClientSignup } from './pages/ClientSignup';
 import { SchemaQuestionnaire } from './pages/SchemaQuestionnaire';
 import { SMIQuestionnaire } from './pages/SMIQuestionnaire';
 import { BFIQuestionnaire } from './pages/BFIQuestionnaire';
+import { MARQQuestionnaire } from './pages/MARQQuestionnaire';
 import { Atendimento } from './pages/Atendimento';
 import { SessaoAvaliacao } from './pages/SessaoAvaliacao';
 import { Inscricao } from './pages/Inscricao';
@@ -64,6 +65,8 @@ import { Instruments } from './pages/therapist/Instruments';
 import { InstrumentInvite } from './pages/therapist/InstrumentInvite';
 import { BFIResponsesRepository } from './pages/therapist/BFIResponsesRepository';
 import { BFIResponseDetail } from './pages/therapist/BFIResponseDetail';
+import { MARQResponsesRepository } from './pages/therapist/MARQResponsesRepository';
+import { MARQResponseDetail } from './pages/therapist/MARQResponseDetail';
 import { LinkTree } from './pages/LinkTree';
 
 const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog', '/manualportalcliente', '/tree'];
@@ -157,6 +160,15 @@ function AppRoutes() {
     );
   }
 
+  // MARQ questionnaire (Escala de Amor) is always public
+  if (location.pathname === '/questionario-marq') {
+    return (
+      <Routes>
+        <Route path="/questionario-marq" element={<MARQQuestionnaire />} />
+      </Routes>
+    );
+  }
+
   if (isClientTokenRoute) {
     return (
       <Routes>
@@ -209,6 +221,8 @@ function AppRoutes() {
           <Route path="/instrumentos/:key" element={<InstrumentInvite />} />
           <Route path="/bfi-respostas" element={<BFIResponsesRepository />} />
           <Route path="/bfi-respostas/:assessmentId" element={<BFIResponseDetail />} />
+          <Route path="/marq-respostas" element={<MARQResponsesRepository />} />
+          <Route path="/marq-respostas/:assessmentId" element={<MARQResponseDetail />} />
           <Route path="/diaries" element={<Diaries />} />
           <Route path="/diaries/new" element={<NewDiary />} />
           <Route path="/diaries/:id" element={<DiaryDetail />} />

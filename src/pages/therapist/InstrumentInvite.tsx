@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, Copy, ExternalLink } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { supabase } from '../../lib/supabase';
 import { getInstrument } from '../../lib/instruments';
@@ -93,6 +94,105 @@ export function InstrumentInvite() {
         <h1 className="text-xl font-semibold text-dark font-serif">{instrument.label}</h1>
         <p className="text-dark/50 text-sm mt-1">{instrument.description}</p>
       </div>
+
+      {instrument.documentation && (
+        <>
+          <Card className="mb-4">
+            <CardBody className="space-y-5">
+              <div className="flex items-center gap-2 flex-wrap">
+                {instrument.documentation.tags.map((tag) => (
+                  <span key={tag} className="text-xs font-medium text-petrol-700 bg-petrol-50 px-2.5 py-1 rounded-full">
+                    {tag}
+                  </span>
+                ))}
+                {instrument.documentation.badge && <Badge variant="success">{instrument.documentation.badge}</Badge>}
+              </div>
+
+              <div>
+                <h2 className="text-sm font-semibold text-dark font-serif mb-2">Descrição</h2>
+                <p className="text-sm text-dark/70 leading-relaxed">{instrument.documentation.overview}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {instrument.documentation.applicationTime && (
+                  <div>
+                    <p className="text-xs font-semibold text-dark/50">Tempo médio de aplicação</p>
+                    <p className="text-sm text-dark/80 mt-0.5">{instrument.documentation.applicationTime}</p>
+                  </div>
+                )}
+                {instrument.documentation.targetPopulation && (
+                  <div>
+                    <p className="text-xs font-semibold text-dark/50">População-alvo</p>
+                    <p className="text-sm text-dark/80 mt-0.5">{instrument.documentation.targetPopulation}</p>
+                  </div>
+                )}
+              </div>
+
+              {instrument.documentation.recommendedUses && (
+                <div>
+                  <p className="text-xs font-semibold text-dark/50 mb-1.5">Usos recomendados</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    {instrument.documentation.recommendedUses.map((use, i) => (
+                      <li key={i} className="text-sm text-dark/70">{use}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {instrument.documentation.interpretation && (
+                <details>
+                  <summary className="text-xs font-semibold text-dark/50 cursor-pointer select-none">
+                    Interpretação clínica (clique para expandir)
+                  </summary>
+                  <p className="text-sm text-dark/70 leading-relaxed whitespace-pre-wrap mt-2">
+                    {instrument.documentation.interpretation}
+                  </p>
+                </details>
+              )}
+
+              {instrument.documentation.patientInstructions && (
+                <div>
+                  <p className="text-xs font-semibold text-dark/50 mb-1">Instruções do paciente</p>
+                  <p className="text-sm text-dark/70 leading-relaxed italic">"{instrument.documentation.patientInstructions}"</p>
+                </div>
+              )}
+
+              {(instrument.documentation.developers || instrument.documentation.references) && (
+                <div className="text-xs text-dark/40 space-y-1 pt-3 border-t border-beige-200">
+                  {instrument.documentation.developers && (
+                    <p><span className="font-semibold">Desenvolvedores:</span> {instrument.documentation.developers}</p>
+                  )}
+                  {instrument.documentation.references && (
+                    <p><span className="font-semibold">Referências:</span> {instrument.documentation.references}</p>
+                  )}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          {instrument.documentation.scales.length > 0 && (
+            <Card className="mb-4">
+              <CardBody className="space-y-4">
+                <h2 className="text-sm font-semibold text-dark font-serif">Escalas</h2>
+                {instrument.documentation.scales.map((scale, i) => (
+                  <div key={scale.label} className={i > 0 ? 'border-t border-beige-100 pt-4' : ''}>
+                    <p className="text-sm font-medium text-dark">{scale.label}</p>
+                    <p className="text-sm text-dark/60 mt-1">{scale.formula}</p>
+                    {!scale.hasCutoffs && (
+                      <div className="mt-2 bg-beige-50 border border-beige-200 rounded-lg px-3 py-2">
+                        <p className="text-xs font-medium text-dark/60">Não foram cadastrados pontos de corte</p>
+                        <p className="text-xs text-dark/40 mt-0.5">
+                          É possível que não existam pontos de corte validados para a população brasileira para este instrumento.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardBody>
+            </Card>
+          )}
+        </>
+      )}
 
       <div className="flex gap-2 mb-4">
         <button
