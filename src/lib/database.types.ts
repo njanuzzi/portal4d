@@ -53,8 +53,8 @@ export interface Diary {
   id: string;
   name: string;
   is_active: any;
-  available_from?: string | null;
-  available_to?: string | null;
+  available_from: string | null;
+  available_to: string | null;
   created_at: any;
 }
 
@@ -66,7 +66,7 @@ export interface DiaryQuestion {
   order?: number;
   text: string;
   type: any;
-  options?: any;
+  options?: EmotionOption[] | null;
   required?: boolean;
   created_at?: any;
 }
