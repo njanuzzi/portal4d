@@ -41,10 +41,23 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const assessmentId = String(body?.assessment_id ?? "");
+    const editToken = String(body?.edit_token ?? "");
     const answers = body?.answers ?? {};
     const finish = body?.finish === true;
 
-    if (!assessmentId) return json({ error: "assessment_id obrigatório" }, 400);
+    if (!assessmentId || !editToken) {
+      return json({ error: "Rascunho não encontrado ou já concluído" }, 404);
+    }
+
+    const { data: tokenValid, error: tokenError } = await supabase.rpc("verify_assessment_edit_token", {
+      p_instrument: "rbs",
+      p_assessment_id: assessmentId,
+      p_token: editToken,
+    });
+    if (tokenError) throw tokenError;
+    if (!tokenValid) {
+      return json({ error: "Rascunho não encontrado ou já concluído" }, 404);
+    }
 
     const { data: assessment, error: findError } = await supabase
       .from("client_rbs_assessments")
