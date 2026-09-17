@@ -47,8 +47,12 @@ for (const file of files) {
     }
 
     const escapedName = escapeRegex(functionName);
+    const escapedQualifiedName = escapeRegex(qualifiedName);
+    const revokeTarget = qualifiedName.includes('.')
+      ? `(?:${escapedQualifiedName}|${escapedName})`
+      : escapedName;
     const revokeRegex = new RegExp(
-      `revoke\\s+(?:all|execute)\\s+on\\s+function\\s+(?:public\\.)?${escapedName}\\s*\\([^;]*\\)\\s+from\\s+([^;]+);`,
+      `revoke\\s+(?:all|execute)\\s+on\\s+function\\s+${revokeTarget}\\s*\\([^;]*\\)\\s+from\\s+([^;]+);`,
       'ig',
     );
 
