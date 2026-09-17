@@ -12,7 +12,7 @@ const TALLY_SIGNING_SECRET = Deno.env.get("TALLY_SCHEMA_SIGNING_SECRET");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, tally-signature",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
