@@ -41,21 +41,25 @@ export const MOCK_DIARIES: Diary[] = [
     id: 'dev-diary-1',
     name: 'Diário Emocional — 4D',
     is_active: true,
+    available_from: null,
+    available_to: null,
     created_at: '2026-02-01T00:00:00Z',
   },
   {
     id: 'dev-diary-2',
     name: 'Diário de Pensamentos Automáticos',
     is_active: false,
+    available_from: null,
+    available_to: null,
     created_at: '2026-01-15T00:00:00Z',
   },
 ];
 
 export const MOCK_QUESTIONS: DiaryQuestion[] = [
-  { id: 'dev-q-1', diary_id: 'dev-diary-1', order: 1, text: 'Como você está se sentindo hoje (0-10)?', type: 'scale', created_at: '2026-02-01T00:00:00Z' },
-  { id: 'dev-q-2', diary_id: 'dev-diary-1', order: 2, text: 'Descreva seu humor em uma palavra.', type: 'text', created_at: '2026-02-01T00:00:00Z' },
-  { id: 'dev-q-3', diary_id: 'dev-diary-1', order: 3, text: 'Houve algum pensamento recorrente hoje?', type: 'text', created_at: '2026-02-01T00:00:00Z' },
-  { id: 'dev-q-4', diary_id: 'dev-diary-1', order: 4, text: 'Nível de ansiedade (0-10)?', type: 'scale', created_at: '2026-02-01T00:00:00Z' },
+  { id: 'dev-q-1', diary_id: 'dev-diary-1', order_num: 1, text: 'Como você está se sentindo hoje (0-10)?', type: 'scale', options: null, required: true, created_at: '2026-02-01T00:00:00Z' },
+  { id: 'dev-q-2', diary_id: 'dev-diary-1', order_num: 2, text: 'Descreva seu humor em uma palavra.', type: 'text', options: null, required: true, created_at: '2026-02-01T00:00:00Z' },
+  { id: 'dev-q-3', diary_id: 'dev-diary-1', order_num: 3, text: 'Houve algum pensamento recorrente hoje?', type: 'text', options: null, required: true, created_at: '2026-02-01T00:00:00Z' },
+  { id: 'dev-q-4', diary_id: 'dev-diary-1', order_num: 4, text: 'Nível de ansiedade (0-10)?', type: 'scale', options: null, required: true, created_at: '2026-02-01T00:00:00Z' },
 ];
 
 export const MOCK_ENTRIES: DiaryEntry[] = [
