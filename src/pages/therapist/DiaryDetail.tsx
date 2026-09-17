@@ -14,6 +14,7 @@ const TYPE_LABELS: Record<QuestionType, string> = {
   text: 'Texto livre',
   number: 'Número',
   scale: 'Escala (1-10)',
+  emotion: 'Emoções',
 };
 
 export function DiaryDetail() {
@@ -118,7 +119,7 @@ export function DiaryDetail() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-dark">{q.text}</div>
-                  <div className="text-xs text-dark/40 mt-0.5">{TYPE_LABELS[q.type]}</div>
+                  <div className="text-xs text-dark/40 mt-0.5">{TYPE_LABELS[q.type as QuestionType] ?? q.type}</div>
                 </div>
                 <button
                   onClick={() => deleteQuestion(q.id)}
@@ -155,6 +156,7 @@ export function DiaryDetail() {
                   <option value="text">Texto livre</option>
                   <option value="number">Número</option>
                   <option value="scale">Escala (1 a 10)</option>
+                  <option value="emotion">Emoções</option>
                 </select>
               </div>
               <div className="flex gap-2">
