@@ -9,6 +9,10 @@ function stripComments(sql) {
     .replace(/--.*$/gm, '');
 }
 
+function stripSingleQuotedStrings(sql) {
+  return sql.replace(/'(?:''|[^'])*'/g, "''");
+}
+
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -18,7 +22,7 @@ for (const file of files) {
 
   const rawSql = fs.readFileSync(file, 'utf8');
   const sql = stripComments(rawSql);
-  if (!/\bsecurity\s+definer\b/i.test(sql)) continue;
+  if (!/\bsecurity\s+definer\b/i.test(stripSingleQuotedStrings(sql))) continue;
 
   const problems = [];
   const securedFunctions = [];
@@ -63,7 +67,10 @@ for (const file of files) {
     }
   }
 
-  const securityDefinerCount = (sql.match(/\bsecurity\s+definer\b/gi) ?? []).length;
+  // Não conta ocorrências dentro de strings (por exemplo mensagens de RAISE),
+  // apenas SECURITY DEFINER que fazem parte da estrutura SQL.
+  const sqlForCounting = stripSingleQuotedStrings(sql);
+  const securityDefinerCount = (sqlForCounting.match(/\bsecurity\s+definer\b/gi) ?? []).length;
   if (securedFunctions.length !== securityDefinerCount) {
     problems.push(
       `foram encontrados ${securityDefinerCount} SECURITY DEFINER, mas apenas ${securedFunctions.length} definições puderam ser validadas; revisar formato SQL`,
