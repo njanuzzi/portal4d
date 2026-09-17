@@ -183,6 +183,71 @@ Escores elevados em Idealização e Amor encontra uma maneira podem orientar int
       ],
     },
   },
+  {
+    key: 'ecr',
+    label: 'Experiências em Relacionamentos Íntimos (ECR-R)',
+    description: '10 perguntas sobre apego adulto (ansiedade e evitação) em relacionamentos.',
+    path: '/questionario-ecr',
+    documentation: {
+      badge: 'Escala Padronizada',
+      tags: ['Relacionamento'],
+      overview:
+        'A Experiences in Close Relationships – versão reduzida (ECR-R) é um instrumento de autorrelato destinado ' +
+        'à avaliação dimensional do apego adulto em relacionamentos íntimos, fundamentado na teoria do apego de ' +
+        'Bowlby e no modelo bidimensional proposto por Brennan, Clark e Shaver (1998). O instrumento avalia dois ' +
+        'construtos centrais e relativamente relacionados: ansiedade e evitação. O objetivo clínico principal é ' +
+        'identificar padrões de insegurança no apego que impactam a regulação emocional, o funcionamento ' +
+        'interpessoal e os vínculos afetivos, com relevância transdiagnóstica.',
+      applicationTime: '3 a 5 minutos',
+      targetPopulation: 'Adultos (≥18 anos)',
+      recommendedUses: [
+        'Triagem clínica inicial, levantando hipóteses sobre funcionamento interpessoal sem pretensão diagnóstica',
+        'Apoio à formulação de caso clínico: estratégias de regulação emocional e padrões recorrentes em relacionamentos íntimos',
+        'Avaliação transdiagnóstica e do funcionamento interpessoal e conjugal',
+        'Planejamento e monitoramento de processos terapêuticos',
+      ],
+      interpretation:
+        `1. Estrutura do instrumento
+Número total de itens: 10 itens. Tipo de resposta: escala Likert de 7 pontos (1 = "Discordo totalmente" a 7 = "Concordo totalmente"). Organização: 2 subescalas (Ansiedade e Evitação).
+
+2. Descrição das subescalas, dimensões ou fatores
+Ansiedade: medo de rejeição e abandono, necessidade intensa de proximidade, hipersensibilidade à responsividade do parceiro e sofrimento quando o outro está indisponível. Evitação: desconforto com intimidade emocional, relutância em depender do parceiro, valorização da autossuficiência e estratégias de distanciamento afetivo.
+
+3. Pontuação e faixas de interpretação (cutoffs)
+Cálculo por soma dos itens de cada subescala. Os estudos não apresentam pontos de corte clínicos validados, nem para a versão original nem para a brasileira.
+- Ansiedade alta: apego ansioso/inseguro, associado a hipervigilância relacional, dependência emocional, maior reatividade afetiva e risco aumentado para sintomas internalizantes. Baixa: maior segurança emocional e menor medo de rejeição.
+- Evitação alta: apego evitativo/inseguro, frequentemente associado a supressão emocional, dificuldades de intimidade, resistência ao vínculo terapêutico e menor busca por apoio. Baixa: maior conforto com proximidade emocional e interdependência saudável.
+
+4. Mudança clínica e sensibilidade
+O estudo não apresenta dados de RCI ou MCID. Pode ser utilizado para monitoramento longitudinal, desde que interpretado como indicador de traço relativamente estável, sensível a mudanças graduais em processos terapêuticos focados em vínculo.
+
+5. Cuidados éticos e limitações de aplicação
+Não deve ser utilizado isoladamente para diagnóstico e não substitui entrevista clínica. A interpretação deve considerar o contexto cultural, o tipo de relacionamento, o momento do ciclo de vida e comorbidades emocionais.
+
+6. Sugestões para análise clínica
+Utilizar os escores para formular hipóteses sobre estratégias de regulação emocional, compreender padrões de vinculação no setting terapêutico e antecipar rupturas de aliança terapêutica. Integração recomendada com entrevista clínica focada em vínculos e medidas de regulação emocional, esquemas interpessoais ou funcionamento da personalidade. Intervenções podem ser direcionadas conforme o perfil: alta ansiedade → foco em tolerância à separação e segurança relacional; alta evitação → foco em acesso emocional, confiança interpessoal e flexibilização defensiva.`,
+      patientInstructions:
+        'Por favor, leia as afirmações a seguir e marque o quanto cada uma descreve as emoções e sentimentos que ' +
+        'você geralmente tem em relacionamentos amorosos e/ou sexuais. Queremos saber como você se sente em ' +
+        'relacionamentos amorosos e/ou sexuais de modo geral, não apenas no seu relacionamento atual ou no seu ' +
+        'último relacionamento. Mesmo que você nunca tenha tido um relacionamento, por favor, responda imaginando ' +
+        'como você se sentiria se estivesse em um.',
+      developers:
+        'Wei, M., Russell, D. W., Mallinckrodt, B., & Vogel, D. L. (2007). The Experiences in Close Relationship ' +
+        'Scale (ECR)-short form: Reliability, validity, and factor structure. Journal of Personality Assessment, ' +
+        '88(2), 187-204. https://doi.org/10.1080/00223890701268041',
+      references:
+        'Brennan, K. A., Clark, C. L., & Shaver, P. R. (1998). Self-report measurement of adult attachment: An ' +
+        'integrative overview. In J. A. Simpson & W. S. Rholes (Orgs.), Attachment theory and close relationships ' +
+        '(pp. 46-76). Nova Iorque: Guilford Press. Natividade, J. C., & Shiramizu, V. K. M. (2015). Uma medida de ' +
+        'apego: versão brasileira da Experiences in Close Relationship Scale-Reduzida (ECR-R-Brasil). Psicologia ' +
+        'usp, 26(3), 484-494. https://doi.org/10.1590/0103-656420140086',
+      scales: [
+        { label: 'Ansiedade', formula: 'Resultado calculado através da soma das questões 2, 4, 6, 8, 10.', hasCutoffs: false },
+        { label: 'Evitação', formula: 'Resultado calculado através da soma das questões 1, 3, 5, 7, 9.', hasCutoffs: false },
+      ],
+    },
+  },
 ];
 
 export function getInstrument(key: string): InstrumentConfig | undefined {
