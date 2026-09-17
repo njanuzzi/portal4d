@@ -35,8 +35,8 @@ export interface Profile {
   name: any;
   role: any;
   active: any;
-  whatsapp?: string | null;
-  address?: string | null;
+  whatsapp?: any;
+  address?: any;
   diary_id?: string | null;
   created_at: any;
   first_login_at?: string | null;
