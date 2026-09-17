@@ -56,7 +56,7 @@ export function Clients() {
 
     supabase
       .from('diaries')
-      .select('id, name, is_active, created_at')
+      .select('id, name, is_active, available_from, available_to, created_at')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .then(({ data }) => setDiaries(data ?? []));
@@ -93,8 +93,8 @@ export function Clients() {
       p_client_id: editClient.id,
       p_name:      editName.trim(),
       p_email:     editEmail.trim(),
-      p_whatsapp:  editWhatsapp || null,
-      p_address:   editAddress || null,
+      p_whatsapp:  editWhatsapp || undefined,
+      p_address:   editAddress || undefined,
       p_diary_id:  editDiaryId,
     });
 

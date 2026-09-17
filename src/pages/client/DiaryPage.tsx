@@ -12,7 +12,7 @@ import { PageSpinner } from '../../components/ui/Spinner';
 import { DiaryReminderPrompt } from '../../components/client/DiaryReminderPrompt';
 import { formatDateLong, formatDate } from '../../lib/format';
 import { buildDiaryConfirmationLink } from '../../lib/whatsapp';
-import type { Diary, DiaryQuestion, DiaryEntry, DayNote } from '../../lib/database.types';
+import type { Diary, DiaryQuestion, DiaryEntry, DayNote, Json } from '../../lib/database.types';
 
 // ── Fixed emotion list for notes ──────────────────────────────────────────────
 
@@ -35,7 +35,7 @@ const FIXED_EMOTIONS: FixedEmotion[] = [
   { emoji: '✨', label: 'Esperança' },
 ];
 
-interface SelectedEmotion { label: string; intensity: number; }
+interface SelectedEmotion { label: string; intensity: number; [key: string]: Json | undefined; }
 
 // ── Diary answer types ────────────────────────────────────────────────────────
 
@@ -180,7 +180,8 @@ export function DiaryPage() {
         supabase.from('diary_entries').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
       ]);
 
-      const latestGoal = goalRows?.[0] ?? null;
+      // The query explicitly filters confirmed_at IS NOT NULL; preserve that narrowing for TypeScript.
+      const latestGoal = (goalRows?.[0] as ClientGoal | undefined) ?? null;
       const total = entryCount ?? 0;
       setCurrentGoal(latestGoal);
       setTotalEntries(total);
@@ -224,7 +225,7 @@ export function DiaryPage() {
           .eq('diary_id', activeDiary.id)
           .order('order_num');
 
-        const loadedQuestions = qs || [];
+        const loadedQuestions = (qs || []) as DiaryQuestion[];
         setQuestions(loadedQuestions);
 
         if (entry) {
