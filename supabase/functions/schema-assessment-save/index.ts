@@ -10,9 +10,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // como concluído — mesma regra de cálculo do tally-schema-webhook (soma
 // por domínio, percentual, classificação Crítico/Atenção/Básico).
 //
-// Só aceita gravar em rascunhos ainda 'in_progress' — depois de calculado
-// não dá mais pra alterar por essa rota (evita mexer numa resposta já
-// fechada usando o assessment_id como se fosse senha).
+// Só aceita gravar em rascunhos ainda 'in_progress' e exige o edit_token
+// emitido na criação/retomada. O assessment_id é apenas identificador interno.
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
