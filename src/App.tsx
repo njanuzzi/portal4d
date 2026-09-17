@@ -50,6 +50,7 @@ import { BFIQuestionnaire } from './pages/BFIQuestionnaire';
 import { MARQQuestionnaire } from './pages/MARQQuestionnaire';
 import { RBSQuestionnaire } from './pages/RBSQuestionnaire';
 import { ECRQuestionnaire } from './pages/ECRQuestionnaire';
+import { ENSRAQuestionnaire } from './pages/ENSRAQuestionnaire';
 import { Atendimento } from './pages/Atendimento';
 import { SessaoAvaliacao } from './pages/SessaoAvaliacao';
 import { Inscricao } from './pages/Inscricao';
@@ -73,6 +74,8 @@ import { RBSResponsesRepository } from './pages/therapist/RBSResponsesRepository
 import { RBSResponseDetail } from './pages/therapist/RBSResponseDetail';
 import { ECRResponsesRepository } from './pages/therapist/ECRResponsesRepository';
 import { ECRResponseDetail } from './pages/therapist/ECRResponseDetail';
+import { ENSRAResponsesRepository } from './pages/therapist/ENSRAResponsesRepository';
+import { ENSRAResponseDetail } from './pages/therapist/ENSRAResponseDetail';
 import { LinkTree } from './pages/LinkTree';
 
 const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog', '/manualportalcliente', '/tree'];
@@ -193,6 +196,15 @@ function AppRoutes() {
     );
   }
 
+  // ENSRA-R questionnaire (Satisfação com o Relacionamento) is always public
+  if (location.pathname === '/questionario-ensra') {
+    return (
+      <Routes>
+        <Route path="/questionario-ensra" element={<ENSRAQuestionnaire />} />
+      </Routes>
+    );
+  }
+
   if (isClientTokenRoute) {
     return (
       <Routes>
@@ -251,6 +263,8 @@ function AppRoutes() {
           <Route path="/rbs-respostas/:assessmentId" element={<RBSResponseDetail />} />
           <Route path="/ecr-respostas" element={<ECRResponsesRepository />} />
           <Route path="/ecr-respostas/:assessmentId" element={<ECRResponseDetail />} />
+          <Route path="/ensra-respostas" element={<ENSRAResponsesRepository />} />
+          <Route path="/ensra-respostas/:assessmentId" element={<ENSRAResponseDetail />} />
           <Route path="/diaries" element={<Diaries />} />
           <Route path="/diaries/new" element={<NewDiary />} />
           <Route path="/diaries/:id" element={<DiaryDetail />} />
