@@ -86,10 +86,23 @@ serve(async (req) => {
     const body = await req.json();
 
     if (body?.resume_assessment_id) {
+      const resumeAssessmentId = String(body.resume_assessment_id);
+      const resumeToken = String(body?.resume_token ?? "");
+
+      if (!resumeToken) return json({ error: "not_found" }, 404);
+
+      const { data: tokenValid, error: tokenError } = await supabase.rpc("verify_assessment_edit_token", {
+        p_instrument: "ecr",
+        p_assessment_id: resumeAssessmentId,
+        p_token: resumeToken,
+      });
+      if (tokenError) throw tokenError;
+      if (!tokenValid) return json({ error: "not_found" }, 404);
+
       const { data: assessment } = await supabase
         .from("client_ecr_assessments")
         .select("id, client_id, version, raw_answers, status")
-        .eq("id", body.resume_assessment_id)
+        .eq("id", resumeAssessmentId)
         .maybeSingle();
 
       if (!assessment || assessment.status !== "in_progress") {
@@ -99,6 +112,7 @@ serve(async (req) => {
       return json({
         client_id: assessment.client_id,
         assessment_id: assessment.id,
+        edit_token: resumeToken,
         version: assessment.version,
         raw_answers: assessment.raw_answers ?? {},
       });
@@ -236,9 +250,18 @@ serve(async (req) => {
       .single();
     if (assessmentError) throw assessmentError;
 
+    const { data: editToken, error: tokenError } = await supabase.rpc("issue_assessment_edit_token", {
+      p_instrument: "ecr",
+      p_assessment_id: assessment.id,
+    });
+    if (tokenError || !editToken) {
+      await supabase.from("client_ecr_assessments").delete().eq("id", assessment.id);
+      throw tokenError ?? new Error("Falha ao emitir token de edição");
+    }
+
     console.log(`[ecr-assessment-start] assessment ${assessment.id} (v${version}) iniciado para ${email}`);
 
-    return json({ client_id: clientId, assessment_id: assessment.id, version, raw_answers: {} });
+    return json({ client_id: clientId, assessment_id: assessment.id, edit_token: editToken, version, raw_answers: {} });
   } catch (err) {
     console.error("[ecr-assessment-start] Erro inesperado:", err);
     return json({ error: String(err) }, 500);

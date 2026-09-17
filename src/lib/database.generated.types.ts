@@ -936,6 +936,10 @@ export type Database = {
           last_login: string
         }[]
       }
+      issue_assessment_edit_token: {
+        Args: { p_assessment_id: string; p_instrument: string }
+        Returns: string
+      }
       record_client_login: { Args: never; Returns: undefined }
       record_monthly_report_view: { Args: { p_report_id: string }; Returns: undefined }
       record_report_acknowledgment: { Args: { p_assessment_id: string }; Returns: undefined }
@@ -968,6 +972,10 @@ export type Database = {
           p_whatsapp?: string
         }
         Returns: undefined
+      }
+      verify_assessment_edit_token: {
+        Args: { p_assessment_id: string; p_instrument: string; p_token: string }
+        Returns: boolean
       }
       validate_client_token: {
         Args: { p_token: string }

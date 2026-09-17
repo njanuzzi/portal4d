@@ -43,7 +43,7 @@ interface Question {
 
 type Step = 'loading' | 'identity' | 'welcome' | 'domains' | 'done';
 
-function loadDraft(): { assessment_id: string } | null {
+function loadDraft(): { assessment_id: string; edit_token: string } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -52,9 +52,9 @@ function loadDraft(): { assessment_id: string } | null {
   }
 }
 
-function saveDraft(assessmentId: string) {
+function saveDraft(assessmentId: string, editToken: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ assessment_id: assessmentId }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ assessment_id: assessmentId, edit_token: editToken }));
   } catch { /* ignore */ }
 }
 
@@ -74,6 +74,7 @@ export function SchemaQuestionnaire() {
   const [totalQuestions, setTotalQuestions] = useState(0);
 
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [editToken, setEditToken] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [currentDomainIndex, setCurrentDomainIndex] = useState(0);
 
@@ -116,12 +117,13 @@ export function SchemaQuestionnaire() {
       setQuestionsByDomain(byDomain);
 
       const draft = loadDraft();
-      if (draft?.assessment_id) {
+      if (draft?.assessment_id && draft?.edit_token) {
         const { data, error: fnError } = await supabase.functions.invoke('schema-assessment-start', {
-          body: { resume_assessment_id: draft.assessment_id },
+          body: { resume_assessment_id: draft.assessment_id, resume_token: draft.edit_token },
         });
         if (!fnError && data?.assessment_id) {
           setAssessmentId(data.assessment_id);
+          setEditToken(draft.edit_token);
           const resumedAnswers = (data.raw_answers ?? {}) as Record<string, number>;
           const numericAnswers: Record<number, number> = {};
           for (const [key, value] of Object.entries(resumedAnswers)) numericAnswers[Number(key)] = value;
@@ -194,14 +196,15 @@ export function SchemaQuestionnaire() {
           },
     });
 
-    if (fnError || !data?.assessment_id) {
+    if (fnError || !data?.assessment_id || !data?.edit_token) {
       setError('Não foi possível iniciar o questionário agora. Tente novamente em alguns minutos.');
       setSubmitting(false);
       return;
     }
 
-    saveDraft(data.assessment_id);
+    saveDraft(data.assessment_id, data.edit_token);
     setAssessmentId(data.assessment_id);
+    setEditToken(data.edit_token);
     setCurrentDomainIndex(0);
     setStep('domains');
     setSubmitting(false);
@@ -219,7 +222,7 @@ export function SchemaQuestionnaire() {
   };
 
   const handleNext = async () => {
-    if (!assessmentId || !currentDomain || !currentDomainAnswered) return;
+    if (!assessmentId || !editToken || !currentDomain || !currentDomainAnswered) return;
     setSubmitting(true);
     setError('');
 
@@ -227,7 +230,7 @@ export function SchemaQuestionnaire() {
     for (const q of currentQuestions) domainAnswers[String(q.question_number)] = answers[q.question_number];
 
     const { data, error: fnError } = await supabase.functions.invoke('schema-assessment-save', {
-      body: { assessment_id: assessmentId, answers: domainAnswers, finish: isLastDomain },
+      body: { assessment_id: assessmentId, edit_token: editToken, answers: domainAnswers, finish: isLastDomain },
     });
 
     if (fnError || data?.error) {
