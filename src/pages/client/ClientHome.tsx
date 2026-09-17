@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, CheckCircle, Clock, FileText, ChevronRight, Flame, AlertCircle, Target } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, FileText, ChevronRight, Flame, AlertCircle, Target, TrendingUp, Cloud } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { formatDateLong, todayISO } from '../../lib/format';
+import { EvolutionChart, type EvolutionPoint } from '../../components/client/EvolutionChart';
+import { WordCloudView } from '../../components/client/WordCloudView';
+import { getWordFrequencies, type WordFrequency } from '../../lib/textAnalysis';
+import type { QuestionType } from '../../lib/database.types';
 
 interface HomeData {
   todayFilled: boolean;
@@ -32,6 +36,17 @@ function calcStreak(dates: string[], today: string): number {
 
 interface ClientGoal { id: string; goal_text: string; }
 
+interface EntryAnswerRow {
+  answer_text: string | null;
+  answer_value: number | null;
+  question: { text: string; type: QuestionType; order_num: number } | null;
+}
+
+interface DiaryEntryRow {
+  date: string;
+  answers: EntryAnswerRow[];
+}
+
 export function ClientHome() {
   const { user, profile } = useAuth();
   const [data, setData] = useState<HomeData | null>(null);
@@ -39,6 +54,9 @@ export function ClientHome() {
   const [pendingGoal, setPendingGoal] = useState<ClientGoal | null>(null);
   const [respondingToPendingGoal, setRespondingToPendingGoal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [evolutionData, setEvolutionData] = useState<EvolutionPoint[]>([]);
+  const [evolutionQuestions, setEvolutionQuestions] = useState<string[]>([]);
+  const [wordCloudWords, setWordCloudWords] = useState<WordFrequency[]>([]);
 
   const today = todayISO();
 
@@ -52,6 +70,7 @@ export function ClientHome() {
         { count: padraoCount },
         { data: goalRows },
         { data: pendingGoalRows },
+        { data: entryRows },
       ] = await Promise.all([
         supabase
           .from('diary_entries')
@@ -84,7 +103,45 @@ export function ClientHome() {
           .is('confirmed_at', null)
           .order('created_at', { ascending: false })
           .limit(1),
+        supabase
+          .from('diary_entries')
+          .select('date, answers:entry_answers(answer_text, answer_value, question:diary_questions(text, type, order_num))')
+          .eq('user_id', user.id)
+          .order('date', { ascending: true }),
       ]);
+
+      // Gráfico de evolução: uma linha por pergunta tipo "scale", identificada
+      // pelo texto da pergunta (perguntas iguais entre diários diferentes se
+      // fundem na mesma linha). Nuvem de palavras: junta todo texto livre.
+      const scaleQuestionOrder = new Map<string, number>();
+      const points: EvolutionPoint[] = [];
+      const freeTexts: string[] = [];
+
+      for (const entry of (entryRows as unknown as DiaryEntryRow[] | null) ?? []) {
+        const point: EvolutionPoint = { date: entry.date };
+        let hasScale = false;
+        for (const answer of entry.answers) {
+          if (!answer.question) continue;
+          if (answer.question.type === 'scale' && answer.answer_value != null) {
+            point[answer.question.text] = answer.answer_value;
+            hasScale = true;
+            if (!scaleQuestionOrder.has(answer.question.text)) {
+              scaleQuestionOrder.set(answer.question.text, answer.question.order_num);
+            }
+          } else if (answer.question.type === 'text' && answer.answer_text) {
+            freeTexts.push(answer.answer_text);
+          }
+        }
+        if (hasScale) points.push(point);
+      }
+
+      setEvolutionData(points);
+      setEvolutionQuestions(
+        Array.from(scaleQuestionOrder.entries())
+          .sort((a, b) => a[1] - b[1])
+          .map(([text]) => text)
+      );
+      setWordCloudWords(getWordFrequencies(freeTexts));
 
       setCurrentGoal((goalRows?.[0] as ClientGoal) ?? null);
       setPendingGoal((pendingGoalRows?.[0] as ClientGoal) ?? null);
@@ -275,6 +332,28 @@ export function ClientHome() {
           </CardBody>
         </Card>
       </div>
+
+      {/* Evolução */}
+      <Card>
+        <CardBody>
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp size={16} className="text-petrol-600" />
+            <h2 className="text-sm font-semibold text-dark font-serif">Sua evolução</h2>
+          </div>
+          <EvolutionChart data={evolutionData} questions={evolutionQuestions} />
+        </CardBody>
+      </Card>
+
+      {/* Nuvem de palavras */}
+      <Card>
+        <CardBody>
+          <div className="flex items-center gap-2 mb-1">
+            <Cloud size={16} className="text-gold-600" />
+            <h2 className="text-sm font-semibold text-dark font-serif">Nuvem de palavras</h2>
+          </div>
+          <WordCloudView words={wordCloudWords} />
+        </CardBody>
+      </Card>
 
       {/* Quick links */}
       <div className="space-y-2">

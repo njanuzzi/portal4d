@@ -16,6 +16,12 @@ export function formatDateLong(date: string | Date): string {
   return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 }
 
+export function formatDateShort(date: string | Date): string {
+  const d = parseDate(date);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
 export function formatDateTime(date: string | Date): string {
   const d = parseDate(date);
   if (isNaN(d.getTime())) return '';
