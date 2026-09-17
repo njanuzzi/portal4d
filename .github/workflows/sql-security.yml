@@ -1,0 +1,36 @@
+name: SQL security guard
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/check-sql-security.mjs'
+      - '.github/workflows/sql-security.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  security-definer-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check changed migrations
+        shell: bash
+        run: |
+          mapfile -t files < <(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" -- 'supabase/migrations/*.sql')
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No changed migrations"
+            exit 0
+          fi
+          node scripts/check-sql-security.mjs "${files[@]}"
