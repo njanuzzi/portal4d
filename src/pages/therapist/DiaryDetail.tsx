@@ -156,7 +156,6 @@ export function DiaryDetail() {
                   <option value="text">Texto livre</option>
                   <option value="number">Número</option>
                   <option value="scale">Escala (1 a 10)</option>
-                  <option value="emotion">Emoções</option>
                 </select>
               </div>
               <div className="flex gap-2">
