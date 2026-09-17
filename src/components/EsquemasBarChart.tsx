@@ -5,6 +5,10 @@ interface EsquemaBarItem {
   name: string;
   percentual: number;
   description?: string;
+  /** Rótulo mostrado no lugar de `${percentual.toFixed(0)}%` — usado pelo
+   * SMI, que tem escala 1-6 e não percentual (percentual aqui só controla
+   * a largura da barra). Quando ausente, mantém o comportamento atual. */
+  displayValue?: string;
 }
 
 interface EsquemasBarChartProps {
@@ -40,7 +44,7 @@ export function EsquemasBarChart({ items }: EsquemasBarChartProps) {
                   {item.name}
                 </span>
                 <span className="text-xs font-medium text-gold-700 shrink-0 tabular-nums">
-                  {item.percentual.toFixed(0)}%
+                  {item.displayValue ?? `${item.percentual.toFixed(0)}%`}
                 </span>
               </div>
               <div className="w-full h-2 bg-beige-100 rounded-full overflow-hidden">
