@@ -2,17 +2,39 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk";
 
+// === Gera a devolutiva simplificada para o CLIENTE (voz sistêmica) via Claude ===
+//
+// Recebe { assessment_id }, busca os 5 esquemas de maior percentual (não filtra
+// por classificação — o cliente quase nunca lê relatório longo, então a lógica é
+// "os 5 mais altos", como decidido com a terapeuta), monta o prompt em linguagem
+// sistêmica (sem jargão de Terapia do Esquema) e salva o resultado como JSON
+// estruturado em client_schema_reports.client_content.
+//
+// O NOME de cada esquema (campo "nome") vem sempre de schema_domains.friendly_name
+// — fixo no banco, nunca gerado pela IA. Isso garante que o mesmo esquema apareça
+// com o mesmo nome em qualquer devolutiva de qualquer cliente, em qualquer versão
+// (importante pro cliente conseguir comparar % entre respostas diferentes ao longo
+// do tempo sem achar que são padrões diferentes). A IA só escreve a "descricao"
+// (como aquele padrão aparece na vida da pessoa) e a "conclusao".
+//
+// Não mexe em technical_content/status — só complementa a linha já existente
+// (criada por generate-technical-report). Por isso é update, não upsert.
+
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
-const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
+
+const anthropic = new Anthropic({
+  apiKey: Deno.env.get("ANTHROPIC_API_KEY")!,
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
 const MODEL = "claude-sonnet-5";
 
 const SYSTEM_PROMPT = `Você está escrevendo uma devolutiva para o CLIENTE de uma terapeuta, a partir dos
@@ -44,10 +66,21 @@ DADOS DE ENTRADA: nome do cliente e os 5 padrões de maior percentual, cada um c
 o nome técnico interno (só pra você entender do que se trata, não usar no texto),
 o nome padronizado ("nome_padrao") e o percentual.
 
-Responda APENAS com um JSON válido (sem markdown, sem texto antes ou depois), no formato:
-{"esquemas":[{"descricao":"..."}],"conclusao":"..."}
+Responda APENAS com um JSON válido (sem markdown, sem \`\`\`, sem texto antes ou
+depois), no formato exato abaixo:
 
-O array "esquemas" deve ter exatamente 5 itens, na mesma ordem dos dados fornecidos.`;
+{
+  "esquemas": [
+    {
+      "descricao": "2 a 4 frases, em segunda pessoa e com abertura pessoal, explicando o que esse padrão costuma significar na vida da pessoa e nos relacionamentos — como ele se manifesta, não por que ele existe."
+    }
+  ],
+  "conclusao": "Um parágrafo (4 a 6 frases), também em segunda pessoa e tom pessoal, como um fechamento da terapeuta compartilhando o que as respostas do questionário revelaram sobre a pessoa como um todo — não uma análise técnica de como os padrões se cruzam, e sim uma síntese acolhedora do que esse conjunto de respostas mostra."
+}
+
+O array "esquemas" deve ter exatamente 5 itens, na mesma ordem (maior percentual
+primeiro) em que os dados foram fornecidos — item 1 da resposta corresponde ao
+item 1 dos dados de entrada, e assim por diante.`;
 
 function extractJson(raw: string): string {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -59,7 +92,9 @@ function extractJson(raw: string): string {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
   try {
     const { assessment_id } = await req.json();
@@ -83,6 +118,7 @@ serve(async (req) => {
       .eq("assessment_id", assessment_id)
       .order("percentual", { ascending: false });
     if (scoresError) throw scoresError;
+
     if (!allScores?.length) {
       return new Response(JSON.stringify({ error: "Nenhum score encontrado para esse assessment_id" }), {
         status: 404,
@@ -92,11 +128,16 @@ serve(async (req) => {
 
     const scores = (allScores as any[]).slice(0, 5);
     const todos = (allScores as any[]).map((s) => ({ domain_id: s.domain_id, percentual: s.percentual }));
+
     const clientName = (assessment as any)?.profiles?.name ?? "Cliente";
+
     const esquemasList = scores
       .map((s, i) => `${i + 1}. nome_padrao: "${s.schema_domains.friendly_name}" | nome técnico (referência interna): ${s.schema_domains.name} | percentual: ${s.percentual}%`)
       .join("\n");
+
     const userMessage = `Cliente: ${clientName}\n\n5 padrões de maior percentual:\n${esquemasList}`;
+
+    console.log(`[generate-client-report] Gerando devolutiva para assessment ${assessment_id}`);
 
     const stream = anthropic.messages.stream({
       model: MODEL,
@@ -110,12 +151,18 @@ serve(async (req) => {
     const response = await stream.finalMessage();
     const textBlocks = response.content.filter((b): b is Anthropic.TextBlock => b.type === "text");
     const rawText = textBlocks.map((b) => b.text).join("\n\n").trim();
-    if (!rawText) throw new Error("Claude não retornou conteúdo de texto");
+
+    if (!rawText) {
+      throw new Error("Claude não retornou conteúdo de texto");
+    }
 
     const jsonText = extractJson(rawText);
     let aiContent: { esquemas: { descricao: string }[]; conclusao: unknown };
-    try { aiContent = JSON.parse(jsonText); }
-    catch { throw new Error(`Claude não retornou um JSON válido: ${rawText.slice(0, 300)}`); }
+    try {
+      aiContent = JSON.parse(jsonText);
+    } catch {
+      throw new Error(`Claude não retornou um JSON válido: ${rawText.slice(0, 300)}`);
+    }
 
     if (!Array.isArray(aiContent.esquemas) || aiContent.esquemas.length !== scores.length) {
       throw new Error(`Claude retornou ${aiContent.esquemas?.length ?? 0} itens, esperado ${scores.length}`);
@@ -126,6 +173,7 @@ serve(async (req) => {
       percentual: s.percentual,
       descricao: aiContent.esquemas[i].descricao,
     }));
+
     const clientContent = { esquemas, conclusao: aiContent.conclusao, todos };
 
     const { data: existing } = await supabase
@@ -147,10 +195,12 @@ serve(async (req) => {
       .single();
     if (updateError) throw updateError;
 
-    return new Response(JSON.stringify({ report_id: report.id, assessment_id, client_name: clientName, usage: response.usage }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.log(`[generate-client-report] Devolutiva do relatório ${report.id} salva`);
+
+    return new Response(
+      JSON.stringify({ report_id: report.id, assessment_id, client_name: clientName, usage: response.usage }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (err) {
     console.error("[generate-client-report] Erro inesperado:", err);
     return new Response(JSON.stringify({ error: String(err) }), {
