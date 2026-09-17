@@ -5,6 +5,8 @@
 // in this file are legacy UI models kept temporarily so older screens can be
 // migrated incrementally without changing runtime behavior in one large PR.
 
+import type { Json as GeneratedJson } from './database.generated.types';
+
 export type {
   Database,
   Json,
@@ -22,6 +24,7 @@ export type QuestionType = 'text' | 'number' | 'scale' | 'emotion';
 export interface EmotionOption {
   emoji: string;
   label: string;
+  [key: string]: GeneratedJson | undefined;
 }
 
 export interface Profile {
