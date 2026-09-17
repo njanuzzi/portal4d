@@ -248,6 +248,66 @@ Utilizar os escores para formular hipóteses sobre estratégias de regulação e
       ],
     },
   },
+  {
+    key: 'ensra',
+    label: 'Satisfação com o Relacionamento (ENSRA-R)',
+    description: '5 perguntas sobre satisfação global com o relacionamento amoroso.',
+    path: '/questionario-ensra',
+    documentation: {
+      badge: 'Escala Padronizada',
+      tags: ['Relacionamento'],
+      overview:
+        'A Escala do Nível de Satisfação com o Relacionamento Amoroso - Revisada (ENSRA-R) avalia a satisfação ' +
+        'global com o relacionamento amoroso, compreendida como uma atitude geral do indivíduo em relação ao seu ' +
+        'relacionamento, resultante da avaliação subjetiva do balanço entre aspectos positivos e negativos da ' +
+        'relação. A ENSRA-R foi proposta com inclusão de itens mais "difíceis" (maior exigência de satisfação ' +
+        'elevada) em relação à versão original (ENSRA), visando melhorar a cobertura do traço latente em níveis ' +
+        'altos. O instrumento é fundamentado no Modelo de Investimento do Processo de Comprometimento (Rusbult, ' +
+        '1980; Rusbult et al., 1998), mas é conceitual e psicometricamente independente das demais escalas do ' +
+        'modelo, podendo ser utilizado de forma isolada.',
+      applicationTime: '3 minutos',
+      targetPopulation: 'Adultos envolvidos em relacionamento amoroso comprometido (namoro estável, noivado, casamento ou coabitação)',
+      recommendedUses: [
+        'Triagem clínica em psicoterapia individual ou de casal',
+        'Avaliação inicial da qualidade relacional',
+        'Monitoramento de processos terapêuticos focados em relacionamento',
+        'Pesquisa em psicologia clínica, social e da família',
+      ],
+      interpretation:
+        `1. Estrutura do instrumento
+Número total de itens: 5 itens. Tipo de resposta: escala Likert de 9 pontos (0 = "Discordo completamente" a 8 = "Concordo completamente"). Organização: unidimensional.
+
+2. Descrição das subescalas, dimensões ou fatores
+A ENSRA-R é unidimensional, avaliando a satisfação global com o relacionamento amoroso — uma avaliação geral e subjetiva do vínculo, que integra múltiplos aspectos do relacionamento segundo os critérios pessoais do respondente, sem identificar domínios específicos de insatisfação.
+
+3. Pontuação e faixas de interpretação (cutoffs)
+Escore total: média dos itens. O estudo não apresenta pontos de corte clínicos normatizados para classificação categórica (baixo, médio, alto) — a interpretação deve ser dimensional e contextualizada, comparando mudanças intraindividuais ao longo do tempo e resultados com outros indicadores clínicos. Escores elevados indicam avaliação global positiva do relacionamento, maior probabilidade de manutenção do vínculo e associação com maiores níveis de comprometimento. Escores baixos sugerem insatisfação global, maior vulnerabilidade relacional e maior probabilidade de ideação de término ou sofrimento associado ao vínculo.
+
+4. Mudança clínica e sensibilidade
+O instrumento é adequado para reaplicações, dada sua brevidade e alta precisão, podendo ser usado para monitoramento longitudinal — especialmente para observar tendências de melhora ou deterioração da satisfação ao longo do processo terapêutico. Não são apresentados dados de RCI ou MCID no artigo.
+
+5. Cuidados éticos e limitações de aplicação
+A ENSRA-R não deve ser utilizada isoladamente para decisões diagnósticas, não substitui entrevista clínica ou avaliação do funcionamento conjugal, e não identifica causas específicas da insatisfação (ex.: comunicação, sexualidade, violência). Pode sofrer influência de desejabilidade social, embora estudos indiquem correlações baixas com esse viés no instrumento original.
+
+6. Sugestões para análise clínica
+Utilizar a ENSRA-R como indicador global de sofrimento ou bem-estar relacional, integrando os resultados com entrevista clínica focada em história do relacionamento e instrumentos complementares (ajustamento diádico, conflito conjugal, comprometimento). Em psicoterapia de casal, escores persistentemente baixos podem indicar necessidade de intervenções focadas em renegociação do vínculo ou exploração de ambivalência, expectativas frustradas ou decisões sobre continuidade da relação. Em psicoterapia individual, pode auxiliar na formulação de hipóteses sobre o impacto do relacionamento na saúde mental e dilemas de permanência vs. separação.`,
+      patientInstructions:
+        'A seguir, você encontrará uma série de afirmações sobre relacionamentos amorosos. Por favor, leia cada ' +
+        'uma delas e responda de acordo com a sua opinião. Pensando no(a) seu(sua) parceiro(a), indique, ' +
+        'utilizando a escala, o quanto você concorda com cada uma das afirmações.',
+      developers:
+        'Rusbult, C. E., Martz, J. M., & Agnew, C. R. (1998). The investment model scale: Measuring commitment ' +
+        'level, satisfaction level, quality of alternatives, and investment size. Personal Relationships, 5(4), ' +
+        '357-387. https://doi.org/10.1111/j.1475-6811.1998.tb00177.x',
+      references:
+        'Londero-Santos, A., Natividade, J. C., & Féres-Carneiro, T. (2021). Uma medida de satisfação com o ' +
+        'relacionamento amoroso. Avaliação Psicológica: Interamerican Journal of Psychological Assessment, 20(1), ' +
+        '11-22. http://doi.org/10.15689/ap.2021.2001.18901.02',
+      scales: [
+        { label: 'Escala global', formula: 'A escala global será a média da pontuação de todas as questões.', hasCutoffs: false },
+      ],
+    },
+  },
 ];
 
 export function getInstrument(key: string): InstrumentConfig | undefined {
