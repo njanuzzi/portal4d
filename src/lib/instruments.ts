@@ -121,6 +121,68 @@ Escores mais baixos podem sugerir redução de intimidade, diminuição de carin
       ],
     },
   },
+  {
+    key: 'rbs',
+    label: 'Escala de Crenças Românticas (RBS)',
+    description: '13 perguntas sobre crenças cognitivas idealizadas do amor romântico.',
+    path: '/questionario-rbs',
+    documentation: {
+      badge: 'Escala Padronizada',
+      tags: ['Relacionamento'],
+      overview:
+        'A Romantic Beliefs Scale (RBS) foi desenvolvida para avaliar crenças cognitivas sobre o romantismo e o ' +
+        'amor romântico ideal, entendidas como esquemas que orientam expectativas, interpretações e comportamentos ' +
+        'em relacionamentos amorosos. O instrumento fundamenta-se na concepção de que o romantismo constitui uma ' +
+        'ideologia composta por crenças relativamente estáveis, tais como a existência de um "amor verdadeiro", a ' +
+        'ideia de perfeição do vínculo amoroso e a noção de que o amor supera quaisquer obstáculos. Essas crenças ' +
+        'podem influenciar a formação, manutenção, satisfação e comprometimento em relacionamentos românticos.',
+      applicationTime: '5 minutos',
+      targetPopulation: 'Adultos (≥18 anos)',
+      recommendedUses: [
+        'Triagem de crenças românticas idealizadas',
+        'Apoio à formulação de caso em psicoterapia individual ou de casal',
+        'Monitoramento cognitivo ao longo de intervenções focadas em expectativas e esquemas relacionais',
+        'Pesquisa em psicologia social, clínica e da personalidade',
+      ],
+      interpretation:
+        `1. Estrutura do instrumento
+Número total de itens: 13 itens. Tipo de resposta: escala de frequência de 7 pontos (1 = "Discordo fortemente" a 7 = "Concordo fortemente"). Organização: 4 subescalas (Amor encontra uma maneira; Um e único; Idealização; Amor à primeira vista).
+
+2. Descrição das subescalas, dimensões ou fatores
+Amor encontra uma maneira: crença de que o amor supera quaisquer barreiras e obstáculos (familiares, sociais, circunstanciais). Um e único: crença na existência de uma única pessoa destinada a ser o "verdadeiro amor". Idealização: crença de que o relacionamento com o amor verdadeiro será perfeito ou quase. Amor à primeira vista: crença de que o amor verdadeiro pode ser reconhecido imediatamente, antes de interação significativa.
+
+3. Pontuação e faixas de interpretação (cutoffs)
+Pontuação pela média dos itens por fator, podendo-se calcular também a média geral (fator de segunda ordem) — intervalo possível de 1 a 7. O estudo não apresenta pontos de corte validados; a interpretação deve ser dimensional e comparativa (intraindivíduo e entre fatores).
+- Amor encontra uma maneira alto: persistência relacional, mas também risco de tolerar relações disfuncionais ou abusivas em nome do ideal romântico. Baixo: maior consideração de limites contextuais e pessoais.
+- Um e único alto: tendência a exclusividade emocional rígida, possível dificuldade em elaborar términos ou aceitar alternativas relacionais. Baixo: maior flexibilidade cognitiva quanto a vínculos amorosos.
+- Idealização alta: expectativas elevadas, risco de frustração, conflitos conjugais e manutenção de relações insatisfatórias por idealização. Baixa: expectativas mais realistas e tolerância a imperfeições.
+- Amor à primeira vista alto: impulsividade afetiva, decisões relacionais rápidas; pode associar-se a maior extroversão. Baixo: maior valorização do conhecimento gradual do parceiro.
+
+4. Mudança clínica e sensibilidade
+A RBS-Brasil pode ser reaplicada para monitoramento cognitivo, porém o estudo não apresenta dados de sensibilidade à mudança clínica, RCI ou MCID. Recomenda-se cautela ao interpretar variações de escores como mudança terapêutica significativa.
+
+5. Cuidados éticos e limitações de aplicação
+Não deve ser utilizada isoladamente para diagnóstico — recomenda-se integração com entrevista clínica e outros instrumentos (ex.: satisfação conjugal, crenças disfuncionais de relacionamento). Alguns fatores apresentam consistência interna moderada (α ≈ 0,61), especialmente Idealização e Amor à primeira vista, exigindo interpretação cuidadosa.
+
+6. Sugestões para análise clínica
+Escores elevados em Idealização e Amor encontra uma maneira podem orientar intervenções focadas em flexibilização cognitiva, psicoeducação sobre expectativas realistas e estabelecimento de limites relacionais. Um e único elevado pode sinalizar dificuldades em luto amoroso, dependência emocional ou esquemas de exclusividade rígida. Amor à primeira vista elevado pode ser explorado em conjunto com impulsividade, tomada de decisão e padrões repetitivos de escolha de parceiros. A combinação da RBS-Brasil com medidas de satisfação conjugal e investimento emocional pode enriquecer a formulação de caso e o planejamento terapêutico.`,
+      patientInstructions: 'A seguir, você encontrará uma série de afirmações. Por favor, indique o quanto você concorda ou discorda de cada uma delas.',
+      developers:
+        'Sprecher, S., & Metts, S. (1989). Development of the "Romantic Beliefs Scale" and examination of the ' +
+        'effects of gender and gender-role orientation. Journal of Social and Personal Relationships, 6(4), ' +
+        '387-411. http://doi.org/10.1177/0265407589064001',
+      references:
+        'Zibenberg, D., & Natividade, J. C. (2024). Alma Gêmea: Adaptação da Romantic Beliefs Scale. Psico-USF, ' +
+        '29, e264839. https://doi.org/10.1590/1413-827120242901e264839',
+      scales: [
+        { label: 'Escala global', formula: 'A escala global será a média da pontuação de todas as subescalas.', hasCutoffs: false },
+        { label: 'Amor encontra uma maneira', formula: 'Resultado calculado através da média das questões 3, 7, 9, 11, 13.', hasCutoffs: false },
+        { label: 'Amor à primeira vista', formula: 'Resultado calculado através da média das questões 4, 10.', hasCutoffs: false },
+        { label: 'Um e único', formula: 'Resultado calculado através da média das questões 1, 2, 8.', hasCutoffs: false },
+        { label: 'Idealização', formula: 'Resultado calculado através da média das questões 5, 6, 12.', hasCutoffs: false },
+      ],
+    },
+  },
 ];
 
 export function getInstrument(key: string): InstrumentConfig | undefined {

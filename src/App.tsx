@@ -48,6 +48,7 @@ import { SchemaQuestionnaire } from './pages/SchemaQuestionnaire';
 import { SMIQuestionnaire } from './pages/SMIQuestionnaire';
 import { BFIQuestionnaire } from './pages/BFIQuestionnaire';
 import { MARQQuestionnaire } from './pages/MARQQuestionnaire';
+import { RBSQuestionnaire } from './pages/RBSQuestionnaire';
 import { Atendimento } from './pages/Atendimento';
 import { SessaoAvaliacao } from './pages/SessaoAvaliacao';
 import { Inscricao } from './pages/Inscricao';
@@ -67,6 +68,8 @@ import { BFIResponsesRepository } from './pages/therapist/BFIResponsesRepository
 import { BFIResponseDetail } from './pages/therapist/BFIResponseDetail';
 import { MARQResponsesRepository } from './pages/therapist/MARQResponsesRepository';
 import { MARQResponseDetail } from './pages/therapist/MARQResponseDetail';
+import { RBSResponsesRepository } from './pages/therapist/RBSResponsesRepository';
+import { RBSResponseDetail } from './pages/therapist/RBSResponseDetail';
 import { LinkTree } from './pages/LinkTree';
 
 const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog', '/manualportalcliente', '/tree'];
@@ -169,6 +172,15 @@ function AppRoutes() {
     );
   }
 
+  // RBS questionnaire (Escala de Crenças Românticas) is always public
+  if (location.pathname === '/questionario-rbs') {
+    return (
+      <Routes>
+        <Route path="/questionario-rbs" element={<RBSQuestionnaire />} />
+      </Routes>
+    );
+  }
+
   if (isClientTokenRoute) {
     return (
       <Routes>
@@ -223,6 +235,8 @@ function AppRoutes() {
           <Route path="/bfi-respostas/:assessmentId" element={<BFIResponseDetail />} />
           <Route path="/marq-respostas" element={<MARQResponsesRepository />} />
           <Route path="/marq-respostas/:assessmentId" element={<MARQResponseDetail />} />
+          <Route path="/rbs-respostas" element={<RBSResponsesRepository />} />
+          <Route path="/rbs-respostas/:assessmentId" element={<RBSResponseDetail />} />
           <Route path="/diaries" element={<Diaries />} />
           <Route path="/diaries/new" element={<NewDiary />} />
           <Route path="/diaries/:id" element={<DiaryDetail />} />
