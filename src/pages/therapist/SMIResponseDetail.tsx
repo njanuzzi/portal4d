@@ -132,7 +132,7 @@ export function SMIResponseDetail() {
         id: assessmentRow.id,
         client_id: assessmentRow.client_id,
         version: assessmentRow.version,
-        submitted_at: assessmentRow.submitted_at,
+        submitted_at: assessmentRow.submitted_at ?? '',
         status: row.status,
         raw_answers: (assessmentRow.raw_answers ?? {}) as Record<string, number>,
         client_name: profile?.name ?? '—',

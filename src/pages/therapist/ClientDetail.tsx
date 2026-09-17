@@ -87,7 +87,7 @@ export function ClientDetail() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [waSession, setWaSession] = useState<WaSession | null>(null);
   const [sendingWaInvite, setSendingWaInvite] = useState(false);
-  const [waInviteSent, setWaInviteSent] = useState(false);
+  const [, setWaInviteSent] = useState(false);
   const [waInviteError, setWaInviteError] = useState('');
   const [waActivationLink, setWaActivationLink] = useState<string | null>(null);
   const [waCopied, setWaCopied] = useState(false);

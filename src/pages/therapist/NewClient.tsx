@@ -21,8 +21,8 @@ const DEBUG_PREFIX = '[NewClient active diaries]';
 type ActiveDiary = {
   id: string;
   name: string;
-  is_active: boolean;
-  created_at: string;
+  is_active: boolean | null;
+  created_at: string | null;
 };
 
 type CreatedClient = {
