@@ -936,7 +936,6 @@ export type Database = {
           last_login: string
         }[]
       }
-      is_therapist: { Args: never; Returns: boolean }
       record_client_login: { Args: never; Returns: undefined }
       record_monthly_report_view: { Args: { p_report_id: string }; Returns: undefined }
       record_report_acknowledgment: { Args: { p_assessment_id: string }; Returns: undefined }
