@@ -8,9 +8,11 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
+const TALLY_SIGNING_SECRET = Deno.env.get("TALLY_SCHEMA_SIGNING_SECRET");
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, tally-signature",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -53,11 +55,63 @@ function findFieldValue(fields: any[], candidateLabels: string[]): string | null
   return v != null ? String(v).trim() : null;
 }
 
+async function verifyTallySignature(payload: unknown, receivedSignature: string): Promise<boolean> {
+  if (!TALLY_SIGNING_SECRET) return false;
+
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(TALLY_SIGNING_SECRET),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+
+    const signatureBytes = Uint8Array.from(
+      atob(receivedSignature),
+      (char) => char.charCodeAt(0),
+    );
+
+    return await crypto.subtle.verify(
+      "HMAC",
+      key,
+      signatureBytes,
+      encoder.encode(JSON.stringify(payload)),
+    );
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  if (!TALLY_SIGNING_SECRET) {
+    console.error("[tally-schema-webhook] TALLY_SCHEMA_SIGNING_SECRET não configurado");
+    return new Response(JSON.stringify({ error: "Webhook not configured" }), {
+      status: 503,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const payload = await req.json();
+    const receivedSignature = req.headers.get("tally-signature") ?? "";
+
+    if (!receivedSignature || !(await verifyTallySignature(payload, receivedSignature))) {
+      console.warn("[tally-schema-webhook] Requisição rejeitada por assinatura inválida");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const fields: any[] = payload?.data?.fields ?? [];
     const tallySubmissionId: string | undefined = payload?.data?.submissionId ?? payload?.data?.responseId;
     const submittedAt: string = payload?.data?.createdAt ?? payload?.createdAt ?? new Date().toISOString();
