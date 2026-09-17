@@ -44,7 +44,7 @@ interface Question {
 
 type Step = 'loading' | 'identity' | 'welcome' | 'modes' | 'done';
 
-function loadDraft(): { assessment_id: string } | null {
+function loadDraft(): { assessment_id: string; edit_token: string } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -53,9 +53,9 @@ function loadDraft(): { assessment_id: string } | null {
   }
 }
 
-function saveDraft(assessmentId: string) {
+function saveDraft(assessmentId: string, editToken: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ assessment_id: assessmentId }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ assessment_id: assessmentId, edit_token: editToken }));
   } catch { /* ignore */ }
 }
 
@@ -75,6 +75,7 @@ export function SMIQuestionnaire() {
   const [totalQuestions, setTotalQuestions] = useState(0);
 
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [editToken, setEditToken] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [currentModeIndex, setCurrentModeIndex] = useState(0);
 
@@ -117,12 +118,13 @@ export function SMIQuestionnaire() {
       setQuestionsByMode(byMode);
 
       const draft = loadDraft();
-      if (draft?.assessment_id) {
+      if (draft?.assessment_id && draft?.edit_token) {
         const { data, error: fnError } = await supabase.functions.invoke('smi-assessment-start', {
-          body: { resume_assessment_id: draft.assessment_id },
+          body: { resume_assessment_id: draft.assessment_id, resume_token: draft.edit_token },
         });
         if (!fnError && data?.assessment_id) {
           setAssessmentId(data.assessment_id);
+          setEditToken(draft.edit_token);
           const resumedAnswers = (data.raw_answers ?? {}) as Record<string, number>;
           const numericAnswers: Record<number, number> = {};
           for (const [key, value] of Object.entries(resumedAnswers)) numericAnswers[Number(key)] = value;
@@ -195,14 +197,15 @@ export function SMIQuestionnaire() {
           },
     });
 
-    if (fnError || !data?.assessment_id) {
+    if (fnError || !data?.assessment_id || !data?.edit_token) {
       setError('Não foi possível iniciar o questionário agora. Tente novamente em alguns minutos.');
       setSubmitting(false);
       return;
     }
 
-    saveDraft(data.assessment_id);
+    saveDraft(data.assessment_id, data.edit_token);
     setAssessmentId(data.assessment_id);
+    setEditToken(data.edit_token);
     setCurrentModeIndex(0);
     setStep('modes');
     setSubmitting(false);
@@ -220,7 +223,7 @@ export function SMIQuestionnaire() {
   };
 
   const handleNext = async () => {
-    if (!assessmentId || !currentMode || !currentModeAnswered) return;
+    if (!assessmentId || !editToken || !currentMode || !currentModeAnswered) return;
     setSubmitting(true);
     setError('');
 
@@ -228,7 +231,7 @@ export function SMIQuestionnaire() {
     for (const q of currentQuestions) modeAnswers[String(q.question_number)] = answers[q.question_number];
 
     const { data, error: fnError } = await supabase.functions.invoke('smi-assessment-save', {
-      body: { assessment_id: assessmentId, answers: modeAnswers, finish: isLastMode },
+      body: { assessment_id: assessmentId, edit_token: editToken, answers: modeAnswers, finish: isLastMode },
     });
 
     if (fnError || data?.error) {
