@@ -33,7 +33,7 @@ interface Question {
 
 type Step = 'loading' | 'identity' | 'welcome' | 'quiz' | 'done';
 
-function loadDraft(): { assessment_id: string } | null {
+function loadDraft(): { assessment_id: string; edit_token: string } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -42,9 +42,9 @@ function loadDraft(): { assessment_id: string } | null {
   }
 }
 
-function saveDraft(assessmentId: string) {
+function saveDraft(assessmentId: string, editToken: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ assessment_id: assessmentId }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ assessment_id: assessmentId, edit_token: editToken }));
   } catch { /* ignore */ }
 }
 
@@ -61,6 +61,7 @@ export function ECRQuestionnaire() {
   const [step, setStep] = useState<Step>('loading');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [editToken, setEditToken] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
 
   const [inviteClientName, setInviteClientName] = useState<string | null>(null);
@@ -85,12 +86,13 @@ export function ECRQuestionnaire() {
       setQuestions((questionRows ?? []) as Question[]);
 
       const draft = loadDraft();
-      if (draft?.assessment_id) {
+      if (draft?.assessment_id && draft?.edit_token) {
         const { data, error: fnError } = await supabase.functions.invoke('ecr-assessment-start', {
-          body: { resume_assessment_id: draft.assessment_id },
+          body: { resume_assessment_id: draft.assessment_id, resume_token: draft.edit_token },
         });
         if (!fnError && data?.assessment_id) {
           setAssessmentId(data.assessment_id);
+          setEditToken(draft.edit_token);
           const resumedAnswers = (data.raw_answers ?? {}) as Record<string, number>;
           const numericAnswers: Record<number, number> = {};
           for (const [key, value] of Object.entries(resumedAnswers)) numericAnswers[Number(key)] = value;
@@ -153,14 +155,15 @@ export function ECRQuestionnaire() {
           },
     });
 
-    if (fnError || !data?.assessment_id) {
+    if (fnError || !data?.assessment_id || !data?.edit_token) {
       setError('Não foi possível iniciar o questionário agora. Tente novamente em alguns minutos.');
       setSubmitting(false);
       return;
     }
 
-    saveDraft(data.assessment_id);
+    saveDraft(data.assessment_id, data.edit_token);
     setAssessmentId(data.assessment_id);
+    setEditToken(data.edit_token);
     setStep('quiz');
     setSubmitting(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -174,7 +177,7 @@ export function ECRQuestionnaire() {
   };
 
   const handleSubmit = async () => {
-    if (!assessmentId || !allAnswered) return;
+    if (!assessmentId || !editToken || !allAnswered) return;
     setSubmitting(true);
     setError('');
 
@@ -182,7 +185,7 @@ export function ECRQuestionnaire() {
     for (const q of questions) allAnswersByNumber[String(q.question_number)] = answers[q.question_number];
 
     const { data, error: fnError } = await supabase.functions.invoke('ecr-assessment-save', {
-      body: { assessment_id: assessmentId, answers: allAnswersByNumber, finish: true },
+      body: { assessment_id: assessmentId, edit_token: editToken, answers: allAnswersByNumber, finish: true },
     });
 
     if (fnError || data?.error) {
