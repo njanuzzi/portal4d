@@ -51,6 +51,7 @@ import { MARQQuestionnaire } from './pages/MARQQuestionnaire';
 import { RBSQuestionnaire } from './pages/RBSQuestionnaire';
 import { ECRQuestionnaire } from './pages/ECRQuestionnaire';
 import { ENSRAQuestionnaire } from './pages/ENSRAQuestionnaire';
+import { ETASQuestionnaire } from './pages/ETASQuestionnaire';
 import { Atendimento } from './pages/Atendimento';
 import { SessaoAvaliacao } from './pages/SessaoAvaliacao';
 import { Inscricao } from './pages/Inscricao';
@@ -76,6 +77,8 @@ import { ECRResponsesRepository } from './pages/therapist/ECRResponsesRepository
 import { ECRResponseDetail } from './pages/therapist/ECRResponseDetail';
 import { ENSRAResponsesRepository } from './pages/therapist/ENSRAResponsesRepository';
 import { ENSRAResponseDetail } from './pages/therapist/ENSRAResponseDetail';
+import { ETASResponsesRepository } from './pages/therapist/ETASResponsesRepository';
+import { ETASResponseDetail } from './pages/therapist/ETASResponseDetail';
 import { LinkTree } from './pages/LinkTree';
 
 const ALWAYS_PUBLIC_MARKETING_ROUTES = ['/protocolo4d', '/atendimento', '/sessao-avaliacao', '/inscricao', '/produtos', '/quizinstagram', '/sobre', '/conteudos', '/blog', '/manualportalcliente', '/tree'];
@@ -205,6 +208,15 @@ function AppRoutes() {
     );
   }
 
+  // ETAS-R questionnaire (Escala Triangular do Amor) is always public
+  if (location.pathname === '/questionario-etas') {
+    return (
+      <Routes>
+        <Route path="/questionario-etas" element={<ETASQuestionnaire />} />
+      </Routes>
+    );
+  }
+
   if (isClientTokenRoute) {
     return (
       <Routes>
@@ -265,6 +277,8 @@ function AppRoutes() {
           <Route path="/ecr-respostas/:assessmentId" element={<ECRResponseDetail />} />
           <Route path="/ensra-respostas" element={<ENSRAResponsesRepository />} />
           <Route path="/ensra-respostas/:assessmentId" element={<ENSRAResponseDetail />} />
+          <Route path="/etas-respostas" element={<ETASResponsesRepository />} />
+          <Route path="/etas-respostas/:assessmentId" element={<ETASResponseDetail />} />
           <Route path="/diaries" element={<Diaries />} />
           <Route path="/diaries/new" element={<NewDiary />} />
           <Route path="/diaries/:id" element={<DiaryDetail />} />
