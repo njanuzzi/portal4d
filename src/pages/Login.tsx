@@ -22,31 +22,22 @@ export function Login() {
     setLoading(true);
 
     try {
-      // Confere o e-mail contra a aba escolhida antes de autenticar — evita
-      // deixar uma conta de terapeuta entrar pela aba de cliente (ou vice
-      // versa) só porque o redirecionamento depois olha o role de qualquer jeito.
-      const { data: accountRole, error: roleError } = await supabase.rpc('check_account_role', {
-        p_email: email.trim(),
-      });
+      // Autentica primeiro. O role só é consultado depois que a senha foi
+      // validada, evitando revelar se um e-mail existe ou qual tipo de conta possui.
+      const result = await signIn(email.trim(), password, tab);
 
-      if (!roleError) {
-        if (!accountRole) {
-          setError('Não encontramos uma conta com esse e-mail.');
-          return;
-        }
-        if (accountRole !== tab) {
+      if (result.error) {
+        if (result.reason === 'role_mismatch' && result.accountRole) {
           setError(
-            accountRole === 'therapist'
+            result.accountRole === 'therapist'
               ? 'Esse e-mail é de uma conta de terapeuta. Selecione a aba "Terapeuta" para entrar.'
               : 'Esse e-mail é de uma conta de cliente. Selecione a aba "Cliente" para entrar.'
           );
-          return;
+        } else if (result.reason === 'profile_unavailable') {
+          setError('Não foi possível acessar esta conta. Entre em contato com o suporte.');
+        } else {
+          setError('E-mail ou senha incorretos. Tente novamente.');
         }
-      }
-
-      const { error } = await signIn(email, password);
-      if (error) {
-        setError('E-mail ou senha incorretos. Tente novamente.');
       }
     } catch {
       // Falha de rede (conexão bloqueada, instável, etc.) — sem isso o botão
