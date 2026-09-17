@@ -30,7 +30,7 @@ REGRAS:
   "você", com aberturas como "Percebo que você...", nunca terceira pessoa).
 - Mantenha a mesma estrutura JSON do original.
 
-Responda APENAS com um JSON válido (sem markdown, sem bloco de código, sem texto antes ou
+Responda APENAS com um JSON válido (sem markdown, sem \`\`\`, sem texto antes ou
 depois), no MESMO formato do JSON recebido:
 
 {
