@@ -1,0 +1,35 @@
+name: PR84 Zero Runtime Cleanup
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/pr84-zero-runtime-cleanup.mjs'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.event.pull_request.head.ref == 'stabilization/pr84-typecheck-debt'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Apply cleanup
+        run: node scripts/pr84-zero-runtime-cleanup.mjs
+
+      - name: Commit cleanup
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/therapist/DiaryDetail.tsx src/pages/therapist/SMIResponseDetail.tsx
+          git commit -m "fix: preserve PR84 runtime behavior"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
