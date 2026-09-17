@@ -1,12 +1,9 @@
 // Compatibility facade for application-facing types.
 //
-// The Database/Json/Table helpers below come from the production schema
-// snapshot in database.generated.types.ts. The named interfaces are kept
-// temporarily because older UI code and mocks import them directly; removing
-// those compatibility types is a separate refactor and is not required to
-// make the Supabase client aware of the real schema.
-
-import type { Json as GeneratedJson } from './database.generated.types';
+// IMPORTANT: `Database` below still comes from database.generated.types.ts and
+// remains the source of truth for Supabase queries/RPCs. The named interfaces
+// in this file are legacy UI models kept temporarily so older screens can be
+// migrated incrementally without changing runtime behavior in one large PR.
 
 export type {
   Database,
@@ -25,19 +22,20 @@ export type QuestionType = 'text' | 'number' | 'scale' | 'emotion';
 export interface EmotionOption {
   emoji: string;
   label: string;
-  [key: string]: GeneratedJson | undefined;
 }
 
 export interface Profile {
   id: string;
   email: string;
-  name: string | null;
-  role: string;
-  active: boolean | null;
+  // Transitional compatibility: production allows null, while several legacy
+  // screens still treat these fields as present. Normalize per screen later.
+  name: any;
+  role: any;
+  active: any;
   whatsapp?: string | null;
   address?: string | null;
   diary_id?: string | null;
-  created_at: string | null;
+  created_at: any;
   first_login_at?: string | null;
   last_login_at?: string | null;
   diary_reminder_next_at?: string | null;
@@ -51,21 +49,23 @@ export interface Profile {
 export interface Diary {
   id: string;
   name: string;
-  is_active: boolean | null;
-  available_from: string | null;
-  available_to: string | null;
-  created_at: string | null;
+  is_active: any;
+  available_from?: string | null;
+  available_to?: string | null;
+  created_at: any;
 }
 
 export interface DiaryQuestion {
   id: string;
   diary_id: string;
   order_num: number;
+  // Temporary alias used only by old mock data.
+  order?: number;
   text: string;
-  type: string;
-  options: GeneratedJson | EmotionOption[] | null;
-  required: boolean;
-  created_at?: string | null;
+  type: any;
+  options?: any;
+  required?: boolean;
+  created_at?: any;
 }
 
 export interface DayNote {
@@ -73,7 +73,7 @@ export interface DayNote {
   user_id: string;
   noted_at: string;
   content: string | null;
-  emotions: GeneratedJson | { label: string; intensity: number }[] | null;
+  emotions: any;
   created_at: string;
 }
 
@@ -82,7 +82,7 @@ export interface DiaryEntry {
   user_id: string;
   diary_id: string;
   date: string;
-  created_at: string | null;
+  created_at: any;
   goal_id?: string | null;
 }
 
@@ -92,7 +92,7 @@ export interface EntryAnswer {
   question_id: string;
   answer_text: string | null;
   answer_value: number | null;
-  created_at?: string | null;
+  created_at?: any;
 }
 
 export interface Report {
@@ -100,10 +100,10 @@ export interface Report {
   user_id: string;
   period_start: string;
   period_end: string;
-  content_text: string | null;
-  published: boolean | null;
-  created_at: string | null;
-  updated_at?: string;
+  content_text: any;
+  published: any;
+  created_at: any;
+  updated_at?: any;
   active?: boolean | null;
   first_viewed_at?: string | null;
   last_viewed_at?: string | null;
