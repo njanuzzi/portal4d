@@ -1,14 +1,20 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
-import type { Profile } from '../lib/database.types';
+import type { Profile, Role } from '../lib/database.types';
 import { supabase } from '../lib/supabase';
+
+type SignInReason = 'invalid_credentials' | 'role_mismatch' | 'profile_unavailable';
+
+type SignInResult =
+  | { error: null; reason?: never; accountRole?: never }
+  | { error: Error; reason: SignInReason; accountRole?: Role };
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string, expectedRole: Role) => Promise<SignInResult>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   isTherapist: boolean;
@@ -26,11 +32,16 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   return data ?? null;
 }
 
+function isPortalRole(role: unknown): role is Role {
+  return role === 'therapist' || role === 'client';
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const signInInProgress = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -43,6 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // signIn() valida o role antes de publicar a sessão para o restante da UI.
+      // Ignorar apenas este SIGNED_IN evita um redirecionamento momentâneo para
+      // a área errada quando credenciais válidas são usadas na aba incorreta.
+      if (event === 'SIGNED_IN' && signInInProgress.current) return;
+
       (async () => {
         setSession(session);
         setUser(session?.user ?? null);
@@ -61,10 +77,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<{ error: Error | null }> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: new Error(error.message) };
-    return { error: null };
+  const signIn = async (
+    email: string,
+    password: string,
+    expectedRole: Role,
+  ): Promise<SignInResult> => {
+    signInInProgress.current = true;
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (error || !data.user || !data.session) {
+        return {
+          error: new Error(error?.message ?? 'Authentication failed'),
+          reason: 'invalid_credentials',
+        };
+      }
+
+      const p = await fetchProfile(data.user.id);
+      if (!p || !isPortalRole(p.role)) {
+        await supabase.auth.signOut();
+        return {
+          error: new Error('Profile unavailable'),
+          reason: 'profile_unavailable',
+        };
+      }
+
+      if (p.role !== expectedRole) {
+        const accountRole = p.role;
+        await supabase.auth.signOut();
+        return {
+          error: new Error('Role mismatch'),
+          reason: 'role_mismatch',
+          accountRole,
+        };
+      }
+
+      setSession(data.session);
+      setUser(data.user);
+      setProfile(p);
+
+      return { error: null };
+    } finally {
+      signInInProgress.current = false;
+    }
   };
 
   const signOut = async () => {
