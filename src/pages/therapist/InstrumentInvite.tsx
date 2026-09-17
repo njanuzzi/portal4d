@@ -12,17 +12,19 @@ interface ClientOption {
   name: string;
 }
 
+type Mode = 'individual' | 'generic';
+
 export function InstrumentInvite() {
   const { key } = useParams<{ key: string }>();
   const instrument = key ? getInstrument(key) : undefined;
 
+  const [mode, setMode] = useState<Mode>('individual');
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
   const [link, setLink] = useState('');
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     supabase
@@ -44,7 +46,6 @@ export function InstrumentInvite() {
     setGenerating(true);
     setError('');
     setLink('');
-    setCopied(false);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error: insertError } = await (supabase.from('instrument_invites') as any)
@@ -62,11 +63,10 @@ export function InstrumentInvite() {
     setGenerating(false);
   };
 
-  const handleCopy = async () => {
-    if (!link) return;
-    await navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError('');
+    setLink(next === 'generic' && instrument ? `${window.location.origin}${instrument.path}` : '');
   };
 
   if (!instrument) {
@@ -94,63 +94,113 @@ export function InstrumentInvite() {
         <p className="text-dark/50 text-sm mt-1">{instrument.description}</p>
       </div>
 
-      <Card>
-        <CardBody className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-dark">Cliente</label>
-            {clients.length === 0 ? (
-              <p className="text-sm text-dark/40">Nenhum cliente ativo cadastrado.</p>
-            ) : (
-              <select
-                value={selectedClientId}
-                onChange={(e) => { setSelectedClientId(e.target.value); setLink(''); }}
-                className="w-full px-3 py-2.5 rounded-lg border border-beige-300 text-dark text-sm bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent transition-colors"
-              >
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            )}
-          </div>
+      <div className="flex gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => switchMode('individual')}
+          className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
+            mode === 'individual'
+              ? 'bg-petrol-700 text-white border-petrol-700'
+              : 'bg-white text-dark/60 border-beige-300 hover:border-petrol-300'
+          }`}
+        >
+          Link individual
+        </button>
+        <button
+          type="button"
+          onClick={() => switchMode('generic')}
+          className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
+            mode === 'generic'
+              ? 'bg-petrol-700 text-white border-petrol-700'
+              : 'bg-white text-dark/60 border-beige-300 hover:border-petrol-300'
+          }`}
+        >
+          Link genérico (com cadastro)
+        </button>
+      </div>
 
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
-          )}
+      {mode === 'individual' ? (
+        <Card>
+          <CardBody className="space-y-4">
+            <p className="text-xs text-dark/40">
+              O cliente escolhido já cai direto no questionário, sem precisar se identificar.
+            </p>
 
-          <Button onClick={handleGenerate} loading={generating} disabled={!selectedClientId}>
-            Gerar link
-          </Button>
-
-          {link && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-              <p className="text-xs font-medium text-emerald-800 mb-2">
-                ✅ Link gerado! Copie e envie ao cliente. Ele já cai direto no questionário, sem precisar se identificar.
-              </p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs bg-white border border-emerald-200 rounded px-2 py-1.5 text-dark/70 truncate">
-                  {link}
-                </code>
-                <button
-                  onClick={handleCopy}
-                  className="shrink-0 flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-300 rounded px-2 py-1.5 transition-colors"
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-dark">Cliente</label>
+              {clients.length === 0 ? (
+                <p className="text-sm text-dark/40">Nenhum cliente ativo cadastrado.</p>
+              ) : (
+                <select
+                  value={selectedClientId}
+                  onChange={(e) => { setSelectedClientId(e.target.value); setLink(''); }}
+                  className="w-full px-3 py-2.5 rounded-lg border border-beige-300 text-dark text-sm bg-white focus:outline-none focus:ring-2 focus:ring-petrol-400 focus:border-transparent transition-colors"
                 >
-                  {copied ? <><Check size={13} className="text-emerald-600" /> Copiado!</> : <><Copy size={13} /> Copiar</>}
-                </button>
-                <a
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 text-emerald-600 hover:text-emerald-800"
-                  title="Abrir link"
-                >
-                  <ExternalLink size={14} />
-                </a>
-              </div>
-              <p className="text-xs text-emerald-700/70 mt-2">Válido por 30 dias.</p>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
-          )}
-        </CardBody>
-      </Card>
+
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
+            )}
+
+            <Button onClick={handleGenerate} loading={generating} disabled={!selectedClientId}>
+              Gerar link
+            </Button>
+
+            {link && <LinkBox link={link} footer="Válido por 30 dias." />}
+          </CardBody>
+        </Card>
+      ) : (
+        <Card>
+          <CardBody className="space-y-4">
+            <p className="text-xs text-dark/40">
+              Link único e permanente para este instrumento — quem abrir preenche o próprio nome, e-mail e
+              WhatsApp antes de começar. Útil para divulgação avulsa, quando ainda não se sabe quem vai responder.
+            </p>
+            <LinkBox link={link} footer="Sempre disponível — não expira." />
+          </CardBody>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function LinkBox({ link, footer }: { link: string; footer: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  return (
+    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+      <div className="flex items-center gap-2">
+        <code className="flex-1 text-xs bg-white border border-emerald-200 rounded px-2 py-1.5 text-dark/70 truncate">
+          {link}
+        </code>
+        <button
+          onClick={handleCopy}
+          className="shrink-0 flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-300 rounded px-2 py-1.5 transition-colors"
+        >
+          {copied ? <><Check size={13} className="text-emerald-600" /> Copiado!</> : <><Copy size={13} /> Copiar</>}
+        </button>
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 text-emerald-600 hover:text-emerald-800"
+          title="Abrir link"
+        >
+          <ExternalLink size={14} />
+        </a>
+      </div>
+      <p className="text-xs text-emerald-700/70 mt-2">{footer}</p>
     </div>
   );
 }
