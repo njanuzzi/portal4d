@@ -1,7 +1,14 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
+
+// validate_instrument_invite não está nos tipos gerados do Supabase — mesmo
+// padrão do untypedSupabase usado em LeadForm/QuizInstagram/Inscricao pra
+// chamar RPCs fora do schema tipado.
+const untypedSupabase = supabase as unknown as SupabaseClient;
 // import { WHATSAPP_ACTIVATION_LINK } from '../lib/whatsapp'; — desativado, ver botão abaixo
 
 const fieldClass =
@@ -58,6 +65,9 @@ function clearDraft() {
 }
 
 export function SchemaQuestionnaire() {
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('token') ?? '';
+
   const [step, setStep] = useState<Step>('loading');
   const [domains, setDomains] = useState<Domain[]>([]);
   const [questionsByDomain, setQuestionsByDomain] = useState<Map<string, Question[]>>(new Map());
@@ -66,6 +76,12 @@ export function SchemaQuestionnaire() {
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [currentDomainIndex, setCurrentDomainIndex] = useState(0);
+
+  // Preenchido quando o acesso veio de um link individual gerado pelo
+  // terapeuta (ver src/pages/therapist/InstrumentInvite.tsx) — nesse caso
+  // pulamos a etapa de identidade (nome/e-mail/whatsapp) porque já sabemos
+  // quem é o cliente.
+  const [inviteClientName, setInviteClientName] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -126,9 +142,23 @@ export function SchemaQuestionnaire() {
         clearDraft();
       }
 
+      if (inviteToken) {
+        const { data: inviteRows } = await untypedSupabase.rpc('validate_instrument_invite', {
+          p_token: inviteToken,
+          p_instrument: 'esquemas',
+        });
+        const invite = inviteRows?.[0];
+        if (invite) {
+          setInviteClientName(invite.name);
+          setStep('welcome');
+          return;
+        }
+      }
+
       setStep('identity');
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleIdentitySubmit = (e: FormEvent) => {
@@ -146,15 +176,22 @@ export function SchemaQuestionnaire() {
     setError('');
 
     const { data, error: fnError } = await supabase.functions.invoke('schema-assessment-start', {
-      body: {
-        name: name.trim(),
-        email: email.trim(),
-        whatsapp: whatsapp.trim(),
-        hp,
-        lgpd_consent: lgpdConsent,
-        wants_email_notification: notifyEmail,
-        wants_whatsapp_notification: notifyWhatsapp,
-      },
+      body: inviteClientName
+        ? {
+            invite_token: inviteToken,
+            lgpd_consent: lgpdConsent,
+            wants_email_notification: notifyEmail,
+            wants_whatsapp_notification: notifyWhatsapp,
+          }
+        : {
+            name: name.trim(),
+            email: email.trim(),
+            whatsapp: whatsapp.trim(),
+            hp,
+            lgpd_consent: lgpdConsent,
+            wants_email_notification: notifyEmail,
+            wants_whatsapp_notification: notifyWhatsapp,
+          },
     });
 
     if (fnError || !data?.assessment_id) {
@@ -290,6 +327,12 @@ export function SchemaQuestionnaire() {
               />
               <h1 className="font-serif text-xl leading-snug text-balance">Bem-vindo(a)!</h1>
             </div>
+
+            {inviteClientName && (
+              <p className="text-xs text-gold-300 bg-petrol-800/60 border border-petrol-600 rounded-lg px-3 py-2 mb-6">
+                Preenchendo para: <strong>{inviteClientName}</strong>
+              </p>
+            )}
 
             <div className="space-y-5 text-sm text-petrol-100/85 leading-relaxed mb-8">
               <p>
