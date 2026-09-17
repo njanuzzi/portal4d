@@ -53,6 +53,18 @@ A versão GitHub usa:
 
 Produção permanece inalterada nesta PR. A migração para secrets de ambiente exige rotação coordenada com os respectivos provedores e deve ocorrer em uma mudança separada com smoke test, evitando indisponibilidade dos webhooks.
 
+### Spot-check de funções já existentes nos dois lados
+
+Além das 13 funções ausentes, foram comparados manualmente runtime de produção e `main` em cinco fluxos críticos que tiveram mudanças recentes:
+
+- `schema-assessment-start`;
+- `smi-assessment-start`;
+- `sync-notion-sessions`;
+- `generate-monthly-report`;
+- `client-self-signup`.
+
+Não foi encontrada diferença funcional nesses cinco arquivos. Esta checagem é uma amostragem de alto risco, não uma declaração de igualdade byte a byte das outras 25 funções compartilhadas.
+
 ---
 
 ## Histórico de migrations
@@ -161,6 +173,16 @@ Produção já contém:
 - Edge Function `review-roteiro`.
 
 A função passa a estar versionada nesta PR, mas o frontend correspondente continua fora de `main` porque a PR #62 permanece draft. Incorporar esse comportamento visível é escopo posterior (planejado para a etapa de drift funcional), não desta reconciliação de infraestrutura.
+
+---
+
+## Validação desta PR
+
+- Diff revisado: 13 funções novas + este documento; nenhum arquivo de frontend ou migration alterado.
+- Busca no patch confirmou que os dois valores secretos encontrados em produção não foram incluídos no GitHub.
+- PR está mergeable contra `main`.
+- Não houve deploy, `db push`, `apply_migration`, alteração de secret, policy ou Auth.
+- Tentativa de executar as checagens locais a partir de um clone do branch não foi possível neste ambiente porque a rede do container não resolve `github.com`. Portanto esta PR **não declara `build/lint/typecheck` executados localmente**. Como os arquivos adicionados são Edge Functions Deno não importadas pelo bundle Vite atual, esse bloqueio não modifica o estado da produção, mas a validação deve permanecer explicitamente registrada.
 
 ---
 
