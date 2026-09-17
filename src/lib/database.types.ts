@@ -1,3 +1,22 @@
+// Compatibility facade for application-facing types.
+//
+// The Database/Json/Table helpers below come from the production schema
+// snapshot in database.generated.types.ts. The named interfaces are kept
+// temporarily because older UI code and mocks import them directly; removing
+// those compatibility types is a separate refactor and is not required to
+// make the Supabase client aware of the real schema.
+
+export type {
+  Database,
+  Json,
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Enums,
+  CompositeTypes,
+} from './database.generated.types';
+export { Constants } from './database.generated.types';
+
 export type Role = 'therapist' | 'client';
 export type QuestionType = 'text' | 'number' | 'scale' | 'emotion';
 
@@ -91,11 +110,14 @@ export interface Roteiro {
   checklist: boolean[];
   source_text: string | null;
   extracted_at: string | null;
+  ai_review?: unknown | null;
+  ai_rewrite?: unknown | null;
+  reviewed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
 
-// Joined types
+// Joined compatibility types used by existing screens.
 export interface DiaryEntryWithAnswers extends DiaryEntry {
   answers: (EntryAnswer & { question: DiaryQuestion })[];
   diary: Diary;
@@ -104,92 +126,3 @@ export interface DiaryEntryWithAnswers extends DiaryEntry {
 export interface ReportWithProfile extends Report {
   profile?: Profile;
 }
-
-export type Database = {
-  __InternalSupabase: {
-    PostgrestVersion: "12"
-  }
-  public: {
-    Tables: {
-      profiles: {
-        Row: Profile;
-        Insert: Omit<Profile, 'created_at'>;
-        Update: Partial<Omit<Profile, 'id' | 'created_at'>>;
-      };
-      diaries: {
-        Row: Diary;
-        Insert: Omit<Diary, 'id' | 'created_at'>;
-        Update: Partial<Omit<Diary, 'id' | 'created_at'>>;
-      };
-      diary_questions: {
-        Row: DiaryQuestion;
-        Insert: Omit<DiaryQuestion, 'id' | 'created_at'>;
-        Update: Partial<Omit<DiaryQuestion, 'id' | 'created_at'>>;
-      };
-      diary_entries: {
-        Row: DiaryEntry;
-        Insert: Omit<DiaryEntry, 'id' | 'created_at'>;
-        Update: Partial<Omit<DiaryEntry, 'id' | 'created_at'>>;
-      };
-      entry_answers: {
-        Row: EntryAnswer;
-        Insert: Omit<EntryAnswer, 'id' | 'created_at'>;
-        Update: Partial<Omit<EntryAnswer, 'id' | 'created_at'>>;
-      };
-      reports: {
-        Row: Report;
-        Insert: Omit<Report, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Report, 'id' | 'created_at'>>;
-      };
-      push_subscriptions: {
-        Row: { id: string; client_id: string; endpoint: string; p256dh: string; auth: string; created_at: string | null };
-        Insert: { client_id: string; endpoint: string; p256dh: string; auth: string; id?: string; created_at?: string | null };
-        Update: Partial<{ client_id: string; endpoint: string; p256dh: string; auth: string }>;
-      };
-      scheduling_contacts: {
-        Row: { id: string; therapist_id: string; name: string; phone: string; created_at: string };
-        Insert: { therapist_id: string; name: string; phone: string; id?: string; created_at?: string };
-        Update: Partial<{ name: string; phone: string }>;
-      };
-      bot_subscriptions: {
-        Row: {
-          id: string;
-          client_id: string;
-          stripe_customer_id: string | null;
-          stripe_subscription_id: string | null;
-          status: 'active' | 'past_due' | 'canceled';
-          current_period_end: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          client_id: string;
-          stripe_customer_id?: string | null;
-          stripe_subscription_id?: string | null;
-          status: 'active' | 'past_due' | 'canceled';
-          current_period_end?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<{
-          stripe_customer_id: string | null;
-          stripe_subscription_id: string | null;
-          status: 'active' | 'past_due' | 'canceled';
-          current_period_end: string | null;
-          updated_at: string;
-        }>;
-      };
-      bot_messages: {
-        Row: { id: string; client_id: string; role: 'user' | 'assistant'; content: string; created_at: string };
-        Insert: { id?: string; client_id: string; role: 'user' | 'assistant'; content: string; created_at?: string };
-        Update: Partial<{ content: string }>;
-      };
-      roteiros: {
-        Row: Roteiro;
-        Insert: Partial<Omit<Roteiro, 'id' | 'user_id' | 'created_at' | 'updated_at'>> & { user_id: string; id?: string; created_at?: string; updated_at?: string };
-        Update: Partial<Omit<Roteiro, 'id' | 'user_id' | 'created_at'>>;
-      };
-    };
-  };
-};
