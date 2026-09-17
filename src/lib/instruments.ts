@@ -24,6 +24,12 @@ export const INSTRUMENTS: InstrumentConfig[] = [
     description: '124 perguntas sobre frequência de modos emocionais.',
     path: '/questionario-modos',
   },
+  {
+    key: 'bfi',
+    label: 'Big Five Inventory (BFI)',
+    description: '25 perguntas sobre os cinco grandes fatores de personalidade.',
+    path: '/questionario-bigfive',
+  },
 ];
 
 export function getInstrument(key: string): InstrumentConfig | undefined {
