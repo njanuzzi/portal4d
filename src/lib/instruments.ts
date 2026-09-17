@@ -44,18 +44,205 @@ export const INSTRUMENTS: InstrumentConfig[] = [
     label: 'Formulário de Esquemas (YSQ)',
     description: 'Mapeamento de Padrões — 205 perguntas sobre esquemas emocionais.',
     path: '/questionario-esquemas',
+    documentation: {
+      // Atenção: a versão implementada aqui é o YSQ Formulário Longo (205
+      // itens, 16 domínios com nomes humanizados) — NÃO o YSQ-S3 (versão
+      // curta, 90 itens, 5 domínios/18 subfatores). As fórmulas abaixo
+      // vêm direto de schema_domains/schema_questions (fonte de verdade),
+      // não de um texto de referência do S3, que teria numeração
+      // incompatível. Por isso não há developers/references aqui — não
+      // confirmamos a citação acadêmica exata desta tradução/versão de
+      // 205 itens, e preferimos deixar em branco a citar algo incerto.
+      badge: 'Escala Padronizada',
+      tags: ['Esquemas'],
+      overview:
+        'O Questionário de Esquemas de Young (YSQ) avalia Esquemas Iniciais Desadaptativos (EID) — padrões ' +
+        'emocionais e cognitivos estáveis que se desenvolvem precocemente e se associam a diversas ' +
+        'psicopatologias, especialmente em transtornos de personalidade. Esses esquemas organizam o sentido que a ' +
+        'pessoa dá às experiências e mantêm padrões emocionais e comportamentais desadaptativos. A versão ' +
+        'implementada neste portal ("Mapeamento de Padrões") tem 205 itens organizados em 16 domínios, cada um ' +
+        'com um nome em linguagem acessível ao cliente.',
+      targetPopulation: 'Adultos da população geral',
+      recommendedUses: [
+        'Contextos clínicos de triagem psicológica ampliada (mapeamento de padrões de personalidade e vulnerabilidades)',
+        'Formulação de caso em Terapia do Esquema',
+        'Pesquisas sobre esquemas, personalidade e psicopatologia',
+      ],
+      interpretation:
+        `1. Estrutura do instrumento
+205 itens, organizados em 16 domínios (ver a lista de Escalas abaixo). Escala de resposta Likert de 1 a 6 (1 = "Completamente falso sobre mim" a 6 = "Me descreve perfeitamente").
+
+2. Pontuação e faixas de interpretação (cutoffs)
+A pontuação de cada domínio é a média dos itens que o compõem. A literatura sobre o YSQ sugere heuristicamente que escores até 4 indicam esquema relativamente desativado, e escores acima de 4 indicam esquema mais ativado — mas não há pontos de corte validados para a população brasileira nesta versão de 205 itens. Escores mais altos indicam maior ativação do esquema, maior rigidez da crença e maior probabilidade dos padrões emocionais/comportamentais associados; escores mais baixos sugerem que o esquema é pouco saliente ou pouco ativado no momento. Importante: escores elevados não indicam que a pessoa "tem" um esquema — é uma característica que pode ou não estar ativada num dado momento.
+
+3. Cuidados éticos e limitações de aplicação
+Não usar isoladamente para diagnóstico — sempre complementar com entrevista clínica, observação e outros instrumentos. Interpretar de forma idiográfica (individualizada) e, quando possível, longitudinal.
+
+4. Sugestões para análise clínica
+Identificar os domínios com escores mais elevados (em geral os 3-5 mais altos) e articulá-los com a história de desenvolvimento do cliente (necessidades não atendidas), estilos de enfrentamento predominantes (evitação, supercompensação, rendição) e sintomas atuais, para orientar hipóteses de formulação de caso e o plano terapêutico.`,
+      patientInstructions:
+        'A seguir há uma lista de afirmações que as pessoas podem utilizar para descrever a si mesmas. Leia cada ' +
+        'afirmação e classifique-a baseando-se em quão bem ela descreve você ao longo do último ano. Quando você ' +
+        'não tiver certeza, baseie sua resposta nos seus sentimentos, e não no que você acredita racionalmente ' +
+        'que é verdade.',
+      scales: [
+        { label: 'Sentir que o cuidado emocional nunca é suficiente', formula: 'Resultado calculado através da média das questões 1, 2, 3, 4, 5, 6, 7, 8, 9.', hasCutoffs: false },
+        { label: 'Medo de perder ou ser abandonado pelas pessoas importantes', formula: 'Resultado calculado através da média das questões 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27.', hasCutoffs: false },
+        { label: 'Esperar que as pessoas vão te machucar ou se aproveitar', formula: 'Resultado calculado através da média das questões 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44.', hasCutoffs: false },
+        { label: 'Sentir que não pertence a nenhum grupo', formula: 'Resultado calculado através da média das questões 45, 46, 47, 48, 49, 50, 51, 52, 53, 54.', hasCutoffs: false },
+        { label: 'Sentir que, no fundo, tem algo "errado" em você', formula: 'Resultado calculado através da média das questões 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69.', hasCutoffs: false },
+        { label: 'Achar que não é atraente ou bem-aceito em grupo', formula: 'Resultado calculado através da média das questões 70, 71, 72, 73, 74, 75, 76, 77, 78.', hasCutoffs: false },
+        { label: 'Sentir que não está à altura, em comparação com os outros', formula: 'Resultado calculado através da média das questões 79, 80, 81, 82, 83, 84, 85, 86, 87.', hasCutoffs: false },
+        { label: 'Sentir que não dá conta das coisas sozinho', formula: 'Resultado calculado através da média das questões 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102.', hasCutoffs: false },
+        { label: 'Medo de que algo ruim aconteça a qualquer momento', formula: 'Resultado calculado através da média das questões 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116.', hasCutoffs: false },
+        { label: 'Dificuldade em se sentir separado dos outros', formula: 'Resultado calculado através da média das questões 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127.', hasCutoffs: false },
+        { label: 'Ceder ao que os outros querem pra evitar conflito', formula: 'Resultado calculado através da média das questões 128, 129, 130, 131, 132, 133, 134, 135, 136, 137.', hasCutoffs: false },
+        { label: 'Cuidar demais dos outros e pouco de você mesmo', formula: 'Resultado calculado através da média das questões 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154.', hasCutoffs: false },
+        { label: 'Segurar suas emoções pra não perder o controle ou incomodar', formula: 'Resultado calculado através da média das questões 155, 156, 157, 158, 159, 160, 161, 162, 163.', hasCutoffs: false },
+        { label: 'Cobrança alta demais consigo mesmo', formula: 'Resultado calculado através da média das questões 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179.', hasCutoffs: false },
+        { label: 'Dificuldade em aceitar limites ou regras que valem pra todo mundo', formula: 'Resultado calculado através da média das questões 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190.', hasCutoffs: false },
+        { label: 'Dificuldade em manter constância e lidar com frustração', formula: 'Resultado calculado através da média das questões 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205.', hasCutoffs: false },
+      ],
+    },
   },
   {
     key: 'smi',
     label: 'Inventário de Modos Esquemáticos (SMI)',
     description: '124 perguntas sobre frequência de modos emocionais.',
     path: '/questionario-modos',
+    documentation: {
+      badge: 'Escala Padronizada',
+      tags: ['Esquemas'],
+      overview:
+        'O Inventário de Modos Esquemáticos (SMI) é um instrumento de autorrelato destinado a avaliar a ' +
+        'frequência de ativação de 14 modos esquemáticos, segundo o modelo da Terapia do Esquema (TE). Os modos ' +
+        'esquemáticos representam estados emocionais, cognitivos e comportamentais ativados em resposta a ' +
+        'situações-gatilho e associados a Esquemas Iniciais Desadaptativos e estratégias de enfrentamento.',
+      applicationTime: 'Aproximadamente 20 a 30 minutos',
+      targetPopulation: 'Adultos (≥18 anos)',
+      recommendedUses: [
+        'Triagem clínica ampliada da dinâmica de modos predominantes',
+        'Psicodiagnóstico clínico, especialmente em contextos relacionados a Transtornos da Personalidade',
+        'Formulação de caso baseada em modos',
+        'Planejamento e monitoramento terapêutico em Terapia do Esquema',
+        'Pesquisa sobre modos e psicopatologia',
+      ],
+      interpretation:
+        `1. Estrutura do instrumento
+Número total de itens: 124 itens. Tipo de resposta: escala Likert de 1 a 6 (1 = "nunca ou quase nunca" a 6 = "o tempo todo"). Organização: 14 modos esquemáticos.
+
+2. Descrição das subescalas, dimensões ou fatores
+Modos Criança: Criança Vulnerável (medo, abandono, tristeza, desamparo), Criança Zangada (percepção de injustiça por necessidades não atendidas), Criança Raivosa (indignação, dificuldade de controlar emoções e impulsos), Criança Impulsiva (busca imediata por prazer, baixa tolerância à frustração), Criança Indisciplinada (dificuldade de planejamento, procrastinação), Criança Feliz (sentir-se leve e espontâneo, necessidades emocionais atendidas).
+Modos de Enfrentamento Disfuncionais: Capitulador Complacente (submissão, passividade), Protetor Desligado (desligamento emocional, evitação), Autoconfortador Desligado (uso de comportamentos autoapaziguadores pra reduzir emoções intensas).
+Modos Hipercompensadores: Autoengrandecedor (grandiosidade, sentir-se superior), Intimidação e Ataque (dominação, ameaças e agressões pra evitar ser controlado).
+Modos Pais Internalizados: Pais Punitivos (vozes internalizadas agressivas e depreciativas), Pais Exigentes/Críticos (padrões de exigência rígidos, hipervigilância a erros).
+Modo Adulto Saudável: Adulto Saudável (integração equilibrada das demandas internas e externas, compaixão e respeito aos limites).
+
+3. Pontuação e faixas de interpretação (cutoffs)
+A pontuação é obtida calculando-se a média dos escores dos itens em cada modo esquemático. Escores mais altos indicam maior frequência de ativação do modo. Não há pontos de corte validados pra população brasileira.
+
+4. Mudança clínica e sensibilidade
+Nenhum dos estudos fornece RCI, MCID, ou parâmetros explícitos de sensibilidade à mudança. Pode ser reaplicado em intervalos de 8-12 semanas, seguindo práticas da Terapia do Esquema.
+
+5. Cuidados éticos e limitações de aplicação
+Não deve ser usado isoladamente para diagnóstico. Requer entrevista clínica e avaliação complementar de esquemas e coping. Pode ser mal interpretado sem formação em Terapia do Esquema — recomenda-se uso apenas por psicólogos clínicos treinados.
+
+6. Sugestões para análise clínica
+Permite identificar vulnerabilidades centrais, mecanismos disfuncionais dominantes (evitação, hipercompensação, resignação) e modos críticos no ciclo de manutenção do sofrimento. Ao interpretar, avalie não apenas os 14 modos separadamente, mas a categoria maior à qual eles fazem parte. Relações entre modos valem observar: Criança Vulnerável + Protetor Distanciado (hiporregulação + evitação); Criança Impulsiva + Criança Raivosa (impulsividade + externalização agressiva); Punitivo + Criança Vulnerável (ciclos de autocrítica e retraimento).`,
+      patientInstructions:
+        'Este questionário possui afirmações que as pessoas podem usar para descrever a si mesmas. Baseando-se na ' +
+        'escala de frequência, avalie cada item escolhendo a opção que melhor descreve a frequência com que você ' +
+        'sente que cada afirmação se aplica a você. Ao responder cada questão, pergunte a si mesmo: "Em geral, ' +
+        'com que frequência esta frase se aplica a mim?"',
+      developers:
+        'Lobbestael, J., van Vreeswijk, M., Spinhoven, P., Schouten, E., & Arntz, A. (2010). Reliability and ' +
+        'validity of the short Schema Mode Inventory (SMI). Behavioural and Cognitive Psychotherapy, 38(4), ' +
+        '437-458. https://doi.org/10.1017/S1352465810000226 — Young, J. E., Arntz, A., Atkinson, T., Lobbestael, ' +
+        'J., Weishaar, M. E., Van Vreeswijk, M. F., & Klokman, J. (2007). The schema mode inventory. New York: ' +
+        'Schema Therapy Institute.',
+      references:
+        'Damasceno, E. S. (2020). Adaptação e evidências de validade do Inventário de Modos Esquemáticos (Schema ' +
+        'Mode Inventory – SMI) para população brasileira [Dissertação de Mestrado, Pontifícia Universidade ' +
+        'Católica do Rio Grande do Sul]. A implementação do instrumento foi realizada mediante aprovação da Dra. ' +
+        'Margareth Oliveira, coordenadora do Grupo de Avaliação e Acompanhamento Psicológico em Contextos ' +
+        'Clínicos (GAAPCC), responsável pelos estudos de validação (https://www.gaapcc.com/).',
+      scales: [
+        { label: 'Criança Vulnerável', formula: 'Resultado calculado através da média das questões 4, 6, 36, 50, 67, 71, 105, 106, 111, 119.', hasCutoffs: false },
+        { label: 'Criança Zangada', formula: 'Resultado calculado através da média das questões 22, 42, 47, 49, 56, 63, 76, 79, 103, 109.', hasCutoffs: false },
+        { label: 'Criança Raivosa', formula: 'Resultado calculado através da média das questões 14, 25, 26, 46, 54, 60, 92, 98, 101, 123.', hasCutoffs: false },
+        { label: 'Criança Impulsiva', formula: 'Resultado calculado através da média das questões 12, 15, 35, 40, 66, 69, 78, 97, 110.', hasCutoffs: false },
+        { label: 'Criança Indisciplinada', formula: 'Resultado calculado através da média das questões 13, 21, 30, 65, 70, 107.', hasCutoffs: false },
+        { label: 'Criança Feliz', formula: 'Resultado calculado através da média das questões 2, 17, 19, 48, 61, 68, 95, 96, 113, 122.', hasCutoffs: false },
+        { label: 'Capitulador Complacente', formula: 'Resultado calculado através da média das questões 8, 18, 37, 38, 55, 100, 108.', hasCutoffs: false },
+        { label: 'Protetor Desligado', formula: 'Resultado calculado através da média das questões 28, 33, 34, 39, 43, 59, 64, 75, 88.', hasCutoffs: false },
+        { label: 'Autoconfortador Desligado', formula: 'Resultado calculado através da média das questões 41, 52, 57, 86.', hasCutoffs: false },
+        { label: 'Autoengrandecedor', formula: 'Resultado calculado através da média das questões 10, 11, 27, 31, 44, 74, 81, 89, 91, 114.', hasCutoffs: false },
+        { label: 'Intimidação e Ataque', formula: 'Resultado calculado através da média das questões 1, 24, 32, 53, 77, 93, 99, 102, 112.', hasCutoffs: false },
+        { label: 'Pais Punitivos', formula: 'Resultado calculado através da média das questões 3, 5, 9, 16, 58, 72, 84, 87, 94, 118.', hasCutoffs: false },
+        { label: 'Pais Exigentes/Críticos', formula: 'Resultado calculado através da média das questões 7, 23, 45, 51, 82, 83, 90, 104, 115, 116.', hasCutoffs: false },
+        { label: 'Adulto Saudável', formula: 'Resultado calculado através da média das questões 20, 29, 62, 73, 80, 85, 117, 120, 121, 124.', hasCutoffs: false },
+      ],
+    },
   },
   {
     key: 'bfi',
     label: 'Big Five Inventory (BFI)',
     description: '25 perguntas sobre os cinco grandes fatores de personalidade.',
     path: '/questionario-bigfive',
+    documentation: {
+      badge: 'Escala Padronizada',
+      tags: ['Personalidade'],
+      overview:
+        'O Big Five Inventory (BFI), em sua versão brasileira, é um instrumento de autorrelato destinado a ' +
+        'mensurar os cinco grandes fatores de personalidade (Big Five): Extroversão, Amabilidade, ' +
+        'Conscienciosidade, Neuroticismo e Abertura à Experiência. O BFI é uma alternativa gratuita para ' +
+        'investigação de personalidade em pesquisa e em interfaces psiquiatria-psicologia (ex.: estudos sobre ' +
+        'associações entre traços e psicopatologia/bem-estar).',
+      applicationTime: '10 a 12 minutos',
+      targetPopulation: 'Adultos (>18 anos)',
+      recommendedUses: [
+        'Avaliação dimensional de traços de personalidade em contextos de triagem psicológica e formulação de caso',
+        'Relacionar traços a hipóteses transdiagnósticas, planejamento terapêutico e compreensão de dificuldades recorrentes',
+        'Pesquisa e interfaces com saúde mental (ex.: estudos de associação entre traços e indicadores clínicos)',
+      ],
+      interpretation:
+        `1. Estrutura do instrumento
+Número total de itens: 25 itens. Tipo de resposta: escala Likert de 1 a 5 ("discordo totalmente" a "concordo totalmente"). Organização: 5 fatores — Extroversão, Amabilidade, Conscienciosidade, Neuroticismo e Abertura à Experiência.
+
+2. Descrição das subescalas, dimensões ou fatores
+Extroversão: sociabilidade, energia, expressão/afirmação interpessoal. Amabilidade: tendências pró-sociais, cooperação, gentileza e perdão. Conscienciosidade: organização, autodisciplina, persistência e manejo de metas. Neuroticismo: instabilidade emocional, tendência a preocupação, tensão e reatividade ao estresse. Abertura à Experiência: curiosidade, imaginação, pensamento abstrato/reflexivo e interesse estético/intelectual.
+
+3. Pontuação e faixas de interpretação (cutoffs)
+O estudo não apresenta pontos de corte validados. Médias mais altas correspondem a características mais representativas dentro de cada fator.
+
+4. Mudança clínica e sensibilidade
+Embora haja menção a teste-reteste em piloto (n=46), o artigo não reporta coeficientes de estabilidade, RCI ou MCID — não sustenta uso como medida de desfecho terapêutico (monitoramento).
+
+5. Cuidados éticos e limitações de aplicação
+Não deve ser usado isoladamente para decisões diagnósticas — o BFI mede traços dimensionais e deve ser integrado a entrevista clínica, histórico, funcionamento e outros instrumentos. Limitações amostrais do estudo original (amostra de conveniência, predominância de mulheres e região Nordeste) limitam generalizações normativas.
+
+6. Sugestões para análise clínica
+Neuroticismo alto: maior risco de reatividade emocional, preocupação e estresse — pode orientar foco em regulação emocional e manejo de ansiedade. Conscienciosidade baixa: dificuldades de planejamento/aderência — pode orientar organização de hábitos e rotinas. Extroversão baixa: risco de retraimento social — pode orientar avaliação de rede de apoio e exposição gradual. Amabilidade baixa: potenciais conflitos interpessoais — útil para mapear padrões relacionais, evitando conclusões moralizantes. Abertura alta/baixa: pode influenciar responsividade a intervenções (maior abertura favorece técnicas experiencial-reflexivas; menor abertura favorece abordagens mais estruturadas).`,
+      patientInstructions:
+        'A seguir você verá características que podem ou não se aplicar a você. Por exemplo, você concorda que é ' +
+        'alguém que gosta de passar tempo com outros? Por favor selecione a opção que melhor se aproxima a cada ' +
+        'declaração, indicando a extensão que você concorda ou discorda dela.',
+      developers:
+        'John, O. P., Donahue, E. M., & Kentle, R. L. (1991). The Big Five Inventory - Versions 4a and 54. ' +
+        'Berkeley, CA: University of California, Berkeley, Institute of Personality and Social Research.',
+      references:
+        'Roiz Junior, P. R. S., da Silveira, D. X., Barbosa, P. C. R., Torres, M. A. D. S., Moreira Junior, E. D. ' +
+        'C., Areco, K. C. N., ... & Kasinski, S. K. (2023). Psychometric properties of the Brazilian version of ' +
+        'the Big Five Inventory. Trends in Psychiatry and Psychotherapy, 45, e20210458. ' +
+        'https://doi.org/10.47626/2237-6089-2021-0458',
+      scales: [
+        { label: 'Extroversão', formula: 'Resultado calculado através da média das questões 1, 7, 10, 17.', hasCutoffs: false },
+        { label: 'Amabilidade', formula: 'Resultado calculado através da média das questões 3, 11, 19, 23.', hasCutoffs: false },
+        { label: 'Conscienciosidade', formula: 'Resultado calculado através da média das questões 4, 12, 14, 18, 24.', hasCutoffs: false },
+        { label: 'Neuroticismo', formula: 'Resultado calculado através da média das questões 5, 8, 13, 15, 20, 21.', hasCutoffs: false },
+        { label: 'Abertura à Experiência', formula: 'Resultado calculado através da média das questões 2, 6, 9, 16, 22, 25.', hasCutoffs: false },
+      ],
+    },
   },
   {
     key: 'marq',
