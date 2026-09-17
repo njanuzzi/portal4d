@@ -111,7 +111,22 @@ A versão preparada nesta PR mantém exatamente a mesma assinatura usada pelo fr
 4. `p_answers` como array JSON;
 5. todos os `question_id` pertencentes ao diário atribuído.
 
-Entradas inconsistentes retornam `invalid_diary`, `invalid_answers` ou `invalid_question`. O fluxo legítimo atual permanece com o mesmo contrato.
+Entradas inconsistentes retornam erro sem criar registro parcial. O fluxo legítimo atual permanece com a mesma assinatura e formato de sucesso.
+
+## Hardening de `submit_lead`
+
+A RPC é pública por design. Em produção ela aceita `p_status`, e a tabela possui estados administrativos como `aprovado`, `recusado` e `encaminhado`.
+
+O frontend público legítimo usa apenas:
+
+- `novo` — default dos formulários comuns e quiz;
+- `selecao` — inscrição para sessão de avaliação.
+
+Os estados administrativos são alterados posteriormente na área autenticada da terapeuta.
+
+A PR 86 mantém a mesma assinatura da RPC, mas restringe a criação pública a `novo` ou `selecao`. Um chamador anônimo não poderá criar um lead já marcado como `aprovado`, `recusado` ou `encaminhado`.
+
+Essa restrição não altera a gestão posterior do lead pela terapeuta.
 
 ## `check_account_role`
 
@@ -145,11 +160,22 @@ A migration contém assertions com `has_function_privilege` para confirmar que:
 
 Se alguma dessas condições não for verdadeira no momento da aplicação, a migration falha em vez de deixar o banco parcialmente endurecido.
 
+## Validação da branch
+
+Antes de liberar a PR para revisão foram confirmados no head da branch:
+
+- `npm run typecheck`: sucesso;
+- `SQL security guard`: sucesso;
+- preview do Vercel: sucesso.
+
+O repositório não possui workflow de deploy de migrations do Supabase em `main`. Portanto, mergear esta PR versiona as migrations, mas não as aplica automaticamente ao banco de produção.
+
 ## Fora do escopo desta PR
 
 - remover `SECURITY DEFINER` em massa;
 - mudar RLS das tabelas;
 - mudar o fluxo de login de `check_account_role`;
 - restringir datas permitidas em `submit_client_diary_entry`;
+- adicionar rate limit/anti-spam ao `submit_lead`;
 - resolver todo o drift histórico de migrations mapeado na PR 82;
-- aplicar esta migration diretamente em produção antes de review/validação.
+- aplicar estas migrations diretamente em produção antes de review/validação.
