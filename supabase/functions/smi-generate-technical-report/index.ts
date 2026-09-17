@@ -61,8 +61,12 @@ DADOS DE ENTRADA que você recebe:
 - Nome do cliente
 - Lista dos 14 modos esquemáticos do SMI, cada um com: nome, categoria
   (Criança / Enfrentamento Disfuncional / Hipercompensador / Pais
-  Internalizados / Adulto Saudável), média (escala 1-6) e a descrição
-  clínica do modo
+  Internalizados / Adulto Saudável), média (escala 1-6), a descrição
+  clínica do modo e os esquemas do YSQ hipoteticamente associados a ele
+  (teoria de modos: um modo é a ativação de um ou mais esquemas) — quando
+  o cliente já respondeu o YSQ, vem também o percentual/classificação real
+  desses esquemas específicos; quando não respondeu, só o nome do esquema
+  hipotetizado, sem dado real
 - Ordenados do maior para o menor score
 - Cruzamentos entre modos identificados (quando os dois modos de um par
   documentado estão entre os mais ativados deste cliente)
@@ -95,6 +99,13 @@ baixos (mais breve para esses):
   pode se manifestar no dia a dia, relacionamentos e trabalho
 - Comportamentos observáveis esperados
 - Situações-gatilho prováveis
+- Se houver esquemas do YSQ associados a este modo nos dados de entrada:
+  comente a hipótese teórica; se o cliente já respondeu o YSQ, diga se o
+  percentual real desses esquemas reforça ou contradiz essa hipótese
+  (ex: "compatível com o percentual elevado de X no YSQ" ou "chama atenção
+  que X está baixo no YSQ apesar deste modo estar elevado — vale investigar
+  em sessão"). Se o cliente ainda não respondeu o YSQ, diga isso em uma
+  frase e siga sem forçar a hipótese.
 
 ## 3. Cruzamentos entre modos
 - Comente cada cruzamento identificado nos dados de entrada (se nenhum foi
@@ -138,8 +149,13 @@ serve(async (req) => {
     interface ProfileRef { name: string }
     interface ModeRef { code: string; name: string; category: string; description: string | null }
     interface ScoreRow { average_score: number; smi_modes: ModeRef | ModeRef[] | null }
+    interface DomainRef { name: string }
+    interface LinkRow { smi_modes: { code: string } | { code: string }[] | null; schema_domains: DomainRef | DomainRef[] | null }
+    interface SchemaScoreRow { percentual: number; classification: string; schema_domains: DomainRef | DomainRef[] | null }
 
     const unwrap = <T,>(value: T | T[] | null): T | null => (Array.isArray(value) ? value[0] ?? null : value);
+
+    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
     const { data: assessmentData, error: assessmentError } = await supabase
       .from("client_smi_assessments")
@@ -166,6 +182,58 @@ serve(async (req) => {
 
     const clientName = unwrap(assessment.profiles)?.name ?? "Cliente";
 
+    // De/Para esquemas (YSQ) → modos (SMI) — hipótese teórica fixa,
+    // preenchida em smi_mode_schema_links (ver migration
+    // 20260917010000_seed_smi_mode_schema_links.sql).
+    const { data: linksData } = await supabase
+      .from("smi_mode_schema_links")
+      .select("smi_modes(code), schema_domains(name)");
+    const relatedSchemasByModeCode = new Map<string, string[]>();
+    for (const link of (linksData ?? []) as unknown as LinkRow[]) {
+      const modeCode = unwrap(link.smi_modes)?.code;
+      const domainName = unwrap(link.schema_domains)?.name;
+      if (!modeCode || !domainName) continue;
+      const list = relatedSchemasByModeCode.get(modeCode) ?? [];
+      list.push(domainName);
+      relatedSchemasByModeCode.set(modeCode, list);
+    }
+
+    // Se este cliente já respondeu o YSQ (client_assessments é a trilha do
+    // YSQ, separada de client_smi_assessments), busca a versão mais recente
+    // já calculada pra poder confirmar ou contrastar a hipótese acima com
+    // dado real. Cliente pode nunca ter respondido — nesse caso segue só
+    // com a hipótese teórica, sem percentual.
+    const { data: ysqAssessment } = await supabase
+      .from("client_assessments")
+      .select("id")
+      .eq("client_id", assessment.client_id)
+      .neq("status", "in_progress")
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const ysqScoresByDomainName = new Map<string, { percentual: number; classification: string }>();
+    if (ysqAssessment) {
+      const { data: ysqScoresData } = await supabase
+        .from("client_schema_scores")
+        .select("percentual, classification, schema_domains(name)")
+        .eq("assessment_id", ysqAssessment.id);
+      for (const s of (ysqScoresData ?? []) as unknown as SchemaScoreRow[]) {
+        const domainName = unwrap(s.schema_domains)?.name;
+        if (domainName) ysqScoresByDomainName.set(domainName, { percentual: s.percentual, classification: s.classification });
+      }
+    }
+
+    const formatRelatedSchemas = (modeCode: string): string => {
+      const names = relatedSchemasByModeCode.get(modeCode) ?? [];
+      if (names.length === 0) return "";
+      const parts = names.map((name) => {
+        const real = ysqScoresByDomainName.get(name);
+        return real ? `${capitalize(name)} (${real.percentual}% no YSQ, ${real.classification})` : capitalize(name);
+      });
+      return ` | Esquemas do YSQ associados (hipótese): ${parts.join(", ")}`;
+    };
+
     const rows = scores.map((s) => {
       const mode = unwrap(s.smi_modes);
       return {
@@ -183,14 +251,18 @@ serve(async (req) => {
     );
 
     const modosList = rows
-      .map((r) => `- ${r.name} (${r.category}): ${r.average_score}/6${r.description ? ` — ${r.description}` : ""}`)
+      .map((r) => `- ${r.name} (${r.category}): ${r.average_score}/6${r.description ? ` — ${r.description}` : ""}${formatRelatedSchemas(r.code)}`)
       .join("\n");
 
     const crossList = matchedRelationships.length > 0
       ? matchedRelationships.map((r) => `- ${r.insight}`).join("\n")
       : "Nenhum cruzamento documentado foi identificado neste perfil.";
 
-    const userMessage = `Cliente: ${clientName}\n\nModos (ordenados por média):\n${modosList}\n\nCruzamentos identificados:\n${crossList}`;
+    const ysqNote = ysqAssessment
+      ? "Este cliente já respondeu o YSQ — os percentuais reais aparecem entre parênteses junto dos esquemas associados a cada modo."
+      : "Este cliente ainda não respondeu o Inventário de Esquemas (YSQ) — os esquemas associados a cada modo abaixo são só a hipótese teórica do instrumento, sem dado real deste cliente.";
+
+    const userMessage = `Cliente: ${clientName}\n\n${ysqNote}\n\nModos (ordenados por média):\n${modosList}\n\nCruzamentos identificados:\n${crossList}`;
 
     console.log(`[smi-generate-technical-report] Gerando relatório para assessment ${assessment_id}`);
 
