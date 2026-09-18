@@ -1,0 +1,28 @@
+name: Edge security regression guard
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - 'scripts/check-edge-security.mjs'
+      - '.github/workflows/edge-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  edge-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run Edge security regression guard
+        run: node scripts/check-edge-security.mjs
