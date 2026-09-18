@@ -159,7 +159,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.trigger_register_manychat_subscriber()
 FROM PUBLIC, anon, authenticated, service_role;
