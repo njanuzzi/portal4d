@@ -11,10 +11,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // opinião sobre o app, grava em client_signup_feedback (fica separado de
 // profiles porque é dado de onboarding, não um campo de perfil).
 //
-// Proteção contra spam: campo honeypot ("hp") — invisível pra gente real,
-// mas bots de formulário costumam preencher todo campo que encontram. Se
-// vier preenchido, responde 200 sem fazer nada (não entrega pro bot que foi
-// pego).
+// Proteção contra abuso:
+// - honeypot ("hp") para bots de formulário;
+// - rate limit server-side por IP, e-mail e telefone;
+// - validação de formato/tamanho antes de qualquer criação em Auth.
 //
 // O registro do convite (client_invites) roda ANTES do e-mail de
 // redefinição de senha, e cada um checa/loga seu próprio erro em vez de
@@ -34,6 +34,31 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json", ...extraHeaders },
+  });
+}
+
+function getClientIp(req: Request): string {
+  return (
+    req.headers.get("cf-connecting-ip") ??
+    req.headers.get("x-real-ip") ??
+    req.headers.get("x-forwarded-for")?.split(",")[0] ??
+    ""
+  ).trim();
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 // Avisa a terapeuta por e-mail sempre que um cliente novo se cadastra.
 // Fire-and-forget: uma falha aqui não deve impedir o cadastro do cliente.
 async function notifyNewSignup(name: string, email: string, whatsapp: string) {
@@ -52,14 +77,14 @@ async function notifyNewSignup(name: string, email: string, whatsapp: string) {
       body: JSON.stringify({
         from: { address: FROM_ADDRESS, name: "Portal Núbia Januzzi" },
         to: [{ email_address: { address: "contato@nubiajanuzzi.com", name: "Núbia Januzzi" } }],
-        subject: `Novo cadastro no portal: ${name}`,
+        subject: `Novo cadastro no portal: ${name.replace(/[\r\n]+/g, " ")}`,
         htmlbody: `
           <div style="font-family: sans-serif; color: #2C2C2C; line-height: 1.6;">
             <p>Um novo cliente se cadastrou pelo formulário rápido:</p>
             <ul>
-              <li><strong>Nome:</strong> ${name}</li>
-              <li><strong>E-mail:</strong> ${email}</li>
-              <li><strong>WhatsApp:</strong> ${whatsapp}</li>
+              <li><strong>Nome:</strong> ${escapeHtml(name)}</li>
+              <li><strong>E-mail:</strong> ${escapeHtml(email)}</li>
+              <li><strong>WhatsApp:</strong> ${escapeHtml(whatsapp)}</li>
             </ul>
           </div>
         `,
@@ -77,6 +102,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+  if (req.method !== "POST") {
+    return json({ error: "Method not allowed" }, 405);
+  }
 
   try {
     const body = await req.json();
@@ -88,17 +116,42 @@ serve(async (req) => {
 
     if (honeypot) {
       console.log("[client-self-signup] Honeypot preenchido, ignorando envio (provável bot)");
-      return new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ ok: true });
     }
 
     if (!name || !email || !whatsapp) {
-      return new Response(JSON.stringify({ error: "Nome, e-mail e WhatsApp são obrigatórios" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "Nome, e-mail e WhatsApp são obrigatórios" }, 400);
+    }
+
+    const phoneDigits = whatsapp.replace(/\D/g, "");
+    const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    if (
+      name.length > 120 ||
+      email.length > 254 ||
+      whatsapp.length > 40 ||
+      feedback.length > 2000 ||
+      !emailLooksValid ||
+      phoneDigits.length < 10 ||
+      phoneDigits.length > 15
+    ) {
+      return json({ error: "Dados de cadastro inválidos" }, 400);
+    }
+
+    const clientIp = getClientIp(req);
+    const { data: rateAllowed, error: rateError } = await supabase.rpc("check_client_signup_rate_limit", {
+      p_ip: clientIp,
+      p_email: email,
+      p_phone: whatsapp,
+    });
+    if (rateError) throw rateError;
+    if (!rateAllowed) {
+      console.warn("[client-self-signup] Rate limit excedido");
+      return json(
+        { error: "Muitas tentativas. Tente novamente mais tarde." },
+        429,
+        { "Retry-After": "3600" },
+      );
     }
 
     const { data: existing } = await supabase
@@ -108,11 +161,8 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existing) {
-      console.log(`[client-self-signup] Cliente já cadastrado, ignorando: ${email}`);
-      return new Response(JSON.stringify({ ok: true, skipped: "already_exists" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.log("[client-self-signup] Cadastro existente, retornando sucesso genérico");
+      return json({ ok: true, skipped: "already_exists" });
     }
 
     const { data: activeDiary } = await supabase
@@ -139,7 +189,13 @@ serve(async (req) => {
       whatsapp,
       diary_id: activeDiary?.id ?? null,
     });
-    if (profileError) throw profileError;
+    if (profileError) {
+      const { error: cleanupError } = await supabase.auth.admin.deleteUser(created.user.id);
+      if (cleanupError) {
+        console.error("[client-self-signup] Falha ao remover usuário após erro de profile:", cleanupError);
+      }
+      throw profileError;
+    }
 
     if (feedback) {
       const { error: feedbackError } = await supabase
@@ -164,17 +220,11 @@ serve(async (req) => {
 
     await notifyNewSignup(name, email, whatsapp);
 
-    console.log(`[client-self-signup] Cliente cadastrado via /cadastrocliente: ${email}`);
+    console.log("[client-self-signup] Cliente cadastrado via /cadastrocliente");
 
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ ok: true });
   } catch (err) {
     console.error("[client-self-signup] Erro inesperado:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: "Não foi possível concluir o cadastro agora." }, 500);
   }
 });
