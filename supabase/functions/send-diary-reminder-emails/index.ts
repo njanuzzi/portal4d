@@ -5,6 +5,18 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+async function isInternalRequest(req: Request): Promise<boolean> {
+  const token = req.headers.get("X-Portal-Internal-Token") ?? "";
+  if (!token) return false;
+
+  const { data, error } = await supabase.rpc("verify_internal_edge_token", { p_token: token });
+  if (error) {
+    console.error("[send-diary-reminder-emails] Falha ao validar token interno:", error.message);
+    return false;
+  }
+  return data === true;
+}
+
 const ZEPTOMAIL_API_KEY = Deno.env.get("ZEPTOMAIL_API_KEY");
 const APP_URL = Deno.env.get("APP_URL") ?? "https://sistema.nubiajanuzzi.com";
 const FROM_ADDRESS = "noreply@nubiajanuzzi.com";
@@ -49,7 +61,10 @@ async function sendEmail(toAddress: string, toName: string) {
   }
 }
 
-serve(async () => {
+serve(async (req) => {
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  if (!(await isInternalRequest(req))) return new Response("Forbidden", { status: 403 });
+
   const nowIso = new Date().toISOString();
 
   const { data: pending } = await supabase

@@ -28,12 +28,37 @@ const MANYCHAT_API_TOKEN = Deno.env.get("MANYCHAT_API_TOKEN");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-portal-internal-token",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
+async function isAuthorized(req: Request): Promise<boolean> {
+  const internalToken = req.headers.get("X-Portal-Internal-Token") ?? "";
+  if (internalToken) {
+    const { data: internalOk, error: internalError } = await supabase.rpc("verify_internal_edge_token", {
+      p_token: internalToken,
+    });
+    if (!internalError && internalOk === true) return true;
+  }
+
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const match = authHeader.match(/^Bearer\\s+(.+)$/i);
+  if (!match) return false;
+
+  const { data: userData, error: userError } = await supabase.auth.getUser(match[1]);
+  if (userError || !userData.user) return false;
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userData.user.id)
+    .maybeSingle();
+
+  return !profileError && profile?.role === "therapist";
 }
 
 // Normaliza pro formato E.164 (+55DDDNNNNNNNNN) que a API do Manychat espera.
@@ -46,6 +71,7 @@ function normalizePhoneE164(raw: string): string {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (!(await isAuthorized(req))) return json({ error: "Forbidden" }, 403);
 
   try {
     const { client_id, manual_subscriber_id } = await req.json();
