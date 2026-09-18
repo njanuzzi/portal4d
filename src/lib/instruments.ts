@@ -35,6 +35,12 @@ export interface InstrumentConfig {
   label: string;
   description: string;
   path: string;
+  // Tabela de respostas (client_id, status, submitted_at, version, raw_answers
+  // — mesmo formato em todos os instrumentos) e a rota da tela que já lista
+  // essas respostas. Usados por ClientInstruments.tsx pra montar a lista de
+  // "instrumentos que este cliente respondeu" sem hardcode por instrumento.
+  responsesTable: string;
+  responsesPath: string;
   documentation?: InstrumentDocumentation;
 }
 
@@ -44,6 +50,8 @@ export const INSTRUMENTS: InstrumentConfig[] = [
     label: 'Formulário de Esquemas (YSQ)',
     description: 'Mapeamento de Padrões — 205 perguntas sobre esquemas emocionais.',
     path: '/questionario-esquemas',
+    responsesTable: 'client_assessments',
+    responsesPath: '/schema-respostas',
     documentation: {
       // Atenção: a versão implementada aqui é o YSQ Formulário Longo (205
       // itens, 16 domínios com nomes humanizados) — NÃO o YSQ-S3 (versão
@@ -110,6 +118,8 @@ Identificar os domínios com escores mais elevados (em geral os 3-5 mais altos) 
     label: 'Inventário de Modos Esquemáticos (SMI)',
     description: '124 perguntas sobre frequência de modos emocionais.',
     path: '/questionario-modos',
+    responsesTable: 'client_smi_assessments',
+    responsesPath: '/smi-respostas',
     documentation: {
       badge: 'Escala Padronizada',
       tags: ['Esquemas'],
@@ -189,6 +199,8 @@ Permite identificar vulnerabilidades centrais, mecanismos disfuncionais dominant
     label: 'Big Five Inventory (BFI)',
     description: '25 perguntas sobre os cinco grandes fatores de personalidade.',
     path: '/questionario-bigfive',
+    responsesTable: 'client_bfi_assessments',
+    responsesPath: '/bfi-respostas',
     documentation: {
       badge: 'Escala Padronizada',
       tags: ['Personalidade'],
@@ -249,6 +261,8 @@ Neuroticismo alto: maior risco de reatividade emocional, preocupação e estress
     label: 'Escala de Amor do MARQ',
     description: '9 perguntas sobre vínculo emocional e amor romântico no relacionamento.',
     path: '/questionario-marq',
+    responsesTable: 'client_marq_assessments',
+    responsesPath: '/marq-respostas',
     documentation: {
       badge: 'Escala Padronizada',
       tags: ['Relacionamento'],
@@ -313,6 +327,8 @@ Escores mais baixos podem sugerir redução de intimidade, diminuição de carin
     label: 'Escala de Crenças Românticas (RBS)',
     description: '13 perguntas sobre crenças cognitivas idealizadas do amor romântico.',
     path: '/questionario-rbs',
+    responsesTable: 'client_rbs_assessments',
+    responsesPath: '/rbs-respostas',
     documentation: {
       badge: 'Escala Padronizada',
       tags: ['Relacionamento'],
@@ -375,6 +391,8 @@ Escores elevados em Idealização e Amor encontra uma maneira podem orientar int
     label: 'Experiências em Relacionamentos Íntimos (ECR-R)',
     description: '10 perguntas sobre apego adulto (ansiedade e evitação) em relacionamentos.',
     path: '/questionario-ecr',
+    responsesTable: 'client_ecr_assessments',
+    responsesPath: '/ecr-respostas',
     documentation: {
       badge: 'Escala Padronizada',
       tags: ['Relacionamento'],
@@ -440,6 +458,8 @@ Utilizar os escores para formular hipóteses sobre estratégias de regulação e
     label: 'Satisfação com o Relacionamento (ENSRA-R)',
     description: '5 perguntas sobre satisfação global com o relacionamento amoroso.',
     path: '/questionario-ensra',
+    responsesTable: 'client_ensra_assessments',
+    responsesPath: '/ensra-respostas',
     documentation: {
       badge: 'Escala Padronizada',
       tags: ['Relacionamento'],
@@ -500,6 +520,8 @@ Utilizar a ENSRA-R como indicador global de sofrimento ou bem-estar relacional, 
     label: 'Escala Triangular do Amor de Sternberg (ETAS-R)',
     description: '16 perguntas sobre intimidade, paixão e compromisso no relacionamento.',
     path: '/questionario-etas',
+    responsesTable: 'client_etas_assessments',
+    responsesPath: '/etas-respostas',
     documentation: {
       badge: 'Escala Padronizada',
       tags: ['Relacionamento'],

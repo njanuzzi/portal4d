@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target, MessageCircle, Copy, ExternalLink, Brain, Bell, BellOff, Quote } from 'lucide-react';
+import { ArrowLeft, BookOpen, FileText, Mail, Calendar, ToggleLeft, ToggleRight, Send, Clock, CheckCircle, LogIn, Phone, Pencil, X, Check, Target, MessageCircle, Copy, ExternalLink, Brain, Bell, BellOff, Quote, ClipboardList } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -948,7 +948,20 @@ export function ClientDetail() {
         </CardBody>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Link to={`/clients/${id}/instrumentos`}>
+          <Card className="hover:border-petrol-300 transition-colors cursor-pointer">
+            <CardBody className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-petrol-50 flex items-center justify-center">
+                <ClipboardList size={18} className="text-petrol-700" />
+              </div>
+              <div>
+                <div className="font-medium text-dark text-sm">Instrumentos</div>
+                <div className="text-xs text-dark/40">Instrumentos respondidos</div>
+              </div>
+            </CardBody>
+          </Card>
+        </Link>
         <Link to={`/clients/${id}/schema-analysis`}>
           <Card className="hover:border-petrol-300 transition-colors cursor-pointer">
             <CardBody className="flex items-center gap-3">
