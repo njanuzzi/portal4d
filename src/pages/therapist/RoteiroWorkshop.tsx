@@ -9,7 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { PageSpinner } from '../../components/ui/Spinner';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import type { ChecklistReviewItem, Roteiro, RoteiroRewrite } from '../../lib/database.types';
+import type { ChecklistReviewItem, Json, Roteiro, RoteiroRewrite } from '../../lib/database.types';
 
 // Mesmo limite validado na Edge Function `extract-roteiro` — checar aqui
 // também evita fazer a chamada só pra ela ser rejeitada no servidor.
@@ -205,8 +205,11 @@ export function RoteiroWorkshop() {
       checklist,
       source_text: rawText || null,
       extracted_at: extractedAt,
-      ai_review: checklistReview,
-      ai_rewrite: fieldRewrite,
+      // Stored as jsonb; the generated column type is the generic Json,
+      // narrower app-facing shapes (ChecklistReviewItem[]/RoteiroRewrite)
+      // only exist client-side.
+      ai_review: checklistReview as unknown as Json,
+      ai_rewrite: fieldRewrite as unknown as Json,
       reviewed_at: reviewedAt,
     };
 
