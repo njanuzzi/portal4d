@@ -23,7 +23,9 @@ export function Roteiros() {
       .from('roteiros')
       .select('*')
       .order('updated_at', { ascending: false });
-    setRoteiros(data ?? []);
+    // ai_review/ai_rewrite come back typed as the generic Json column type
+    // from the generated schema; Roteiro narrows them to their real shape.
+    setRoteiros((data ?? []) as unknown as Roteiro[]);
     setLoading(false);
   };
 
