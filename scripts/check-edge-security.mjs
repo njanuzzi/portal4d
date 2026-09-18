@@ -19,7 +19,14 @@ const checks = [
       "review-roteiro",
     ],
     requireAny: [
-      ["supabase.auth.getUser", 'role === "therapist"', "role='therapist'", "role = 'therapist'", 'profile?.role === "therapist"'],
+      [
+        "supabase.auth.getUser",
+        'role === "therapist"',
+        "role='therapist'",
+        "role = 'therapist'",
+        'profile?.role === "therapist"',
+        'role !== "therapist"',
+      ],
     ],
   },
   {
