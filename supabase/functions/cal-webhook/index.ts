@@ -3,33 +3,28 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // === Webhook do Cal.com — agendamentos com link do Zoom ===
 //
-// O código em produção foi reconciliado para o repositório nesta versão,
-// com uma única diferença intencional: o secret HMAC não é versionado.
-// Em produção ele ainda precisa ser rotacionado e movido para o secret
-// CAL_WEBHOOK_SECRET em uma etapa coordenada com o painel do Cal.com.
+// A assinatura HMAC é validada no banco por uma RPC service-role-only.
+// O segredo fica no Supabase Vault e nunca entra no bundle da Edge Function
+// nem no repositório.
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-const CAL_WEBHOOK_SECRET = Deno.env.get("CAL_WEBHOOK_SECRET")!;
-
 async function verifySignature(rawBody: string, signatureHeader: string | null): Promise<boolean> {
-  if (!signatureHeader || !CAL_WEBHOOK_SECRET) return false;
+  if (!signatureHeader) return false;
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(CAL_WEBHOOK_SECRET),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const signatureBuffer = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
-  const expected = Array.from(new Uint8Array(signatureBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const { data, error } = await supabase.rpc("verify_cal_webhook_signature", {
+    p_raw_body: rawBody,
+    p_signature: signatureHeader,
+  });
 
-  return expected === signatureHeader;
+  if (error) {
+    console.error("[cal-webhook] Falha ao validar assinatura:", error.message);
+    return false;
+  }
+
+  return data === true;
 }
 
 function extractZoomLink(payload: any): string | null {
@@ -123,13 +118,13 @@ serve(async (req) => {
 
     if (upsertError) {
       console.error("[cal-webhook] Erro ao gravar agendamento:", upsertError);
-      return new Response(JSON.stringify({ error: upsertError.message }), { status: 500 });
+      return new Response(JSON.stringify({ error: "Falha ao gravar agendamento" }), { status: 500 });
     }
 
     console.log(`[cal-webhook] Agendamento gravado: ${uid}, cliente casado: ${!!clientId}`);
     return new Response(JSON.stringify({ ok: true, client_matched: !!clientId }), { status: 200 });
   } catch (err) {
     console.error("[cal-webhook] Erro inesperado:", err);
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Erro interno" }), { status: 500 });
   }
 });
