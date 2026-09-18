@@ -23,6 +23,7 @@ import { ReportsByClient } from './pages/therapist/ReportsByClient';
 import { SessionReports } from './pages/therapist/SessionReports';
 import { SessionReportDetail } from './pages/therapist/SessionReportDetail';
 import { ClientSchemaAnalysis } from './pages/therapist/ClientSchemaAnalysis';
+import { ClientInstruments } from './pages/therapist/ClientInstruments';
 import { SchemaReportDetail } from './pages/therapist/SchemaReportDetail';
 import { ClientFacingReportPreview } from './pages/therapist/ClientFacingReportPreview';
 import { SchemaResponsesRepository } from './pages/therapist/SchemaResponsesRepository';
@@ -258,6 +259,7 @@ function AppRoutes() {
           <Route path="/clients/:id/entries" element={<ClientEntries />} />
           <Route path="/clients/:id/reports" element={<ClientReports />} />
           <Route path="/clients/:id/report/new" element={<NewReport />} />
+          <Route path="/clients/:id/instrumentos" element={<ClientInstruments />} />
           <Route path="/clients/:id/schema-analysis" element={<ClientSchemaAnalysis />} />
           <Route path="/clients/:id/schema-analysis/report/:reportId" element={<SchemaReportDetail />} />
           <Route path="/clients/:id/schema-analysis/report/:reportId/cliente" element={<ClientFacingReportPreview />} />
