@@ -922,6 +922,10 @@ export type Database = {
     }
     Functions: {
       check_account_role: { Args: { p_email: string }; Returns: string }
+      check_client_signup_rate_limit: {
+        Args: { p_email: string; p_ip: string; p_phone: string }
+        Returns: boolean
+      }
       delete_client: { Args: { client_id: string }; Returns: undefined }
       get_client_diary_data: {
         Args: { p_date?: string; p_token: string }
