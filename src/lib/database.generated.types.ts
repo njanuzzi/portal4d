@@ -977,6 +977,7 @@ export type Database = {
         Args: { p_assessment_id: string; p_instrument: string; p_token: string }
         Returns: boolean
       }
+      verify_internal_edge_token: { Args: { p_token: string }; Returns: boolean }
       validate_client_token: {
         Args: { p_token: string }
         Returns: {

@@ -16,6 +16,18 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
+async function isInternalRequest(req: Request): Promise<boolean> {
+  const token = req.headers.get("X-Portal-Internal-Token") ?? "";
+  if (!token) return false;
+
+  const { data, error } = await supabase.rpc("verify_internal_edge_token", { p_token: token });
+  if (error) {
+    console.error("[generate-bot-context] Falha ao validar token interno:", error.message);
+    return false;
+  }
+  return data === true;
+}
+
 const anthropic = new Anthropic({
   apiKey: Deno.env.get("BOT_ANTHROPIC_API_KEY")!,
 });
@@ -39,9 +51,8 @@ function stripHtml(html: string): string {
 }
 
 serve(async (req) => {
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
-  }
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  if (!(await isInternalRequest(req))) return new Response("Forbidden", { status: 403 });
 
   try {
     const { data: subs, error: subsError } = await supabase
