@@ -982,6 +982,10 @@ export type Database = {
         Returns: boolean
       }
       verify_internal_edge_token: { Args: { p_token: string }; Returns: boolean }
+      verify_cal_webhook_signature: {
+        Args: { p_raw_body: string; p_signature: string }
+        Returns: boolean
+      }
       validate_client_token: {
         Args: { p_token: string }
         Returns: {
