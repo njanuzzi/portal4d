@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, MessageCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { PILARES } from '../lib/protocolo4d';
@@ -15,6 +15,7 @@ import {
   FECHAMENTO_TEXT,
   SESSAO_AVALIACAO_WHATSAPP_LINK,
   computeDominantStage,
+  quizResultWhatsappLink,
 } from '../lib/quizProtocolo4d';
 
 // submit_lead isn't declared in the (stale) generated database.types.ts —
@@ -209,6 +210,16 @@ export function QuizInstagram() {
             <p className="text-petrol-100/85 leading-relaxed text-sm">
               <strong className="text-white">Prática desta semana:</strong> {PARECERES[dominantStage].pratica}
             </p>
+
+            <a
+              href={quizResultWhatsappLink(dominantStage)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full rounded-lg border border-petrol-500 px-4 py-3 text-sm font-medium text-white hover:border-gold-400 hover:bg-petrol-800 transition-colors"
+            >
+              <MessageCircle size={16} />
+              Receber meu resultado no WhatsApp
+            </a>
 
             <div className="pt-2 border-t border-petrol-700 space-y-4">
               <p className="text-petrol-100/85 leading-relaxed text-sm">{FECHAMENTO_TEXT}</p>

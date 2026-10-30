@@ -4,6 +4,9 @@ import type { Stage4D } from '../src/lib/quizProtocolo4d.js';
 export const config = { runtime: 'nodejs' };
 
 const ZEPTOMAIL_ENDPOINT = 'https://api.zeptomail.com/v1.1/email';
+// Cópia oculta de todo resultado do quiz, pra Núbia confirmar que os e-mails
+// estão saindo (mesmo endereço que recebe as inscrições).
+const CONTATO_EMAIL = 'contato@nubiajanuzzi.com';
 
 function isValidEmail(email: string): boolean {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
@@ -72,6 +75,7 @@ export async function POST(req: Request): Promise<Response> {
       body: JSON.stringify({
         from: { address: fromEmail, name: fromName },
         to: [{ email_address: { address: email, name: name || undefined } }],
+        bcc: [{ email_address: { address: CONTATO_EMAIL } }],
         subject: 'Seu retrato simbólico — Protocolo 4D',
         htmlbody: buildHtmlBody(name, stage as Stage4D),
       }),
