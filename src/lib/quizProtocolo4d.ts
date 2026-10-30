@@ -28,6 +28,18 @@ export const SESSAO_AVALIACAO_WHATSAPP_LINK =
   'https://wa.me/5548988652228?text=' +
   encodeURIComponent('Olá! Fiz o quiz do Protocolo 4D e quero minha Sessão de Avaliação.');
 
+// Botão "receber no WhatsApp" da tela de resultado: a própria pessoa abre a
+// conversa (a Meta não deixa a gente mandar a primeira mensagem sem template)
+// e o ManyChat responde com o parecer. As palavras-chave RESULTADO DETECTAR /
+// DESACELERAR / DECODIFICAR / DIRECIONAR precisam bater com os gatilhos
+// configurados no ManyChat.
+export function quizResultWhatsappLink(stage: Stage4D): string {
+  return (
+    'https://wa.me/5548988652228?text=' +
+    encodeURIComponent(`RESULTADO ${stage.toUpperCase()} — quero receber meu retrato do quiz por aqui.`)
+  );
+}
+
 interface QuizOption {
   stage: Stage4D;
   label: string;
