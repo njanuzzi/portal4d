@@ -59,7 +59,7 @@ begin
 end;
 $$;
 
-revoke execute on function public.record_bfi_report_view(uuid) from public, anon;
-revoke execute on function public.record_bfi_report_acknowledgment(uuid) from public, anon;
+revoke execute on function public.record_bfi_report_view(uuid) from public, anon, authenticated;
+revoke execute on function public.record_bfi_report_acknowledgment(uuid) from public, anon, authenticated;
 grant execute on function public.record_bfi_report_view(uuid) to authenticated;
 grant execute on function public.record_bfi_report_acknowledgment(uuid) to authenticated;
