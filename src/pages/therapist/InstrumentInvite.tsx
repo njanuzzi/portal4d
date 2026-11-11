@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Copy, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Check, Copy, ExternalLink, MonitorPlay } from 'lucide-react';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -24,6 +24,7 @@ export function InstrumentInvite() {
   const [selectedClientId, setSelectedClientId] = useState('');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
   const [link, setLink] = useState('');
 
@@ -62,6 +63,34 @@ export function InstrumentInvite() {
 
     setLink(`${window.location.origin}${instrument.path}?token=${data.token}`);
     setGenerating(false);
+  };
+
+  // Abre o questionário já no nome da cliente, em modo terapeuta: o
+  // resultado fica só pra terapeuta até ser liberado no portal. A aba é
+  // aberta antes do await pra não ser barrada pelo bloqueador de pop-up.
+  const handleApplyNow = async () => {
+    if (!instrument || !selectedClientId) return;
+    const tab = window.open('', '_blank');
+    setApplying(true);
+    setError('');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error: insertError } = await (supabase.from('instrument_invites') as any)
+      .insert({ client_id: selectedClientId, instrument: instrument.key })
+      .select('token')
+      .single();
+
+    if (insertError || !data?.token) {
+      tab?.close();
+      setError('Não foi possível abrir a aplicação agora. Tente novamente.');
+      setApplying(false);
+      return;
+    }
+
+    const url = `${window.location.origin}${instrument.path}?token=${data.token}&modo=terapeuta`;
+    if (tab) tab.location.href = url;
+    else window.location.href = url;
+    setApplying(false);
   };
 
   const switchMode = (next: Mode) => {
@@ -247,9 +276,23 @@ export function InstrumentInvite() {
               <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</div>
             )}
 
-            <Button onClick={handleGenerate} loading={generating} disabled={!selectedClientId}>
-              Gerar link
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button onClick={handleGenerate} loading={generating} disabled={!selectedClientId}>
+                Gerar link
+              </Button>
+              {instrument.supportsTherapistMode && (
+                <Button variant="ghost" onClick={handleApplyNow} loading={applying} disabled={!selectedClientId}>
+                  <MonitorPlay size={16} />
+                  Aplicar agora com a cliente
+                </Button>
+              )}
+            </div>
+            {instrument.supportsTherapistMode && (
+              <p className="text-xs text-dark/40">
+                "Aplicar agora" abre o questionário numa aba nova, no nome da cliente, para preencher junto com ela
+                na sessão. O resultado fica só com você até ser liberado no portal dela.
+              </p>
+            )}
 
             {link && <LinkBox link={link} footer="Válido por 30 dias." />}
           </CardBody>

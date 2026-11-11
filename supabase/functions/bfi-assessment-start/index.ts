@@ -136,6 +136,10 @@ serve(async (req) => {
     const wantsEmailNotification = body?.wants_email_notification === true;
     const wantsWhatsappNotification = body?.wants_whatsapp_notification === true;
     const inviteToken = String(body?.invite_token ?? "").trim();
+    // "Aplicar agora com a cliente" (InstrumentInvite.tsx) — só vale junto
+    // de um invite_token válido; marca a resposta como aplicada pela
+    // terapeuta em vez de preenchida sozinha no portal.
+    const appliedByTherapist = Boolean(inviteToken) && body?.applied_by === "terapeuta";
 
     if (honeypot) {
       // bot de formulário — responde 200 sem criar nada
@@ -261,7 +265,7 @@ serve(async (req) => {
       .from("client_bfi_assessments")
       .insert({
         client_id: clientId,
-        source: "portal",
+        source: appliedByTherapist ? "terapeuta" : "portal",
         submitted_at: new Date().toISOString(),
         raw_answers: {},
         status: "in_progress",

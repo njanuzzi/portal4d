@@ -33,30 +33,36 @@ interface Question {
 
 type Step = 'loading' | 'identity' | 'welcome' | 'quiz' | 'done';
 
-function loadDraft(): { assessment_id: string; edit_token: string } | null {
+function loadDraft(key: string): { assessment_id: string; edit_token: string } | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function saveDraft(assessmentId: string, editToken: string) {
+function saveDraft(key: string, assessmentId: string, editToken: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ assessment_id: assessmentId, edit_token: editToken }));
+    localStorage.setItem(key, JSON.stringify({ assessment_id: assessmentId, edit_token: editToken }));
   } catch { /* ignore */ }
 }
 
-function clearDraft() {
+function clearDraft(key: string) {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(key);
   } catch { /* ignore */ }
 }
 
 export function BFIQuestionnaire() {
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get('token') ?? '';
+  // Aplicação feita pela terapeuta junto com a cliente ("Aplicar agora com a
+  // cliente" em InstrumentInvite.tsx), no navegador da terapeuta. O rascunho
+  // fica separado por convite pra não retomar o questionário de outra
+  // cliente aplicado no mesmo navegador.
+  const therapistMode = searchParams.get('modo') === 'terapeuta' && !!inviteToken;
+  const draftKey = therapistMode ? `${STORAGE_KEY}:${inviteToken}` : STORAGE_KEY;
 
   const [step, setStep] = useState<Step>('loading');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -91,7 +97,7 @@ export function BFIQuestionnaire() {
         .order('question_number');
       setQuestions((questionRows ?? []) as Question[]);
 
-      const draft = loadDraft();
+      const draft = loadDraft(draftKey);
       if (draft?.assessment_id && draft?.edit_token) {
         const { data, error: fnError } = await supabase.functions.invoke('bfi-assessment-start', {
           body: { resume_assessment_id: draft.assessment_id, resume_token: draft.edit_token },
@@ -106,7 +112,7 @@ export function BFIQuestionnaire() {
           setStep('quiz');
           return;
         }
-        clearDraft();
+        clearDraft(draftKey);
       }
 
       if (inviteToken) {
@@ -146,6 +152,7 @@ export function BFIQuestionnaire() {
       body: inviteClientName
         ? {
             invite_token: inviteToken,
+            applied_by: therapistMode ? 'terapeuta' : undefined,
             lgpd_consent: lgpdConsent,
             wants_email_notification: notifyEmail,
             wants_whatsapp_notification: notifyWhatsapp,
@@ -167,7 +174,7 @@ export function BFIQuestionnaire() {
       return;
     }
 
-    saveDraft(data.assessment_id, data.edit_token);
+    saveDraft(draftKey, data.assessment_id, data.edit_token);
     setAssessmentId(data.assessment_id);
     setEditToken(data.edit_token);
     setStep('quiz');
@@ -200,7 +207,7 @@ export function BFIQuestionnaire() {
       return;
     }
 
-    clearDraft();
+    clearDraft(draftKey);
     setStep('done');
     setSubmitting(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -283,6 +290,7 @@ export function BFIQuestionnaire() {
             {inviteClientName && (
               <p className="text-xs text-gold-300 bg-petrol-800/60 border border-petrol-600 rounded-lg px-3 py-2 mb-6">
                 Preenchendo para: <strong>{inviteClientName}</strong>
+                {therapistMode && <> · aplicação com a terapeuta</>}
               </p>
             )}
 
@@ -423,9 +431,25 @@ export function BFIQuestionnaire() {
           <div className="text-center py-10">
             <CheckCircle2 size={40} className="text-gold-400 mx-auto mb-4" />
             <h1 className="font-serif text-2xl mb-2 text-balance">Respostas enviadas!</h1>
-            <p className="text-petrol-100/80 text-sm leading-relaxed">
-              Obrigada por preencher o questionário. Em breve você receberá meu contato.
-            </p>
+            {therapistMode ? (
+              <>
+                <p className="text-petrol-100/80 text-sm leading-relaxed mb-6">
+                  Obrigada por responder. O resultado fica salvo só para a terapeuta e será liberado no seu portal
+                  depois.
+                </p>
+                {assessmentId && (
+                  <a href={`/bfi-respostas/${assessmentId}`}>
+                    <Button variant="secondary" className="w-full">
+                      Ver resultado (terapeuta)
+                    </Button>
+                  </a>
+                )}
+              </>
+            ) : (
+              <p className="text-petrol-100/80 text-sm leading-relaxed">
+                Obrigada por preencher o questionário. Em breve você receberá meu contato.
+              </p>
+            )}
           </div>
         )}
       </div>
