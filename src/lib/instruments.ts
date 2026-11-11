@@ -41,6 +41,9 @@ export interface InstrumentConfig {
   // "instrumentos que este cliente respondeu" sem hardcode por instrumento.
   responsesTable: string;
   responsesPath: string;
+  // Questionário sabe lidar com ?modo=terapeuta (aplicação junto com a
+  // cliente, ver InstrumentInvite.tsx). Por enquanto só o BFI.
+  supportsTherapistMode?: boolean;
   documentation?: InstrumentDocumentation;
 }
 
@@ -201,6 +204,7 @@ Permite identificar vulnerabilidades centrais, mecanismos disfuncionais dominant
     path: '/questionario-bigfive',
     responsesTable: 'client_bfi_assessments',
     responsesPath: '/bfi-respostas',
+    supportsTherapistMode: true,
     documentation: {
       badge: 'Escala Padronizada',
       tags: ['Personalidade'],
@@ -250,9 +254,9 @@ Neuroticismo alto: maior risco de reatividade emocional, preocupação e estress
       scales: [
         { label: 'Extroversão', formula: 'Resultado calculado através da média das questões 1, 7, 10, 17.', hasCutoffs: false },
         { label: 'Amabilidade', formula: 'Resultado calculado através da média das questões 3, 11, 19, 23.', hasCutoffs: false },
-        { label: 'Conscienciosidade', formula: 'Resultado calculado através da média das questões 4, 12, 14, 18, 24.', hasCutoffs: false },
-        { label: 'Neuroticismo', formula: 'Resultado calculado através da média das questões 5, 8, 13, 15, 20, 21.', hasCutoffs: false },
-        { label: 'Abertura à Experiência', formula: 'Resultado calculado através da média das questões 2, 6, 9, 16, 22, 25.', hasCutoffs: false },
+        { label: 'Conscienciosidade', formula: 'Resultado calculado através da média das questões 4, 12, 14, 18, 24 (4, 12, 14 e 24 invertidas).', hasCutoffs: false },
+        { label: 'Neuroticismo', formula: 'Resultado calculado através da média das questões 5, 8, 13, 15, 20, 21 (5, 15 e 20 invertidas).', hasCutoffs: false },
+        { label: 'Abertura à Experiência', formula: 'Resultado calculado através da média das questões 2, 6, 9, 16, 22, 25 (22 invertida).', hasCutoffs: false },
       ],
     },
   },

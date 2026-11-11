@@ -29,6 +29,10 @@ const FACTORS: Record<string, number[]> = {
   abertura: [2, 6, 9, 16, 22, 25],
 };
 
+// Itens invertidos (6 - resposta) — mesma lista de BFI_REVERSED_QUESTIONS
+// em src/lib/bfiFactors.ts.
+const REVERSED = new Set([4, 12, 14, 24, 5, 15, 20, 22]);
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -96,7 +100,10 @@ serve(async (req) => {
     }
 
     const scores = Object.entries(FACTORS).map(([factor, questionNumbers]) => {
-      const sum = questionNumbers.reduce((total, qn) => total + (mergedAnswers[String(qn)] ?? 0), 0);
+      const sum = questionNumbers.reduce((total, qn) => {
+        const answer = mergedAnswers[String(qn)] ?? 0;
+        return total + (answer && REVERSED.has(qn) ? 6 - answer : answer);
+      }, 0);
       const averageScore = Math.round((sum / questionNumbers.length) * 100) / 100;
       return { factor, average_score: averageScore };
     });

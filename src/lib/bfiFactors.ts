@@ -16,13 +16,22 @@ export const BFI_FACTORS: BFIFactor[] = [
   { key: 'abertura', label: 'Abertura à Experiência', questionNumbers: [2, 6, 9, 16, 22, 25] },
 ];
 
+// Itens redigidos no sentido oposto ao fator (ex.: "Tende a ser
+// desorganizado(a)" em Conscienciosidade, "É tranquilo(a)" em Neuroticismo,
+// "Tem poucos interesses artísticos" em Abertura) — entram na média
+// invertidos (6 - resposta), como no instrumento original.
+export const BFI_REVERSED_QUESTIONS = new Set([4, 12, 14, 24, 5, 15, 20, 22]);
+
 export interface BFIFactorScore extends BFIFactor {
   average: number;
 }
 
 export function computeBfiFactorScores(answers: Record<string, number>): BFIFactorScore[] {
   return BFI_FACTORS.map((factor) => {
-    const sum = factor.questionNumbers.reduce((total, qn) => total + (answers[String(qn)] ?? 0), 0);
+    const sum = factor.questionNumbers.reduce((total, qn) => {
+      const answer = answers[String(qn)] ?? 0;
+      return total + (answer && BFI_REVERSED_QUESTIONS.has(qn) ? 6 - answer : answer);
+    }, 0);
     const average = sum / factor.questionNumbers.length;
     return { ...factor, average };
   });

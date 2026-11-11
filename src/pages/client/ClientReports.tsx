@@ -19,6 +19,7 @@ import { EsquemasBarChart } from '../../components/EsquemasBarChart';
 import { ReportObservations } from '../../components/ReportObservations';
 import { formatDate } from '../../lib/format';
 import type { Report } from '../../lib/database.types';
+import type { BfiClientContent } from '../../lib/bfiClientReport';
 
 // session_reports não está no database.types.ts (tabela nova) — mesmo padrão
 // de client não tipado usado em outras tabelas recentes.
@@ -81,6 +82,15 @@ interface ModoRow {
   acknowledged_at: string | null;
 }
 
+interface BfiRow {
+  id: string;
+  assessment_id: string;
+  content: BfiClientContent;
+  published_at: string;
+  first_viewed_at: string | null;
+  acknowledged_at: string | null;
+}
+
 interface SmiMode {
   id: string;
   name: string;
@@ -88,7 +98,7 @@ interface SmiMode {
 }
 
 type ReportRow = Report & { first_viewed_at?: string | null };
-type ReportsTabKey = 'sessions' | 'fechamento' | 'esquemas' | 'modos';
+type ReportsTabKey = 'sessions' | 'fechamento' | 'esquemas' | 'modos' | 'bigfive';
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -123,6 +133,9 @@ export function ClientReports() {
   const [domains, setDomains] = useState<SchemaDomain[]>([]);
   const [modosReports, setModosReports] = useState<ModoRow[]>([]);
   const [smiModes, setSmiModes] = useState<SmiMode[]>([]);
+  const [bfiReports, setBfiReports] = useState<BfiRow[]>([]);
+  const [previewBfi, setPreviewBfi] = useState<BfiRow | null>(null);
+  const [acknowledgingBfi, setAcknowledgingBfi] = useState(false);
   const [sessionReports, setSessionReports] = useState<SessionReportRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewReport, setPreviewReport] = useState<ReportRow | null>(null);
@@ -161,7 +174,12 @@ export function ClientReports() {
         .eq('client_id', user!.id)
         .order('published_at', { ascending: false }),
       untypedSupabase.from('smi_modes').select('id, name, description'),
-    ]).then(([{ data: reportRows }, { data: padraoRows }, { data: domainRows }, { data: sessionReportRows }, { data: modoRows }, { data: smiModeRows }]) => {
+      untypedSupabase
+        .from('client_bfi_published_reports')
+        .select('id, assessment_id, content, published_at, first_viewed_at, acknowledged_at')
+        .eq('client_id', user!.id)
+        .order('published_at', { ascending: false }),
+    ]).then(([{ data: reportRows }, { data: padraoRows }, { data: domainRows }, { data: sessionReportRows }, { data: modoRows }, { data: smiModeRows }, { data: bfiRows }]) => {
       const loadedReports = (reportRows ?? []) as ReportRow[];
       const loadedSessionReports = (sessionReportRows ?? []) as SessionReportRow[];
 
@@ -171,6 +189,7 @@ export function ClientReports() {
       setSessionReports(loadedSessionReports);
       setModosReports((modoRows ?? []) as unknown as ModoRow[]);
       setSmiModes((smiModeRows ?? []) as unknown as SmiMode[]);
+      setBfiReports((bfiRows ?? []) as unknown as BfiRow[]);
 
       // Mês mais recente de cada lista já vem aberto; o resto começa fechado.
       const sessionMonthKeys = groupByMonth(loadedSessionReports, (r) => r.session_date).map(([key]) => key);
@@ -213,6 +232,29 @@ export function ClientReports() {
       .rpc('record_smi_report_view', { p_assessment_id: previewModo.assessment_id })
       .then(() => {}, () => {});
   }, [previewModo]);
+
+  useEffect(() => {
+    if (!previewBfi) return;
+    void untypedSupabase
+      .rpc('record_bfi_report_view', { p_assessment_id: previewBfi.assessment_id })
+      .then(() => {}, () => {});
+  }, [previewBfi]);
+
+  const handleAcknowledgeBfi = async () => {
+    if (!previewBfi) return;
+    setAcknowledgingBfi(true);
+    const { error } = await untypedSupabase.rpc('record_bfi_report_acknowledgment', {
+      p_assessment_id: previewBfi.assessment_id,
+    });
+    if (!error) {
+      const acknowledgedAt = new Date().toISOString();
+      setBfiReports((prev) =>
+        prev.map((b) => (b.id === previewBfi.id && !b.acknowledged_at ? { ...b, acknowledged_at: acknowledgedAt } : b))
+      );
+      setPreviewBfi((prev) => (prev && !prev.acknowledged_at ? { ...prev, acknowledged_at: acknowledgedAt } : prev));
+    }
+    setAcknowledgingBfi(false);
+  };
 
   const handleAcknowledgeModo = async () => {
     if (!previewModo) return;
@@ -271,9 +313,12 @@ export function ClientReports() {
     { key: 'fechamento', label: 'Fechamento do Ciclo', count: reports.length },
     { key: 'esquemas', label: 'Esquemas', count: padroes.length },
     { key: 'modos', label: 'Modos', count: modosReports.length },
+    // Aba só aparece pra quem já tem devolutiva do Big Five liberada.
+    ...(bfiReports.length > 0 ? [{ key: 'bigfive' as const, label: 'Personalidade', count: bfiReports.length }] : []),
   ];
 
-  const isEmpty = reports.length === 0 && padroes.length === 0 && sessionReports.length === 0 && modosReports.length === 0;
+  const isEmpty =
+    reports.length === 0 && padroes.length === 0 && sessionReports.length === 0 && modosReports.length === 0 && bfiReports.length === 0;
 
   return (
     <div>
@@ -445,6 +490,32 @@ export function ClientReports() {
             ))}
           </div>
         )
+      ) : activeTab === 'bigfive' ? (
+        <div className="space-y-3">
+          {bfiReports.map((bfi) => (
+            <Card key={bfi.id}>
+              <CardBody>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant="gold">Sua personalidade</Badge>
+                    </div>
+                    <div className="text-sm font-medium text-dark">
+                      Devolutiva do Big Five
+                    </div>
+                    <div className="text-xs text-dark/40 mt-0.5">
+                      Disponível desde {formatDate(bfi.published_at)}
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setPreviewBfi(bfi)} className="shrink-0">
+                    <Eye size={14} />
+                    Ler
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
       ) : modosReports.length === 0 ? (
         <EmptyState icon={<FileText size={40} />} title="Nenhuma devolutiva de modos ainda" />
       ) : (
@@ -565,6 +636,53 @@ export function ClientReports() {
 
             <div className="border-t border-beige-300 pt-4">
               <ReportObservations assessmentId={previewPadrao.assessment_id} clientId={user!.id} viewerRole="client" />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!previewBfi}
+        onClose={() => setPreviewBfi(null)}
+        title="Sua personalidade"
+        size="lg"
+      >
+        {previewBfi && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-xs text-dark/40">
+              <Sparkles size={13} className="text-gold-500" />
+              Baseado nas suas respostas ao Big Five
+            </div>
+            <div className="space-y-3">
+              {previewBfi.content.fatores.map((fator) => (
+                <div key={fator.key} className="bg-beige-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-dark font-serif mb-2">{fator.nome}</h3>
+                  <div className="w-full h-1.5 bg-beige-200 rounded-full overflow-hidden mb-3">
+                    <div
+                      className="h-full bg-gold-500 rounded-full"
+                      style={{ width: `${Math.min(100, Math.max(0, ((fator.average - 1) / 4) * 100))}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-dark/70 leading-relaxed whitespace-pre-line">{fator.descricao}</p>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-beige-300 pt-4">
+              <p className="text-sm text-dark/70 leading-relaxed whitespace-pre-line">{previewBfi.content.conclusao}</p>
+            </div>
+
+            <div className="border-t border-beige-300 pt-4">
+              {previewBfi.acknowledged_at ? (
+                <div className="flex items-center gap-1.5 text-sm text-green-700">
+                  <CheckCircle2 size={15} />
+                  Você confirmou a leitura em {formatDate(previewBfi.acknowledged_at)}
+                </div>
+              ) : (
+                <Button size="sm" variant="ghost" loading={acknowledgingBfi} onClick={handleAcknowledgeBfi}>
+                  <CheckCircle2 size={14} />
+                  Confirmar que li o relatório
+                </Button>
+              )}
             </div>
           </div>
         )}
