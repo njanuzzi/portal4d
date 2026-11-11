@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase';
 import { buildRawAnswersCsv, downloadCsv, QuestionRef } from '../../lib/schemaCsv';
 import { computeBfiFactorScores } from '../../lib/bfiFactors';
 import { BfiClientContent, buildBfiClientContent } from '../../lib/bfiClientReport';
+import { BfiTechnicalReportCard } from '../../components/BfiTechnicalReportCard';
 
 // client_bfi_published_reports é tabela nova, fora dos tipos gerados —
 // mesmo padrão de client não tipado usado no SMI/ClientReports.
@@ -216,6 +217,8 @@ export function BFIResponseDetail() {
               />
             </CardBody>
           </Card>
+
+          <BfiTechnicalReportCard assessmentId={assessment.id} />
 
           {clientContent && (
             <Card>

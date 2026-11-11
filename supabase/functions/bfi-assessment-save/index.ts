@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generateBfiTechnicalReport } from "../_shared/bfiTechnicalReport.ts";
 
 // === Salva respostas do Big Five Inventory (BFI) ===
 //
@@ -115,6 +116,15 @@ serve(async (req) => {
     if (updateError) throw updateError;
 
     console.log(`[bfi-assessment-save] assessment ${assessmentId} finalizado e calculado`);
+
+    // Relatório técnico pra terapeuta sai sozinho, em segundo plano — a
+    // cliente recebe a resposta já, sem esperar o Claude. Se falhar, fica
+    // registrado em client_bfi_reports e a terapeuta pode gerar de novo.
+    const reportJob = generateBfiTechnicalReport(supabase, assessmentId).catch((err) =>
+      console.error(`[bfi-assessment-save] falha ao gerar relatório técnico de ${assessmentId}:`, err)
+    );
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil(reportJob);
 
     return json({ ok: true, scores });
   } catch (err) {
