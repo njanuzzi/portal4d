@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { Sparkles, Wand2, Undo2, Copy, Check, Lock } from 'lucide-react';
+import { Sparkles, Wand2, Undo2, Copy, Check, Lock, ClipboardList } from 'lucide-react';
 import { Card, CardBody } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Textarea } from './ui/Textarea';
 import { supabase } from '../lib/supabase';
-import { SimpleMarkdown } from './SimpleMarkdown';
+import { SimpleMarkdown, extractSection, markdownToPlainText } from './SimpleMarkdown';
 
 // client_bfi_reports é tabela nova, fora dos tipos gerados.
 const untypedSupabase = supabase as unknown as SupabaseClient;
@@ -34,7 +34,7 @@ export function BfiTechnicalReportCard({ assessmentId }: { assessmentId: string 
   const [instruction, setInstruction] = useState('');
   const [revising, setRevising] = useState(false);
   const [undoing, setUndoing] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'all' | 'sintese' | null>(null);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
@@ -104,16 +104,23 @@ export function BfiTechnicalReportCard({ assessmentId }: { assessmentId: string 
     setUndoing(false);
   };
 
-  const handleCopy = async () => {
+  // Os dois copiam texto limpo (sem ##, ** e >), pronto pra colar em
+  // prontuário ou documento.
+  const handleCopy = async (what: 'all' | 'sintese') => {
     if (!report?.technical_content) return;
-    await navigator.clipboard.writeText(report.technical_content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    const source = what === 'sintese'
+      ? extractSection(report.technical_content, /s[ií]ntese/i) ?? ''
+      : report.technical_content;
+    if (!source) return;
+    await navigator.clipboard.writeText(markdownToPlainText(source));
+    setCopied(what);
+    setTimeout(() => setCopied(null), 2500);
   };
 
   if (!loaded) return null;
 
   const hasContent = !!report?.technical_content;
+  const hasSintese = hasContent && extractSection(report!.technical_content!, /s[ií]ntese/i) != null;
 
   return (
     <Card>
@@ -166,9 +173,15 @@ export function BfiTechnicalReportCard({ assessmentId }: { assessmentId: string 
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <Button size="sm" variant="ghost" onClick={handleCopy}>
-                {copied ? <Check size={14} /> : <Copy size={14} />}
-                {copied ? 'Copiado!' : 'Copiar'}
+              {hasSintese && (
+                <Button size="sm" onClick={() => handleCopy('sintese')}>
+                  {copied === 'sintese' ? <Check size={14} /> : <ClipboardList size={14} />}
+                  {copied === 'sintese' ? 'Síntese copiada!' : 'Copiar síntese para o prontuário'}
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => handleCopy('all')}>
+                {copied === 'all' ? <Check size={14} /> : <Copy size={14} />}
+                {copied === 'all' ? 'Copiado!' : 'Copiar relatório'}
               </Button>
               <Button size="sm" variant="ghost" loading={generating} disabled={isGenerating || revising} onClick={handleGenerate}>
                 <Sparkles size={14} />
