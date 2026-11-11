@@ -11,6 +11,7 @@ const checks = [
       "revise-technical-report",
       "smi-generate-client-report",
       "smi-generate-technical-report",
+      "bfi-technical-report",
       "whatsapp-send-invite",
       "generate-monthly-report",
       "send-report-observation",
