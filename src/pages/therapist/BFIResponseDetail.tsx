@@ -13,6 +13,7 @@ import { buildRawAnswersCsv, downloadCsv, QuestionRef } from '../../lib/schemaCs
 import { computeBfiFactorScores } from '../../lib/bfiFactors';
 import { BfiClientContent, buildBfiClientContent } from '../../lib/bfiClientReport';
 import { BfiTechnicalReportCard } from '../../components/BfiTechnicalReportCard';
+import { BfiConceptsCard } from '../../components/BfiConceptsCard';
 
 // client_bfi_published_reports é tabela nova, fora dos tipos gerados —
 // mesmo padrão de client não tipado usado no SMI/ClientReports.
@@ -217,6 +218,8 @@ export function BFIResponseDetail() {
               />
             </CardBody>
           </Card>
+
+          <BfiConceptsCard averages={Object.fromEntries(factorScores.map((f) => [f.key, f.average]))} />
 
           <BfiTechnicalReportCard assessmentId={assessment.id} />
 

@@ -21,6 +21,11 @@ const FACTORS: { key: string; label: string; questions: number[] }[] = [
 ];
 const REVERSED = new Set([4, 12, 14, 24, 5, 15, 20, 22]);
 
+const INSTRUMENT_NOTE =
+  "Instrumento: BFI, versão brasileira de 25 itens, escala de 1 a 5. Médias por fator calculadas com os " +
+  "itens invertidos já recodificados (6 - resposta): 4, 12, 14 e 24 (Conscienciosidade), 5, 15 e 20 " +
+  "(Neuroticismo) e 22 (Abertura).";
+
 const SCALE_LABELS: Record<number, string> = {
   1: "Discordo totalmente",
   2: "Discordo um pouco",
@@ -30,58 +35,90 @@ const SCALE_LABELS: Record<number, string> = {
 };
 
 const GENERATE_SYSTEM_PROMPT = `Você é um supervisor clínico produzindo um relatório técnico de apoio para a
-psicóloga que conduz o caso, a partir do Big Five Inventory (BFI, versão
-brasileira de 25 itens, escala 1-5). Este documento NUNCA é lido pela cliente.
+psicóloga que conduz o caso, a partir do Big Five Inventory (BFI). Este
+documento NUNCA é lido pela cliente.
 
 DADOS DE ENTRADA:
 - Nome da cliente e se o questionário foi aplicado junto com a terapeuta ou
   preenchido sozinho
-- Média de cada um dos 5 fatores (itens invertidos já corrigidos)
+- Versão do instrumento e forma de cálculo (itens invertidos já
+  recodificados)
+- Média de cada um dos 5 fatores
 - Cada item com a resposta dada (marcando os invertidos)
 
 REGRAS:
-- Escreva em português do Brasil, linguagem clínica, direta e técnica, para
-  outra profissional.
-- O BFI não tem pontos de corte validados para a população brasileira:
-  nunca classifique um fator como "alto"/"baixo" em termos absolutos ou
-  normativos. Fale em posição relativa entre os 5 fatores desta cliente e
-  em proximidade dos extremos da escala (1-5). Trate toda leitura como
-  hipótese ("sugere", "é compatível com", "vale investigar").
-- O BFI mede traços dimensionais: não faça diagnóstico nem sugira
-  transtorno a partir dele.
-- Use os itens individuais para apontar nuances e incoerências internas
-  (ex.: respostas divergentes dentro do mesmo fator).
-- Baseie-se apenas nos dados fornecidos; não invente informações sobre a
-  cliente.
-- Markdown limpo (##, ###, listas), sem emojis.
+- Português do Brasil, linguagem clínica e direta, para outra profissional.
+- O BFI descreve tendências de personalidade, não transtornos: não faça
+  diagnóstico nem sugira psicopatologia a partir dele.
+- Não há pontos de corte validados para a população brasileira: nunca
+  classifique um fator como "alto"/"baixo" de forma normativa. Fale em
+  posição relativa entre os 5 fatores desta cliente e em proximidade dos
+  extremos da escala 1-5. Toda leitura é hipótese ("sugere", "é compatível
+  com", "vale investigar").
+- Para cada fator, deixe explícito o que a pontuação NÃO permite concluir
+  (ex.: amabilidade mais baixa não é agressividade; abertura não é
+  inteligência; neuroticismo não é diagnóstico de ansiedade; média central
+  em conscienciosidade não indica qual faceta pesa mais).
+- Use os itens individuais para apontar nuances e incoerências dentro do
+  mesmo fator.
+- A versão do instrumento e o cálculo já foram informados nos dados — não
+  peça essas informações nem levante dúvida sobre recodificação.
+- Baseie-se apenas nos dados fornecidos; não invente fatos sobre a cliente.
+- Markdown limpo (##, ###, listas, tabelas), sem emojis.
 
 ESTRUTURA (nesta ordem):
 
+Abra com um parágrafo curto: o Big Five descreve tendências, não transtornos,
+e sem pontos de corte brasileiros as interpretações são hipóteses clínicas.
+
 ## 1. Visão geral do perfil
-Fatores que mais se destacam (maiores e menores médias desta cliente) e o
-desenho geral do perfil.
+- Lista das 5 médias em ordem decrescente (formato "Fator — x,xx/5").
+- A combinação que mais chama atenção no perfil e a hipótese que ela
+  sugere, junto com o que ainda não se sabe (ex.: se a extroversão aparece
+  mais como sociabilidade, assertividade ou busca de estímulo).
 
-## 2. Análise por fator
-Para cada um dos 5 fatores, em ordem decrescente de média:
+## 2. Interpretação clínica de cada fator
+Para cada fator, em ordem decrescente de média:
 ### [Fator] — [média]/5
-- Como esse nível relativo pode aparecer no dia a dia, nas relações e no
-  trabalho
-- Itens que chamaram atenção dentro do fator
-- Recursos e pontos de vulnerabilidade associados
+- Conceito em uma ou duas frases
+- **Possíveis manifestações:** 3 a 4 itens
+- **Itens que chamaram atenção:** quando houver
+- **Na psicoterapia:** o que observar e investigar
+- **O que não dá para concluir:** uma frase
 
-## 3. Interações entre fatores
-Combinações relevantes (ex.: Neuroticismo com Conscienciosidade,
-Extroversão com Amabilidade) e o que sugerem sobre o funcionamento.
+## 3. O que a combinação dos fatores pode revelar
+Tabela com as colunas "Combinação" e "Hipótese clínica a investigar"
+(4 a 6 linhas, só combinações relevantes para este perfil). Depois da
+tabela, uma frase lembrando que são possibilidades, não conclusões.
 
-## 4. Implicações para o processo terapêutico
-- Como o perfil pode influenciar o vínculo e a resposta a intervenções
-  (ex.: abertura favorecendo técnicas experienciais; menor abertura
-  favorecendo abordagens mais estruturadas)
-- Focos de trabalho sugeridos
-- Hipóteses a explorar em sessão
+### Uma hipótese a testar
+Um ciclo hipotético plausível para este perfil, em quatro passos:
+**Situação** → **Interpretação possível** → **Resposta emocional e
+comportamental** → **Consequência possível**. Termine dizendo que o ciclo
+não é inferido diretamente do BFI e deve ser testado por análise funcional,
+história de vida e relatos da cliente.
 
-## 5. Limites desta leitura
-Uma ou duas frases sobre o que o instrumento não permite concluir.`;
+## 4. Como aprofundar na entrevista clínica
+Tabela com as colunas "Dimensão" e "Pergunta clínica", com perguntas
+abertas que não induzam resposta, cobrindo regulação emocional,
+relacionamentos, flexibilidade cognitiva, empatia e reciprocidade,
+autodisciplina e autopercepção (priorize as dimensões mais relevantes
+para este perfil). Uma frase final sobre diferenciar traço de estado.
+
+## 5. Possíveis caminhos para o trabalho terapêutico
+Itens curtos por abordagem — TCC, Terapia do Esquema, ACT e DBT — sempre
+condicionados ao motivo da procura e ao que a entrevista confirmar. Em
+Terapia do Esquema, cite esquemas só como possibilidades a verificar com
+evidências clínicas independentes. Feche dizendo que a intervenção não
+deve ser escolhida só com base no perfil de personalidade.
+
+## 6. Síntese para o prontuário
+Um bloco de 2 a 4 parágrafos curtos, em terceira pessoa, linguagem de
+prontuário, pronto para copiar: instrumento e médias, padrão descritivo
+observado, o que se recomenda investigar e uma frase final de
+considerações (resultados descritivos, sem classificação normativa ou
+significado diagnóstico isolado; requerem integração com entrevista,
+história de vida e demanda).`;
 
 const REVISE_SYSTEM_PROMPT = `Você é um supervisor clínico revisando um relatório técnico do Big Five que
 você mesmo gerou para a psicóloga que conduz o caso. Este documento NUNCA é
@@ -156,7 +193,7 @@ async function loadInput(supabase: SupabaseClient, assessmentId: string) {
     ? "Aplicado junto com a terapeuta, em sessão."
     : "Preenchido pela cliente sozinha, pelo link.";
 
-  const dataBlock = `Cliente: ${clientName}\nAplicação: ${application}\n\nMédias por fator (ordem decrescente):\n${factorLines}\n\nRespostas por item (escala 1-5):\n${itemLines}`;
+  const dataBlock = `Cliente: ${clientName}\nAplicação: ${application}\n${INSTRUMENT_NOTE}\n\nMédias por fator (ordem decrescente):\n${factorLines}\n\nRespostas por item (escala 1-5):\n${itemLines}`;
 
   return { assessment, dataBlock };
 }
