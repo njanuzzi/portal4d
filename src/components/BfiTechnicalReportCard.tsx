@@ -6,6 +6,7 @@ import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Textarea } from './ui/Textarea';
 import { supabase } from '../lib/supabase';
+import { SimpleMarkdown } from './SimpleMarkdown';
 
 // client_bfi_reports é tabela nova, fora dos tipos gerados.
 const untypedSupabase = supabase as unknown as SupabaseClient;
@@ -160,8 +161,8 @@ export function BfiTechnicalReportCard({ assessmentId }: { assessmentId: string 
               Atualizado em {formatDateTime(report!.updated_at)}
               {report!.generated_with ? ` · gerado com ${report!.generated_with}` : ''}
             </p>
-            <div className="text-sm text-dark/80 whitespace-pre-wrap leading-relaxed max-h-[32rem] overflow-y-auto bg-beige-50 border border-beige-200 rounded-lg p-4">
-              {report!.technical_content}
+            <div className="max-h-[40rem] overflow-y-auto bg-beige-50 border border-beige-200 rounded-lg px-4 py-2">
+              <SimpleMarkdown content={report!.technical_content!} />
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
